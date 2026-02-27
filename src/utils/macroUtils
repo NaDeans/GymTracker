@@ -1,0 +1,87 @@
+// macroUtils.js
+// Utility functions for handling food logs, formatting, and macro calculations
+
+/**
+ * Formats a food name consistently:
+ * - Trims whitespace
+ * - Converts to lowercase
+ * - Capitalizes the first letter of each word
+ * - Normalizes multiple spaces/tabs to single spaces
+ *
+ * @param {string} rawName - The raw food name input
+ * @returns {string} formatted food name
+ */
+export const formatFoodName = (rawName) => {
+  if (!rawName || typeof rawName !== "string") return "";
+
+  // Replace multiple spaces/tabs/newlines with a single space
+  const normalized = rawName.trim().replace(/\s+/g, " ").toLowerCase();
+
+  // Capitalize each word
+  return normalized
+    .split(" ")
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+
+
+/**
+ * Safely parses a value as a number.
+ * Returns 0 if the value is not a finite number.
+ *
+ * @param {*} value - The value to convert (string, number, etc.)
+ * @returns {number} - Valid finite number, or 0 if invalid
+ */
+export const parseNumberSafe = (value) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : 0;
+};
+
+
+
+/**
+ * Calculates total macros from a list of food log items.
+ *
+ * Each item should have the structure:
+ * {
+ *   item: { calories, protein, carbs, fats },
+ *   count: number (default 1)
+ * }
+ *
+ * @param {Array} foodItems - Array of food log items
+ * @returns {object} totals - { calories, protein, carbs, fats }
+ */
+export const calculateTotalMacros = (foodItems = []) => {
+  // Initialize totals
+  const totals = { calories: 0, protein: 0, carbs: 0, fats: 0 };
+
+  // Loop through each food entry
+  for (const entry of foodItems) {
+    const { item = {}, count = 1 } = entry;
+    totals.calories += roundToTwo(entry.calories * (entry.count || 1));
+    totals.protein  += roundToTwo(entry.protein * (entry.count || 1));
+    totals.carbs    += roundToTwo(entry.carbs * (entry.count || 1));
+    totals.fats     += roundToTwo(entry.fats * (entry.count || 1));
+  }
+
+  return totals;
+};
+
+
+
+/**
+ * Defines the input fields for the custom food entry form.
+ * Each object defines:
+ * - key: the field name in state
+ * - label: label to display in the form
+ * - keyboardType: the keyboard type for input
+ */
+export const customFoodInputFields = [
+  { key: "name", label: "Food Name", keyboardType: "default" },
+  { key: "grams", label: "Weight (g)", keyboardType: "numeric" },
+  { key: "calories", label: "Calories", keyboardType: "numeric" },
+  { key: "protein", label: "Protein (g)", keyboardType: "numeric" },
+  { key: "carbs", label: "Carbs (g)", keyboardType: "numeric" },
+  { key: "fats", label: "Fats (g)", keyboardType: "numeric" }
+];

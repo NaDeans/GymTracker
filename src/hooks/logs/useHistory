@@ -1,0 +1,29 @@
+// src/hooks/logs/useHistory.js
+import { useState } from "react";
+
+/**
+ * Hook to manage history by date
+ * @param {object} initialHistory - { "DD/MM/YY": [{ items: [...] }] }
+ */
+export const useHistory = (initialHistory = {}) => {
+  const [historyByDate, setHistoryByDate] = useState(initialHistory);
+
+  const addEntry = (date, entry) => {
+    setHistoryByDate(prev => {
+      const dayHistory = prev[date] || [];
+      return { ...prev, [date]: [entry, ...dayHistory] };
+    });
+  };
+
+  const removeItemFromDate = (date, foodId) => {
+    setHistoryByDate(prev => {
+      const dayHistory = prev[date]?.map(e => ({
+        ...e,
+        items: e.items.filter(i => i.id !== foodId)
+      })) || [];
+      return { ...prev, [date]: dayHistory.filter(e => e.items.length > 0) };
+    });
+  };
+
+  return { historyByDate, setHistoryByDate, addEntry, removeItemFromDate };
+};

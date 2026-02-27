@@ -1,0 +1,11 @@
+/**
+ * Rounds a number to two decimal places.
+ * Returns 0 if the value is not a valid number.
+ *
+ * @param {*} value - Input number
+ * @returns {number} Rounded to 2 decimals
+ */
+export const roundToTwo = (value) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? Math.round(num * 100) / 100 : 0;
+};
