@@ -1,71 +1,37 @@
-/**
- * Safely parses GPT-generated JSON text into an object.
- * Removes code block formatting and validates that items exist.
- *
- * @param {string} gptText - Raw GPT output
- * @returns {object} Parsed object containing nutrition items
- * @throws {Error} If parsing fails or no items are returned
- */
-export const parseGPTJSONSafely = (gptText) => {
+// Safe parse JSON from GPT
+export const safeParseJSON = (text) => {
   try {
-    const cleanedText = gptText.replace(/```json/g, "").replace(/```/g, "").trim();
-    const parsed = JSON.parse(cleanedText);
+    const cleaned = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    const parsed = JSON.parse(cleaned);
 
-    if (!parsed.items || !Array.isArray(parsed.items) || parsed.items.length === 0) {
+    if (!parsed.items || parsed.items.length === 0) {
       throw new Error("No nutrition items returned");
     }
 
     return parsed;
   } catch (err) {
-    console.error("❌ GPT JSON parse error:", err);
+    console.error("❌ JSON parse error:", err);
     throw new Error("Failed to parse GPT JSON output");
   }
 };
 
+// Normalize & validate item
+export const normalizeAndValidateItem = (i) => {
+  const protein = Number(i.protein_g ?? i.protein ?? 0);
+  const carbs   = Number(i.carbs_g ?? i.carbs ?? 0);
+  const fats    = Number(i.fat_g ?? i.fats ?? 0);
 
-
-/**
- * Normalizes a nutrition item object into a consistent format.
- *
- * Accepts various possible keys from GPT output and ensures numbers are safe.
- *
- * @param {object} rawItem - Raw item from GPT
- * @returns {object} Normalized food item with consistent keys
- */
-import { parseNumberSafe, formatFoodName } from "./macroUtils";
-import { roundToTwo } from "./numberUtils";
-
-export const normalizeFoodItem = (rawItem = {}) => {
-  if (!rawItem || typeof rawItem !== "object") {
-    console.warn("Invalid raw item, returning empty food item");
-    return {
-      id: Date.now().toString() + Math.random().toString(36).slice(2),
-      name: "",
-      grams: 0,
-      calories: 0,
-      protein: 0,
-      carbs: 0,
-      fats: 0,
-      assumption: null
-    };
-  }
-
-  const protein = roundToTwo(parseNumberSafe(rawItem.protein_g ?? rawItem.protein ?? 0));
-  const carbs   = roundToTwo(parseNumberSafe(rawItem.carbs_g ?? rawItem.carbs ?? 0));
-  const fats    = roundToTwo(parseNumberSafe(rawItem.fat_g ?? rawItem.fats ?? 0));
-  const grams   = roundToTwo(rawItem.amount_g != null ? parseNumberSafe(rawItem.amount_g) : 0);
-
-  // Calories = 4*protein + 4*carbs + 9*fats, rounded to 2 decimals
-  const calories = roundToTwo(protein * 4 + carbs * 4 + fats * 9);
+  const calories = Math.round(protein * 4 + carbs * 4 + fats * 9);
+  const amount_g = i.amount_g != null ? Number(i.amount_g) : null;
 
   return {
-    id: Date.now().toString() + Math.random().toString(36).slice(2),
-    name: formatFoodName(rawItem.name),
-    grams,
+    id: Date.now().toString() + Math.random(),
+    name: formatName(i.name),
+    amount_g,
     calories,
     protein,
     carbs,
     fats,
-    assumption: rawItem.assumption?.trim() || null
+    assumption: i.assumption?.trim() ? i.assumption : null
   };
 };

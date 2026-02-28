@@ -1,7 +1,4 @@
 // constants/styles.js
-import { StyleSheet } from "react-native";
-import { COLORS } from "./colors";
-
 export const SPACING = {
   xs: 4,
   sm: 8,
@@ -16,6 +13,13 @@ export const FONT_SIZE = {
   lg: 20,
   xl: 24,
   xxl: 32,
+};
+
+export const FONT_WEIGHT = {
+  regular: "400",
+  medium: "500",
+  semibold: "600",
+  bold: "700",
 };
 
 export const BORDER_RADIUS = {
@@ -40,45 +44,3 @@ export const SHADOW = {
     elevation: 4,
   },
 };
-
-export const COMMON = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    padding: SPACING.md,
-  },
-  card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    ...SHADOW.light,
-  },
-  button: {
-    backgroundColor: COLORS.blue,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    borderRadius: BORDER_RADIUS.sm,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buttonText: {
-    color: COLORS.white,
-    fontSize: FONT_SIZE.md,
-    fontWeight: "600",
-  },
-  title: {
-    fontSize: FONT_SIZE.xl,
-    fontWeight: "700",
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.md,
-  },
-  subtitle: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: "600",
-    color: COLORS.textSecondary,
-  },
-  text: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.textPrimary,
-  },
-});
