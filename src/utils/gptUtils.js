@@ -1,3 +1,15 @@
+// Formats food names
+const formatName = (name) => {
+  if (!name || typeof name !== "string") return "";
+  return name
+    .trim()
+    .toLowerCase()
+    .split(" ")
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
 // Safe parse JSON from GPT
 export const safeParseJSON = (text) => {
   try {

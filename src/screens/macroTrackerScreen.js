@@ -897,7 +897,7 @@ export default function App() {
                     setNewFood({ name: "", amount_g: "", calories: "", protein: "", carbs: "", fats: "" });
                     setEditingFoodId(null);
                   }}
-                  style={({ pressed }) => [styles.saveGoalButton, pressed && styles.saveGoalButtonPressed, styles.saveFoodButton]}
+                  style={({ pressed }) => [styles.submitButton, pressed && styles.submitButtonPressed, styles.saveFoodButton]}
                 >
                   <Text style={styles.buttonText}>{editingFoodId ? "Save Changes" : "Save"}</Text>
                 </Pressable>

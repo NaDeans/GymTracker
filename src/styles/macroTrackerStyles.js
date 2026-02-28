@@ -49,7 +49,7 @@ export const styles = StyleSheet.create({
   gramsRow: { flexDirection: "row", alignItems: "center", marginBottom: SPACING.sm },
   gramsInput: { borderWidth: 1, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.sm, padding: SPACING.xs, width: 60, marginRight: SPACING.sm },
   macros: { fontSize: FONT_SIZE.sm, color: COLORS.textMedium, marginBottom: SPACING.sm },
-  addedText: { marginTop: SPACING.xs, fontSize: FONT_SIZE.xs, color: COLORS.greenLight },
+  addedText: { marginTop: SPACING.xs, fontSize: FONT_SIZE.xs, color: COLORS.green},
   assumption: { fontStyle: "italic", fontSize: FONT_SIZE.xs, color: COLORS.textMuted },
 
   /* ================= BUTTON ROW ================= */
