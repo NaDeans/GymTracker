@@ -1,41 +1,51 @@
-// constants/colors.js
+// src/constants/colors.js
 
 export const COLORS = {
-  // ---------------- NEUTRALS ----------------
+  /* ================= BASE COLORS ================= */
   white: "#FFFFFF",
-  black: "#111111",
-  background: "#F8FAFC",   // general app background
-  surface: "#FFFFFF",       // cards, modals
-  border: "#E2E8F0",
-  textPrimary: "#0F172A",
-  textSecondary: "#475569",
-  textMuted: "#94A3B8",
+  black: "#000000",
+  shadow: "#000000",
 
-  // ---------------- PRIMARY ----------------
-  blue: "#2563EB",
-  blueLight: "#94c0fa",
-  blueDark: "#1E40AF",
+  /* ================= BLUES ================= */
+  blue: "#007AFF",              
+  blueDark: "#0066D6",          
+  blueLight: "#007AFF33",       
+  blueVeryLight: "#E6F0FF",     
 
-  green: "#27C461",
-  greenLight: "#DCFCE7",
-  greenDark: "#166534",
+  /* ================= GREENS ================= */
+  green: "#2ECC71",
+  greenDark: "#27AE60",
+  greenLight: "#2ECC7133",
 
-  red: "#DC2626",
-  redLight: "#FEE2E2",
-  redDark: "#991B1B",
+  /* ================= REDS ================= */
+  red: "#FF3B30",
+  redDark: "#D9362B",
+  redLight: "#FFDDDD",
 
-  yellow: "#FAB31A",
-  yellowLight: "#FEF9C3",
-  yellowDark: "#854D0E",
+  /* ================= YELLOW ================= */
+  yellow: "#F4D03F",
 
-  // ---------------- MACROS / STATS ----------------
-  protein: "#E74C3C",
-  carbs: "#F1C40F",
-  fats: "#3498DB",
-  macroBg: "#DDD",
+  /* ================= MACRO SPECIFIC ================= */
+  protein: "#EB5A5A",
+  carbs: "#F4D03F",
+  fats: "#5DADE2",
 
-  // ---------------- EXTRA ----------------
-  grayLight: "#F1F5F9",
-  gray: "#E2E8F0",
-  grayDark: "#94A3B8",
+  /* ================= BACKGROUNDS ================= */
+  background: "#FDFDFD",
+  card: "#F5F5F5",
+  cardLight: "#F0F0F0",
+  inputBackground: "#FFFFFF",
+  overlayDark: "rgba(0,0,0,0.35)",
+  overlayLight: "rgba(0,0,0,0.30)",
+
+  /* ================= TEXT ================= */
+  textPrimary: "#000000",
+  textDark: "#222222",
+  textMedium: "#333333",
+  textLight: "#555555",
+  textMuted: "#777777",
+  textWhite: "#FFFFFF",
+
+  /* ================= BORDERS ================= */
+  border: "#DDDDDD",
 };

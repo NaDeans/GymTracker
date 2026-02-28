@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   Pressable,
   FlatList,
   TextInput,
@@ -14,35 +13,14 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { styles } from "styles/repCounterStyles";
+
 
 //---------- CONSTANTS ----------//
 const DEFAULT_GROUPS = ["Back", "Chest", "Arms", "Legs", "Other"];
 const STORAGE_KEY = "REP_COUNTER_DATA";
 
-
-//---------- DATE HELPERS ----------//
-
-// Returns local date in YYYY-MM-DD for storage
-export const getLocalYYYYMMDD = () => {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-};
-
-// Returns date in DD/MM/YY for display
-export const formatDateForDisplay = (isoDate) => {
-  const d = new Date(isoDate);
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = String(d.getFullYear()).slice(-2);
-
-  return `${day}/${month}/${year}`;
-};
-
-
+import { todayString, dmyToIso, isoToDmy } from "../utils/dateUtils";
 
 //---------- REP COUNTER SCREEN ----------//
 export default function RepCounter() {
@@ -233,7 +211,7 @@ export default function RepCounter() {
   const logSet = () => {
     if (!reps || !weight) return;
 
-    const today = getLocalYYYYMMDD();
+    const today = dmyToIso(todayString());
 
     setData((prev) => {
       const logs = prev[selectedGroup][selectedExercise] || [];
@@ -375,7 +353,7 @@ export default function RepCounter() {
           keyExtractor={(item) => item}
           renderItem={({ item }) => (
             <View style={styles.historyDayCard}>
-              <Text style={styles.historyDateText}>{formatDateForDisplay(item)}</Text>
+              <Text style={styles.historyDateText}>{isoToDmy(item)}</Text>
               <TextInput
                 value={dayNotes[item] || ""}
                 onChangeText={(text) => updateDayNotesByDate(item, text)}
@@ -512,7 +490,7 @@ export default function RepCounter() {
                 <Text style={styles.cardText}>{item}</Text>
                 {firstSet && (
                   <Text style={styles.exercisePreviewText}>
-                    {firstSet.reps} reps of {firstSet.weight} kg        ({formatDateForDisplay(mostRecentDay.date)})
+                    {firstSet.reps} reps of {firstSet.weight} kg        ({isoToDmy(mostRecentDay.date)})
                   </Text>
                 )}
               </Pressable>
@@ -649,7 +627,7 @@ export default function RepCounter() {
         keyExtractor={(item) => item.date}
         renderItem={({ item, index: dayIndex }) => (
           <View style={styles.historyDayCard}>
-            <Text style={styles.historyDateText}>{formatDateForDisplay(item.date)}</Text>
+            <Text style={styles.historyDateText}>{isoToDmy(item.date)}</Text>
 
             {item.sets.map((s, i) => (
               <View key={i} style={styles.setRow}>
@@ -712,64 +690,3 @@ export default function RepCounter() {
     </KeyboardAvoidingView>
   );
 }
-
-/* ---------- STYLES ---------- */
-const styles = StyleSheet.create({
-
-  //==================== UNIVERSAL LAYOUT ====================//
-  container: { flexGrow: 1, paddingTop: 40, paddingHorizontal: 20, paddingBottom: 60, backgroundColor: "#fdfdfd" },
-  pageTitle: { fontSize: 26, fontWeight: "700", paddingBottom: 20 },
-  buttonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
-
-  //==================== NAVIGATION BUTTONS ====================//
-  backButton: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 14, backgroundColor: "#007AFF", alignItems: "center", marginBottom: 12, alignSelf: "flex-start" },
-
-  //==================== CARD COMPONENTS ====================//
-  card: { padding: 14, borderRadius: 14, backgroundColor: "#f5f5f5", marginBottom: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 2 },
-  cardText: { fontSize: 16, fontWeight: "500" },
-
-  //==================== ADD BUTTONS ====================//
-  addButton: { marginTop: 6, marginBottom: 12 },
-  addText: { fontSize: 16, color: "#007AFF", fontWeight: "600" },
-
-  //==================== MODALS (ADD GROUP / EXERCISE) ====================//
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.3)", justifyContent: "center", alignItems: "center" },
-  modal: { backgroundColor: "#fff", padding: 18, borderRadius: 16, width: "80%", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 3 },
-  input: { borderWidth: 1, borderColor: "#ddd", padding: 10, borderRadius: 12, marginBottom: 12, fontSize: 15 },
-  saveAdditionButton: { marginTop: 16, padding: 14, borderRadius: 14, backgroundColor: "#007AFF", alignItems: "center" },
-
-  //==================== LOG / HISTORY MODAL ====================//
-  historyDayCard: { marginTop: 12, padding: 14, borderRadius: 14, backgroundColor: "#f5f5f5", shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 2, elevation: 1 },
-  historyDateText: { fontWeight: "600", marginBottom: 4 },
-  historyText: { fontSize: 13, color: "#555" },
-  notesInput: { color: "blue", fontSize: 16, marginVertical: 4 },
-
-  //==================== CATEGORY SCREEN ====================//
-  viewLogButton: { marginBottom: 20, padding: 10, borderRadius: 14, backgroundColor: "#f5f5f5", alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 2, elevation: 1 },
-  viewLogText: { fontSize: 16, fontWeight: "600", color: "#007AFF" },
-
-  //==================== EDITABLE TITLES ====================//
-  titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
-  titleInput: { fontSize: 20, fontWeight: "700", flex: 1, paddingVertical: 6, paddingHorizontal: 8, backgroundColor: "#f5f5f5", borderRadius: 12, color: "#222" },
-  deleteTitleButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 14, backgroundColor: "#ff3b30", alignItems: "center", marginLeft: 12 },
-  cancelTitleButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 14, backgroundColor: "#ff3b30", alignItems: "center", marginLeft: 12 },
-  saveTitleButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 14, backgroundColor: "#007AFF", alignItems: "center", marginLeft: 12 },
-
-  //==================== EXERCISE SCREEN ====================//
-  exercisePreviewText: {fontSize: 17, color: "#222"},
-  historySubtitle: { fontSize: 18, fontWeight: "600", marginTop: 20 },
-
-  //==================== SET ROW COMPONENT ====================//
-  setRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 },
-  setLabel: { fontWeight: "600", fontSize: 16 },
-  setInput: { borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 2, fontSize: 16, minWidth: 50, textAlign: "center", backgroundColor: "#fff" },
-  setText: { fontSize: 17, color: "#222" },
-  deleteSetBtn: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, backgroundColor: "#ff3b30", alignItems: "center", justifyContent: "center", marginLeft: "auto" },
-
-  //==================== EXERCISE INPUT SECTION ====================//
-  inputRow: { flexDirection: "row", justifyContent: "space-between" },
-  inputCard: { width: "48%", padding: 14, borderRadius: 14, backgroundColor: "#f5f5f5", shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 2, elevation: 1 },
-  inputLabel: { fontSize: 14, marginBottom: 4, fontWeight: "500" },
-  bigInput: { fontSize: 24, fontWeight: "700", textAlign: "left", color: "#222" },
-
-});
