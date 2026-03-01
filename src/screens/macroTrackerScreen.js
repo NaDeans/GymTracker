@@ -1,32 +1,29 @@
 //----------IMPORT COMPONENTS----------//
 import { useState, useEffect } from "react";
 import {
-  View,
   Text,
-  TextInput,
   ScrollView,
-  StyleSheet,
-  Modal,
-  Pressable,
   Alert,
-  Keyboard,
   RefreshControl,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
-import { Calendar } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-
-import { Donut } from "../components/donut";
-import { todayString, dmyToIso, isoToDmy } from "../utils/dateUtils";
-import { fmt, safeNumber } from "../utils/numberUtils";
-import { calcTotals, entryExistsForDay, customFoodFields } from "../utils/macroUtils";
-import { safeParseJSON, normalizeAndValidateItem } from "../utils/gptUtils";
+import { OPENAI_API_KEY } from '@env';
 
 import { styles } from "styles/macroTrackerStyles";
 
-import { OPENAI_API_KEY } from '@env';
+import { todayString } from "../utils/dateUtils";
+import { safeNumber } from "../utils/numberUtils";
+import { calcTotals, entryExistsForDay } from "../utils/macroUtils";
+import { safeParseJSON, normalizeAndValidateItem } from "../utils/gptUtils";
+
+import { DatePicker } from "components/macroTrackerComponents/DatePicker";
+import { MacroTotals } from "components/macroTrackerComponents/MacroTotals";
+import { FoodSearchInput } from "components/macroTrackerComponents/FoodSearchInput";
+import { CustomFoodsModal } from "components/macroTrackerComponents/CustomFoodsModal";
+import { GoalModal } from "components/macroTrackerComponents/GoalModal";
+import { EditCachedFoodModal } from "components/macroTrackerComponents/EditCachedFoodModal";
+import { DailyControls } from "components/macroTrackerComponents/DailyControls";
 
 //----------------APP FUNCTION---------------------//
 /////////////////////////////////////////////////////
@@ -38,7 +35,6 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [foodDbVisible, setFoodDbVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [calendarVisible, setCalendarVisible] = useState(false);
   const [goalModalVisible, setGoalModalVisible] = useState(false);
 
   //Food form / Editing
@@ -106,33 +102,6 @@ export default function App() {
       }
     : { protein: 0, carbs: 0, fats: 0 };
 
-
-  //----------------DATE HANDLERS-----------------//
-
-  // Checks if date selected is today
-  const today = todayString();
-  const isToday = selectedDate === today;
-
-  // Convert "DD/MM/YY" string → Date object
-  const parseDMY = (dmy) => {
-    const [d, m, y] = dmy.split("/");
-    return new Date(`20${y}-${m}-${d}T00:00:00`);
-  };
-
-  // Convert Date object → "DD/MM/YY" string
-  const formatDMY = (date) => {
-    const d = String(date.getDate()).padStart(2, "0");
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const y = String(date.getFullYear()).slice(-2);
-    return `${d}/${m}/${y}`;
-  };
-
-  // Move selected date forward/backward by N days
-  const changeDate = (delta) => {
-    const current = parseDMY(selectedDate);
-    current.setDate(current.getDate() + delta);
-    setSelectedDate(formatDMY(current));
-  };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
   //---------------STARTUP INITIALISATION------------------//
@@ -533,576 +502,88 @@ export default function App() {
       <Text style={styles.mainTitle}>Macro Tracker</Text>
 
       {/* date row */}
-      <View style={styles.dateRow}>
-
-        <Pressable onPress={() => changeDate(-1)} style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}>
-          <Text style={styles.buttonText}>◀</Text>
-        </Pressable>
-
-        <Pressable onPress={() => setCalendarVisible(true)}>
-          <Text style={[styles.dateText, isToday && styles.dateTextToday]}>{selectedDate}</Text>
-        </Pressable>
-
-        <Pressable onPress={() => changeDate(1)} style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}>
-          <Text style={styles.buttonText}>▶</Text>
-        </Pressable>
-        
-        <Pressable onPress={() => setSelectedDate(today)} style={({ pressed }) => [styles.todayButton, pressed && styles.todayButtonPressed]}>
-          <Text style={styles.buttonText}>Today</Text>
-        </Pressable>
-      </View>
-
+      <DatePicker selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
 
       {/* macro totals and wheel */}
-      <View style={styles.totalsContainer}>
-
-        {/* totals */}
-        <View style={styles.totalsColumn}>
-          {["calories","protein","carbs","fats"].map(macro => (
-            <Pressable
-              key={macro}
-              onPress={() => {
-                setEditingMacro(macro);
-                setGoalInput(String(goals[macro]));
-                setGoalModalVisible(true);
-              }}
-              style={styles.macroBox}
-            >
-              <Text style={styles.macroText}>
-                {macro === "calories" ? "Calories" : macro.charAt(0).toUpperCase() + macro.slice(1)}
-                : {fmt(totalMacros[macro])}/{goals[macro]}{macro === "calories" ? " kcal" : " g"}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {/* wheel */}
-        <View style={styles.wheelContainer}>
-          {totalMacros.protein + totalMacros.carbs + totalMacros.fats > 0 && (
-            <>
-              <Donut
-                macros={totalMacros}
-                size={140}
-                strokeWidth={18}
-                colors={{ protein:"#e74c3c", carbs:"#f1c40f", fats:"#3498db", background:"#ddd" }}
-              />
-
-              {/* Percentages */}
-              <View style={styles.percOverlay}>
-                <Text style={[styles.percText, styles.proteinColor]}>P {perc.protein}%</Text>
-                <Text style={[styles.percText, styles.carbsColor]}>C {perc.carbs}%</Text>
-                <Text style={[styles.percText, styles.fatsColor]}>F {perc.fats}%</Text>
-              </View>
-            </>
-          )}
-        </View>
-      </View>
+      <MacroTotals
+        totalMacros={totalMacros}
+        goals={goals}
+        setEditingMacro={setEditingMacro}
+        setGoalInput={setGoalInput}
+        setGoalModalVisible={setGoalModalVisible}
+      />
 
       {/* food input with suggestions from async storage */}
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Search Foods"
-          placeholderTextColor="#888"
-          value={input}
-          onChangeText={setInput}
-          onSubmitEditing={submit}
-        />
+      <FoodSearchInput
+        input={input}
+        setInput={setInput}
+        suggestions={suggestions}
+        setSuggestions={setSuggestions}
+        setSuppressSuggestions={setSuppressSuggestions}
+        setEditingFood={setEditingFood}
+        setEditModalVisible={setEditModalVisible}
+        submit={submit}
+        styles={styles}
+      />
 
-        {/* Suggestions dropdown */}
-        {suggestions.length > 0 && (
-          <View style={styles.suggestionsContainer}>
-            {suggestions.map((s) => (
-              <View key={s} style={styles.suggestionRow}>
-                {/* Select suggestion */}
-                <Pressable
-                  onPress={() => {
-                    setSuppressSuggestions(true);
-                    setInput(s);
-                    setSuggestions([]);
-                    Keyboard.dismiss();
-                  }}
-                  style={{flex:1}}
-                >
-                  <Text>{s}</Text>
-                </Pressable>
-
-                {/* Edit button */}
-                <Pressable
-                  onPress={async () => {
-                    const raw = await AsyncStorage.getItem("GPT_CACHE");
-                    const cache = raw ? JSON.parse(raw) : {};
-                    const entry = cache[s];
-                    if (!entry?.items?.length) return;
-
-                    setEditingFood({ key: s, originalKey: s, foodId: entry.foodId, items: entry.items });
-                    setEditModalVisible(true);
-                  }}
-                  style={styles.suggestionEditButton}
-                >
-                  <Text>Edit</Text>
-                </Pressable>
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
-
-      {/* submit button */}
-      <Pressable
-        onPress={submit}
-        style={({ pressed }) => [styles.submitButton, pressed && styles.submitButtonPressed]}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? "Processing..." : "Submit"}
-        </Text>
-      </Pressable>
-
-      {/* custom foods button */}
-      <Pressable
-        onPress={() => setFoodDbVisible(true)}
-        style={({ pressed }) => [styles.customButton, pressed && styles.customButtonPressed]}
-      >
-        <Text style={styles.buttonText}>Custom Foods</Text>
-      </Pressable>
-
-      {/* History (food log for that day) */}
-      <View style={{marginTop: 20}}>
-        {(historyByDate[selectedDate] || []).map((entry, idx) => (
-          <View key={idx} style={styles.historyBlock}>
-            {entry.items.map(item => {
-              const count = dayData.items[item.id]?.count || 0;
-              const gramsValue = parseFloat(gramInputs[item.id] ?? item.amount_g);
-              const raw = item.raw || item;
-              const baseG = safeNumber(raw.amount_g) || 1;
-
-              const displayMacros = {
-                calories: safeNumber(raw.calories) * safeNumber(gramsValue) / baseG,
-                protein:  safeNumber(raw.protein)  * safeNumber(gramsValue) / baseG,
-                carbs:    safeNumber(raw.carbs)    * safeNumber(gramsValue) / baseG,
-                fats:     safeNumber(raw.fats)     * safeNumber(gramsValue) / baseG
-              };
-
-              return (
-                <View key={item.id} style={styles.itemBlock}>
-                  <Text style={styles.itemName}>{item.name}</Text>
-
-                  {/* Logic for editing grams */}
-                  <View style={styles.gramsRow}>
-                    <TextInput
-                      style={styles.gramsInput}
-                      keyboardType="numeric"
-                      value={gramInputs[item.id] ?? String(item.amount_g)}
-                      onChangeText={v => setGramInputs(prev => ({ ...prev, [item.id]: v }))}
-                      onEndEditing={() => {
-                        const g = parseFloat(gramInputs[item.id]);
-                        if (!isNaN(g) && g > 0) updateGrams(item.id, g);
-                        setGramInputs(prev => { const copy = { ...prev }; delete copy[item.id]; return copy; });
-                      }}
-                    />
-                    <Text>g</Text>
-                  </View>
-
-                  {/* display scaled macro previews for food items */}
-                  <Text style={styles.macros}>
-                    {fmt(displayMacros.calories)} kcal · P {fmt(displayMacros.protein)}g · C {fmt(displayMacros.carbs)}g · F {fmt(displayMacros.fats)}g
-                  </Text>
-
-                  {/* button layout for food items */}
-                  <View style={styles.buttonRow}>
-                    <View style={styles.leftButtons}>
-                      <Pressable onPress={() => addItem(item)} style={({ pressed }) => [styles.addButton, pressed && styles.addButtonPressed]}>
-                        <Text style={styles.buttonText}>Add</Text>
-                      </Pressable>
-
-                      <Pressable
-                        onPress={() => removeItem(item)}
-                        disabled={count === 0}
-                        style={({ pressed }) => [styles.removeButton, count === 0 ? styles.removeButton : pressed && styles.removeButtonPressed]}
-                      >
-                        <Text style={styles.buttonText}>Remove</Text>
-                      </Pressable>
-                    </View>
-
-                    <Pressable onPress={() => clearItem(item)} style={({ pressed }) => [styles.clearButton, pressed && styles.clearButtonPressed]}>
-                      <Text style={styles.buttonText}>Clear</Text>
-                    </Pressable>
-                  </View>
-
-
-                  {/* show how many servings have been added */}
-                  {count > 0 && <Text style={styles.addedText}>Added ×{count}</Text>}
-                  {item.assumption && <Text style={styles.assumption}>Note: {item.assumption}</Text>}
-                </View>
-              );
-            })}
-          </View>
-        ))}
-      </View>
-
-      {/* Reset day button */}
-      <Pressable
-        onPress={() => {
-          Alert.alert(
-            "Reset Day?",
-            "Are you sure you want to clear all foods and macros for today? This cannot be undone.",
-            [
-              { text: "Cancel", style: "cancel" },
-              { 
-                text: "Reset",
-                style: "destructive",
-                onPress: () => {
-                  setDailyLog(prev => ({
-                    ...prev,
-                    [selectedDate]: { items: {}, totals: { calories: 0, protein: 0, carbs: 0, fats: 0 } }
-                  }));
-                  setHistoryByDate(prev => ({ ...prev, [selectedDate]: [] }));
-                  setGramInputs({});
-                }
-              }
-            ]
-          );
-        }}
-        style={({ pressed }) => [styles.resetButton, pressed && styles.resetButtonPressed]}
-      >
-        <Text style={styles.buttonText}>Reset Day</Text>
-      </Pressable>
-
+      {/* daily log with macros and edit options */}
+      <DailyControls
+        selectedDate={selectedDate}
+        dailyLog={dailyLog}
+        historyByDate={historyByDate}
+        gramInputs={gramInputs}
+        setGramInputs={setGramInputs}
+        addItem={addItem}
+        removeItem={removeItem}
+        clearItem={clearItem}
+        setFoodDbVisible={setFoodDbVisible}
+        submit={submit}
+        loading={loading}
+        setDailyLog={setDailyLog}
+        setHistoryByDate={setHistoryByDate}
+        styles={styles}
+      />
 
       {/* ------------------------------ MODELS WITHIN APP FUNCTIONALITY --------------------------------- */}
-      
-      {/* CALENDAR MODAL */}
-      <Modal visible={calendarVisible} transparent animationType="fade">
-        <Pressable style={styles.modalOverlay} onPress={() => setCalendarVisible(false)}>
-          <View style={styles.modalContainer}>
-            <Calendar
-              current={dmyToIso(selectedDate)}
-              onDayPress={day => {
-                setSelectedDate(isoToDmy(day.dateString));
-                setCalendarVisible(false);
-              }}
-              markedDates={{
-                [dmyToIso(selectedDate)]: { selected: true, selectedColor: "#3498db" },
-                [dmyToIso(today)]: { marked: true, dotColor: "green" }
-              }}
-            />
-          </View>
-        </Pressable>
-      </Modal>
-
 
       {/* MACRO GOAL MODAL */}
-      <Modal visible={goalModalVisible} transparent animationType="fade">
-        <Pressable style={styles.modalOverlay} onPress={() => setGoalModalVisible(false)}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>
-              Set goal for {editingMacro}
-            </Text>
-
-            <TextInput
-              style={styles.input}
-              keyboardType="numeric"
-              value={goalInput}
-              onChangeText={setGoalInput}
-            />
-
-            <Pressable
-              onPress={() => {
-                setGoals(prev => ({
-                  ...prev,
-                  [editingMacro]: parseFloat(goalInput) || prev[editingMacro]
-                }));
-                setGoalModalVisible(false);
-              }}
-              style={({ pressed }) => [
-                styles.saveGoalButton,
-                pressed && styles.saveGoalButtonPressed,
-              ]}
-            >
-              <Text style={styles.buttonText}>Save</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Modal>
+      <GoalModal
+        visible={goalModalVisible}
+        setVisible={setGoalModalVisible}
+        editingMacro={editingMacro}
+        goalInput={goalInput}
+        setGoalInput={setGoalInput}
+        setGoals={setGoals}
+        styles={styles}
+      />
 
 
       {/* FOOD DATABASE MODAL */}
-      <Modal visible={foodDbVisible} transparent animationType="fade">
-        <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-
-          <View style={styles.modalOverlay}>
-            <Pressable style={StyleSheet.absoluteFill} onPress={() => {Keyboard.dismiss(),setFoodDbVisible(false)}} />
-
-            {/* Modal container */}
-            <View style={styles.modalContainer}>
-              <ScrollView
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
-              contentContainerStyle={{ padding: 10 }}
-              showsVerticalScrollIndicator={false}
-              bounces
-              alwaysBounceVertical
-              overScrollMode="always"
-              >
-                <Text style={styles.modalTitle}>Custom Foods</Text>
-
-                {customFoods.map(food => (
-                  <View key={food.id} style={styles.foodCard}>
-                    <Text style={styles.foodName}>{food.name}</Text>
-                    <Text style={styles.foodMacros}>
-                      {`C: ${food.calories} kcal | P: ${food.protein}g | C: ${food.carbs}g | F: ${food.fats}g`}
-                    </Text>
-
-                    <View style={styles.foodActionsRow}>
-                      <View style={styles.foodActionsLeft}>
-                        <Pressable onPress={() => addCustomFood(food)} style={({ pressed }) => [styles.customAdd, pressed && styles.customAddPressed]}>
-                          <Text style={styles.buttonText}>Add</Text>
-                        </Pressable>
-
-                        <Pressable onPress={() => {
-                          setNewFood({
-                            ...food,
-                            amount_g: food.amount_g?.toString() || "",
-                            calories: food.calories?.toString() || "",
-                            protein: food.protein?.toString() || "",
-                            carbs: food.carbs?.toString() || "",
-                            fats: food.fats?.toString() || "",
-                          });
-                          setEditingFoodId(food.id);
-                          }} 
-                          style={({ pressed }) => [styles.customEdit, pressed && styles.customEditPressed]}>
-                          <Text style={styles.buttonText}>Edit</Text>
-                        </Pressable>
-                      </View>
-
-                      <Pressable onPress={() => setCustomFoods(f => f.filter(x => x.id !== food.id))} style={({ pressed }) => [styles.customDelete, pressed && styles.customDeletePressed]}>
-                        <Text style={styles.buttonText}>Delete</Text>
-                      </Pressable>
-                    </View>
-                  </View>
-                ))}
-
-                <View/>
-                <Text style={styles.sectionTitle}>{editingFoodId ? "Edit Food" : "Add New Food"}</Text>
-
-                {customFoodFields.map(f => (
-                  <TextInput key={f.key} style={styles.input} placeholder={f.label} placeholderTextColor="#888" keyboardType={f.keyboardType} value={newFood[f.key]} onChangeText={v => setNewFood(prev => ({ ...prev, [f.key]: v }))} />
-                ))}
-
-                <Pressable
-                  onPress={() => {
-                    const newItem = { ...newFood, id: editingFoodId || Date.now().toString(), amount_g: safeNumber(newFood.amount_g), calories: safeNumber(newFood.calories), protein: safeNumber(newFood.protein), carbs: safeNumber(newFood.carbs), fats: safeNumber(newFood.fats) };
-                    if (editingFoodId) setCustomFoods(f => f.map(food => food.id === editingFoodId ? { ...newItem, id: editingFoodId } : food));
-                    else setCustomFoods(f => [...f, { ...newItem, id: newItem.id }]);
-                    setNewFood({ name: "", amount_g: "", calories: "", protein: "", carbs: "", fats: "" });
-                    setEditingFoodId(null);
-                  }}
-                  style={({ pressed }) => [styles.submitButton, pressed && styles.submitButtonPressed, styles.saveFoodButton]}
-                >
-                  <Text style={styles.buttonText}>{editingFoodId ? "Save Changes" : "Save"}</Text>
-                </Pressable>
-              </ScrollView>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      <CustomFoodsModal
+        visible={foodDbVisible}
+        setVisible={setFoodDbVisible}
+        customFoods={customFoods}
+        setCustomFoods={setCustomFoods}
+        addCustomFood={addCustomFood}
+        newFood={newFood}
+        setNewFood={setNewFood}
+        editingFoodId={editingFoodId}
+        setEditingFoodId={setEditingFoodId}
+        styles={styles}
+      />
 
 
 
       {/* EDITING GPT CACHED FOOD MODAL */}
-      <Modal
+      <EditCachedFoodModal
         visible={editModalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setEditModalVisible(false)}
-        >
-        {editingFood && (
-          <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-          >
-            <View style={styles.modalOverlay}>
-
-              <Pressable
-                style={StyleSheet.absoluteFill}
-                onPress={() => setEditModalVisible(false)}
-              />
-
-              <View style={styles.modalContainer}>
-
-              {/* Modal title */}
-              <Text style={styles.modalTitle}>Edit Cached Food</Text>
-
-              {/* --- Search Term (once) --- */}
-              <Text style={styles.searchTermLabel}>Search Term</Text>
-              <TextInput
-                value={editingFood.key}
-                onChangeText={v =>
-                  setEditingFood(prev => ({ ...prev, key: v }))
-                }
-                style={[styles.input]}
-              />
-
-              {/* --- Scrollable items --- */}
-              <ScrollView
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="on-drag"
-                contentContainerStyle={{ padding: 10 }}
-                showsVerticalScrollIndicator={false}
-                bounces
-                alwaysBounceVertical
-                overScrollMode="always"
-                >
-
-                {editingFood.items.map((item, index) => (
-                  <View key={index} style={styles.editItemCard}>
-                    <Text style={styles.editItemNumber}>
-                      Item {index + 1}
-                    </Text>
-
-                    <Text>Name</Text>
-                    <TextInput
-                      value={item.name}
-                      onChangeText={v => {
-                        const items = [...editingFood.items];
-                        items[index] = { ...items[index], name: v };
-                        setEditingFood(prev => ({ ...prev, items }));
-                      }}
-                      style={[styles.input]}
-                    />
-
-                    <Text>Calories</Text>
-                    <TextInput
-                      value={item.calories?.toString() || ""}
-                      keyboardType="numeric"
-                      onChangeText={v => {
-                        const items = [...editingFood.items];
-                        items[index] = { ...items[index], calories: Number(v) || 0 };
-                        setEditingFood(prev => ({ ...prev, items }));
-                      }}
-                      style={[styles.input]}
-                    />
-
-                    <Text>Protein (g)</Text>
-                    <TextInput
-                      value={item.protein?.toString() || ""}
-                      keyboardType="numeric"
-                      onChangeText={v => {
-                        const items = [...editingFood.items];
-                        items[index] = { ...items[index], protein: Number(v) || 0 };
-                        setEditingFood(prev => ({ ...prev, items }));
-                      }}
-                      style={[styles.input]}
-                    />
-
-                    <Text>Carbs (g)</Text>
-                    <TextInput
-                      value={item.carbs?.toString() || ""}
-                      keyboardType="numeric"
-                      onChangeText={v => {
-                        const items = [...editingFood.items];
-                        items[index] = { ...items[index], carbs: Number(v) || 0 };
-                        setEditingFood(prev => ({ ...prev, items }));
-                      }}
-                      style={[styles.input]}
-                    />
-
-                    <Text>Fats (g)</Text>
-                    <TextInput
-                      value={item.fats?.toString() || ""}
-                      keyboardType="numeric"
-                      onChangeText={v => {
-                        const items = [...editingFood.items];
-                        items[index] = { ...items[index], fats: Number(v) || 0 };
-                        setEditingFood(prev => ({ ...prev, items }));
-                      }}
-                      style={styles.input}
-                    />
-                  </View>
-                ))}
-              </ScrollView>
-              
-
-              {/* --- Buttons --- */}
-              <View style={styles.editButtonsRow}>
-                {/* DELETE */}
-                <Pressable
-                  onPress={async () => {
-                    const raw = await AsyncStorage.getItem("GPT_CACHE");
-                    const cache = raw ? JSON.parse(raw) : {};
-
-                    delete cache[editingFood.originalKey];
-
-                    await AsyncStorage.setItem("GPT_CACHE", JSON.stringify(cache));
-
-                    setGptCache(cache);
-                    setEditModalVisible(false);
-                    setSuggestions([]);
-                  }}
-                  style={({ pressed }) => [
-                    styles.editModalDelete,
-                    pressed && styles.editModalDeletePressed
-                  ]}
-                >
-                  <Text style={styles.buttonText}>Delete</Text>
-                </Pressable>
-
-                {/* SAVE */}
-                <Pressable
-                  onPress={async () => {                 
-
-                    // Load the cache
-                    const raw = await AsyncStorage.getItem("GPT_CACHE");
-                    const cache = raw ? JSON.parse(raw) : {};
-
-                    const oldKey = editingFood.originalKey;
-                    const newKey = editingFood.key.trim().toLowerCase();
-                    if (oldKey !== newKey && cache[newKey]) {
-                      Alert.alert("Error", "A food with this search term already exists.");
-                      return;
-                    }
-
-                    const existingEntry = cache[oldKey];
-
-                    if (!newKey) {
-                      Alert.alert("Error", "Search term cannot be empty");
-                      return;
-                    }
-
-                    if (!existingEntry) return;
-
-                    // Keep the SAME foodId
-                    const permanentFoodId = existingEntry.foodId;
-
-                    if (oldKey !== newKey) {
-                      delete cache[oldKey];
-                    }
-
-                    cache[newKey] = {
-                      foodId: permanentFoodId,
-                      searchKey: newKey,
-                      items: editingFood.items
-                    };
-
-                    await AsyncStorage.setItem("GPT_CACHE", JSON.stringify(cache));
-
-                    setGptCache(cache);
-                    setEditModalVisible(false);
-                    setSuggestions([]);
-                  }}
-                  style={({ pressed }) => [
-                    styles.editModalSave,
-                    pressed && styles.editModalSavePressed
-                  ]}
-                >
-                  <Text style={styles.buttonText}>Save</Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-        )}
-      </Modal>
+        setVisible={setEditModalVisible}
+        editingFood={editingFood}
+        setEditingFood={setEditingFood}
+        setGptCache={setGptCache}
+        setSuggestions={setSuggestions}
+        styles={styles}
+      />
     </ScrollView>
   );
 }
