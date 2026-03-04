@@ -15,7 +15,6 @@ import { styles } from "styles/macroTrackerStyles";
 import { todayString } from "../utils/dateUtils";
 import { safeNumber } from "../utils/numberUtils";
 import { calcTotals, entryExistsForDay } from "../utils/macroUtils";
-import { safeParseJSON, normalizeAndValidateItem } from "../utils/gptUtils";
 
 import DatePicker from "components/macroTrackerComponents/DatePicker";
 import { MacroTotals } from "components/macroTrackerComponents/MacroTotals";
@@ -24,6 +23,11 @@ import { CustomFoodsModal } from "components/macroTrackerComponents/CustomFoodsM
 import { GoalModal } from "components/macroTrackerComponents/GoalModal";
 import { EditCachedFoodModal } from "components/macroTrackerComponents/EditCachedFoodModal";
 import { DailyControls } from "components/macroTrackerComponents/DailyControls";
+
+
+import { fetchNutritionFromGPT } from "../services/gptService";
+import { loadMacroTrackerData } from "../utils/storageUtils";
+import { saveMacroTrackerData } from "../utils/storageUtils";
 
 //----------------APP FUNCTION---------------------//
 /////////////////////////////////////////////////////
@@ -63,29 +67,35 @@ export default function MacroTrackerScreen() {
 
 
 
-  //----------HELPERS WITHIN APP FUNCTION----------//
-  ///////////////////////////////////////////////////
+  // Load data on startup
+  useEffect(() => {
+    const loadData = async () => {
+      const data = await loadMacroTrackerData();
+      setCustomFoods(data.customFoods);
+      setDailyLog(data.dailyLog);
+      setHistoryByDate(data.historyByDate);
+      setGoals(data.goals);
+      setGptCache(data.gptCache);
+    };
+    loadData();
+  }, []);
 
-  // Refresh Handler
-   const onRefresh = async () => {
-     setRefreshing(true);
-     try {
-       setInput("");
-       setSuggestions([]);
- 
-       const savedCache = await AsyncStorage.getItem("GPT_CACHE");
-       if (savedCache) setGptCache(JSON.parse(savedCache));
- 
-       const savedDailyLog = await AsyncStorage.getItem("DAILY_LOG");
-       if (savedDailyLog) setDailyLog(JSON.parse(savedDailyLog));
- 
-       const savedCustomFoods = await AsyncStorage.getItem("CUSTOM_FOODS");
-       if (savedCustomFoods) setCustomFoods(JSON.parse(savedCustomFoods));
-     } catch (err) {
-       console.error("Refresh error:", err);
-     }
-     setRefreshing(false);
-   };
+  // refresh control
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      setInput("");
+      setSuggestions([]);
+      const data = await loadMacroTrackerData();
+      setCustomFoods(data.customFoods);
+      setDailyLog(data.dailyLog);
+      setHistoryByDate(data.historyByDate);
+      setGptCache(data.gptCache);
+    } catch (err) {
+      console.error("Refresh error:", err);
+    }
+    setRefreshing(false);
+  };
 
   // Macro Calculations
   const dayData = dailyLog[selectedDate] || {
@@ -93,50 +103,6 @@ export default function MacroTrackerScreen() {
     totals: { calories: 0, protein: 0, carbs: 0, fats: 0 }
   };
   const totalMacros = dayData.totals;
-  const totalSum = totalMacros.protein + totalMacros.carbs + totalMacros.fats;
-  const perc = totalSum
-    ? {
-        protein: Math.round((100 * totalMacros.protein) / totalSum),
-        carbs:   Math.round((100 * totalMacros.carbs) / totalSum),
-        fats:    Math.round((100 * totalMacros.fats) / totalSum)
-      }
-    : { protein: 0, carbs: 0, fats: 0 };
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-  //---------------STARTUP INITIALISATION------------------//
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [
-          savedCustomFoods,
-          savedDailyLog,
-          savedHistoryByDate,
-          savedGoals,
-          savedCache
-        ] = await Promise.all([
-          AsyncStorage.getItem("CUSTOM_FOODS"),
-          AsyncStorage.getItem("DAILY_LOG"),
-          AsyncStorage.getItem("HISTORY_BY_DATE"),
-          AsyncStorage.getItem("GOALS"),
-          AsyncStorage.getItem("GPT_CACHE")
-        ]);
-
-        if (savedCustomFoods) setCustomFoods(JSON.parse(savedCustomFoods));
-        if (savedDailyLog) setDailyLog(JSON.parse(savedDailyLog));
-        if (savedHistoryByDate) setHistoryByDate(JSON.parse(savedHistoryByDate));
-        if (savedGoals) setGoals(JSON.parse(savedGoals));
-        if (savedCache) setGptCache(JSON.parse(savedCache));
-      } catch (err) {
-        console.error("Error loading saved data:", err);
-      }
-    };
-
-    loadData();
-  }, []);
-
-
-  //-------------------SYNCING FUNCTIONALITY------------------//
 
   // Update cache suggestions as the user types
   useEffect(() => {
@@ -164,15 +130,15 @@ export default function MacroTrackerScreen() {
   }, [dailyLog, selectedDate]);
 
   // Save data when it changes
-  useEffect(() => { AsyncStorage.setItem("CUSTOM_FOODS", JSON.stringify(customFoods)); }, [customFoods]);
-  useEffect(() => { AsyncStorage.setItem("DAILY_LOG", JSON.stringify(dailyLog)); }, [dailyLog]);
-  useEffect(() => { AsyncStorage.setItem("HISTORY_BY_DATE", JSON.stringify(historyByDate)); }, [historyByDate]);
-  useEffect(() => { AsyncStorage.setItem("GOALS", JSON.stringify(goals)); }, [goals]);
+  useEffect(() => {
+    saveMacroTrackerData({ customFoods, dailyLog, historyByDate, goals, gptCache });
+  }, [customFoods, dailyLog, historyByDate, goals, gptCache]);
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
   //---------------------DAILY FOOD LOG-----------------------//
-
-  // add food to daily log and calculate scaled macros
+  // add food to daily log
   const addItem = (item) => {
     const raw = item.raw || item;
     const amount_g = safeNumber(raw.amount_g);
@@ -254,56 +220,6 @@ export default function MacroTrackerScreen() {
     });
   };
 
-  // update food portion size, recalculate macros and update history
-  const updateGrams = (itemId, grams) => {
-    setDailyLog(prev => {
-      const day = prev[selectedDate];
-      if (!day || !day.items[itemId]) return prev;
-
-      const oldEntry = day.items[itemId];
-      const baseItem = oldEntry.item.raw || oldEntry.item;
-      const factor = grams / (baseItem.amount_g || 1);
-
-      const updatedItem = {
-        ...baseItem,
-        amount_g: grams,
-        calories: baseItem.calories * factor,
-        protein:  baseItem.protein * factor,
-        carbs:    baseItem.carbs * factor,
-        fats:     baseItem.fats * factor,
-        raw: baseItem
-      };
-
-      const newItems = { ...day.items, [itemId]: { ...oldEntry, item: updatedItem } };
-
-      const totals = Object.values(newItems).reduce(
-        (acc, { item, count }) => {
-          acc.calories += item.calories * count;
-          acc.protein  += item.protein * count;
-          acc.carbs    += item.carbs * count;
-          acc.fats     += item.fats * count;
-          return acc;
-        },
-        { calories: 0, protein: 0, carbs: 0, fats: 0 }
-      );
-
-      return { ...prev, [selectedDate]: { items: newItems, totals } };
-    });
-
-    setHistoryByDate(prev => {
-      const dayHistory = prev[selectedDate] || [];
-
-      const updated = dayHistory.map(entry => ({
-        ...entry,
-        items: entry.items.map(i =>
-          i.id === itemId ? { ...i, amount_g: grams } : i
-        )
-      }));
-
-      return { ...prev, [selectedDate]: updated };
-    });
-  };
-
   // Adding custom foods to daily log
   const addCustomFood = (food) => {
     const item = {
@@ -330,24 +246,25 @@ export default function MacroTrackerScreen() {
   };
 
 
-  //--------------OPENAI CALL-----------------//
 
+
+
+  //-------------------OPENAI CALL----------------------//
   const submit = async () => {
     if (!input.trim()) return;
     setLoading(true);
 
-    let rawText; // for error logging
+    let rawText;
 
     try {
-      // Normalize input for GPT
       const key = input.trim().toLowerCase();
 
-      // Load cache
+      // Load GPT cache
       const savedCache = await AsyncStorage.getItem("GPT_CACHE");
       const cache = savedCache ? JSON.parse(savedCache) : {};
 
       if (cache[key]) {
-        // Use cached response
+        // Use cached data
         const data = cache[key];
 
         setHistoryByDate(prev => {
@@ -364,94 +281,31 @@ export default function MacroTrackerScreen() {
               protein: i.protein,
               carbs: i.carbs,
               fats: i.fats,
-              amount_g: i.amount_g
-            }
+              amount_g: i.amount_g,
+            },
           }));
 
           const newEntry = {
             foodId: data.foodId,
             key,
-            items: newItems
+            items: newItems,
           };
 
           return { ...prev, [selectedDate]: [newEntry, ...dayHistory] };
         });
       } else {
-        // GPT system prompt
-        const systemPrompt = `
-          You are a nutrition calculation engine.
-          Return ONLY valid JSON.
-          Do not include markdown, code fences, commentary.
 
-          Rules:
-          - Calculate calories, protein, carbs, fats.
-          - Percentages (e.g., "10%") mean fat unless stated.
-          - "Lean X%" means fat = 100 - X.
-          - Always estimate a realistic weight in grams based on common household units and the macros you provide
-          - Always provide a weight in grams for each item that matches the macros you are returning.
-          - For vague descriptors (e.g., "small", "medium", "large"), use typical weight for that food.
-          - Multiple foods? Split into separate items.
-          - Make reasonable assumptions if needed; else assumption: null.
-          - Never return empty or negative values.
-          - Always return at least one item.
-          - Calories MUST match macros: calories ≈ protein*4 + carbs*4 + fat*9. Correct if mismatch >10%.
-          - Beef mince references per 100g raw: 
-              5% fat: 21p/5f/130kcal
-              10% fat: 20p/10f/176kcal
-              15% fat: 18p/15f/215kcal
-          - Scale all values linearly by weight.
+        // No cache, call GPT
+        const items = await fetchNutritionFromGPT(input, OPENAI_API_KEY);
+        rawText = JSON.stringify(items);
 
-          JSON schema:
-          {
-            "items": [
-              {
-                "name": string,
-                "amount_g": number,
-                "calories_kcal": number,
-                "protein_g": number,
-                "carbs_g": number,
-                "fat_g": number,
-                "assumption": string | null
-              }
-            ]
-          }`;
-
-        // Call GPT
-        const res = await fetch("https://api.openai.com/v1/responses", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${OPENAI_API_KEY}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            model: "gpt-4.1-mini",
-            input: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: input }
-            ]
-          })
-        });
-
-        const gptData = await res.json();
-        rawText = gptData.output_text || gptData.output?.[0]?.content?.[0]?.text;
-        if (!rawText) throw new Error("No response from GPT");
-
-        // Clean & parse JSON safely
-        const parsed = safeParseJSON(rawText);
-
-        // Normalize and validate each item
-        const items = parsed.items.map(normalizeAndValidateItem);
+        const uniqueFoodId = Date.now().toString() + Math.random().toString(36).slice(2);
 
         // Save to cache
-        const uniqueFoodId = Date.now().toString() + Math.random().toString(36).slice(2);
-        cache[key] = {
-          searchKey: key,
-          foodId: uniqueFoodId,
-          items: items
-        };
+        cache[key] = { searchKey: key, foodId: uniqueFoodId, items };
         await AsyncStorage.setItem("GPT_CACHE", JSON.stringify(cache));
 
-        // Add to history
+        // Add food to daily log
         setHistoryByDate(prev => {
           const dayHistory = prev[selectedDate] || [];
           if (entryExistsForDay(dayHistory, uniqueFoodId)) {
@@ -461,34 +315,32 @@ export default function MacroTrackerScreen() {
 
           const newItems = items.map(i => ({
             ...i,
-            raw: { calories: i.calories, protein: i.protein, carbs: i.carbs, fats: i.fats, amount_g: i.amount_g }
+            raw: { calories: i.calories, protein: i.protein, carbs: i.carbs, fats: i.fats, amount_g: i.amount_g },
           }));
 
           const newEntry = {
             foodId: uniqueFoodId,
             key,
-            items: newItems
-          }
+            items: newItems,
+          };
 
           return { ...prev, [selectedDate]: [newEntry, ...dayHistory] };
         });
       }
-    } 
-    // Catch errors
-    catch (err) {
+    } catch (err) {
       console.error("❌ GPT error:", err);
-      if (rawText) console.log("⚠️ GPT raw text (even if parsing failed):", rawText);
+      if (rawText) console.log("⚠️ GPT raw text:", rawText);
       Alert.alert("Error", "Failed to fetch nutrition data. Check your API key or input.");
-    } 
-    finally {
+    } finally {
       setLoading(false);
       setInput("");
     }
   };
 
 
-  //-----------------------APP USER INTERFACE-----------------------//
-  ////////////////////////////////////////////////////////////////////
+  
+
+  //-------------------RENDER USER INTERFACE----------------------//
   return (
     <ScrollView
       contentContainerStyle={styles.container}
@@ -544,8 +396,6 @@ export default function MacroTrackerScreen() {
         styles={styles}
       />
 
-      {/* ------------------------------ MODELS WITHIN APP FUNCTIONALITY --------------------------------- */}
-
       {/* MACRO GOAL MODAL */}
       <GoalModal
         visible={goalModalVisible}
@@ -556,7 +406,6 @@ export default function MacroTrackerScreen() {
         setGoals={setGoals}
         styles={styles}
       />
-
 
       {/* FOOD DATABASE MODAL */}
       <CustomFoodsModal
@@ -571,8 +420,6 @@ export default function MacroTrackerScreen() {
         setEditingFoodId={setEditingFoodId}
         styles={styles}
       />
-
-
 
       {/* EDITING GPT CACHED FOOD MODAL */}
       <EditCachedFoodModal
