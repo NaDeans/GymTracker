@@ -17,7 +17,7 @@ import { safeNumber } from "../utils/numberUtils";
 import { calcTotals, entryExistsForDay } from "../utils/macroUtils";
 import { safeParseJSON, normalizeAndValidateItem } from "../utils/gptUtils";
 
-import { DatePicker } from "components/macroTrackerComponents/DatePicker";
+import DatePicker from "components/macroTrackerComponents/DatePicker";
 import { MacroTotals } from "components/macroTrackerComponents/MacroTotals";
 import { FoodSearchInput } from "components/macroTrackerComponents/FoodSearchInput";
 import { CustomFoodsModal } from "components/macroTrackerComponents/CustomFoodsModal";
@@ -28,7 +28,7 @@ import { DailyControls } from "components/macroTrackerComponents/DailyControls";
 //----------------APP FUNCTION---------------------//
 /////////////////////////////////////////////////////
 
-export default function App() {
+export default function MacroTrackerScreen() {
 
   //---------------STATE INITIALISATION--------------//
   //UI / Models
