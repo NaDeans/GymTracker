@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, ScrollView } from "react-native";
+import { View, Text, TextInput, Pressable } from "react-native";
 import { fmt, safeNumber } from "shared/utils/numberUtils";
 import { styles } from "../macroTrackerStyles";
 
@@ -74,8 +74,8 @@ export const DailyControls = ({
   loading,
   setFoodDbVisible,
 }) => (
-  <ScrollView style={{ marginTop: 20 }}>
-    <Pressable onPress={submit} style={({ pressed }) => [styles.submitButton, pressed && styles.submitButtonPressed]}>
+  <View style={{ marginTop: 20 }}>
+    <Pressable onPress={() => submit()} style={({ pressed }) => [styles.submitButton, pressed && styles.submitButtonPressed]}>
       <Text style={styles.buttonText}>{loading ? "Processing..." : "Submit"}</Text>
     </Pressable>
 
@@ -104,5 +104,5 @@ export const DailyControls = ({
     <Pressable onPress={resetDay} style={({ pressed }) => [styles.resetButton, pressed && styles.resetButtonPressed]}>
       <Text style={styles.buttonText}>Reset Day</Text>
     </Pressable>
-  </ScrollView>
+  </View>
 );

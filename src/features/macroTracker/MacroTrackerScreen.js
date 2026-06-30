@@ -63,6 +63,7 @@ export default function MacroTrackerScreen() {
         setSuppressSuggestions={setSuppressSuggestions}
         setEditingFood={setEditingFood}
         setEditModalVisible={setEditModalVisible}
+        gptCache={gptCache}
         submit={submit}
       />
 

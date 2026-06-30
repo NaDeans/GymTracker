@@ -1,5 +1,4 @@
 import { View, Text, TextInput, Pressable, Keyboard } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { styles } from "../macroTrackerStyles";
 
 export const FoodSearchInput = ({
@@ -10,19 +9,19 @@ export const FoodSearchInput = ({
   setSuppressSuggestions,
   setEditingFood,
   setEditModalVisible,
+  gptCache,
   submit,
 }) => {
   const handleSelectSuggestion = (s) => {
-    setSuppressSuggestions(true);
-    setInput(s);
     setSuggestions([]);
+    setSuppressSuggestions(true);
+    setInput("");
     Keyboard.dismiss();
+    submit(s);
   };
 
-  const handleEditSuggestion = async (s) => {
-    const raw = await AsyncStorage.getItem("GPT_CACHE");
-    const cache = raw ? JSON.parse(raw) : {};
-    const entry = cache[s];
+  const handleEditSuggestion = (s) => {
+    const entry = gptCache[s];
     if (!entry?.items?.length) return;
     setEditingFood({ key: s, originalKey: s, foodId: entry.foodId, items: entry.items });
     setEditModalVisible(true);
@@ -36,7 +35,7 @@ export const FoodSearchInput = ({
         placeholderTextColor="#888"
         value={input}
         onChangeText={setInput}
-        onSubmitEditing={submit}
+        onSubmitEditing={() => submit()}
       />
 
       {suggestions.length > 0 && (

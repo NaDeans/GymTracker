@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { Alert } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Alert, Keyboard } from "react-native";
 import { OPENAI_API_KEY } from "@env";
 
 import { todayString } from "shared/utils/dateUtils";
@@ -201,16 +200,16 @@ export const useMacroTracker = () => {
     setFoodDbVisible(false);
   };
 
-  const submit = async () => {
-    if (!input.trim()) return;
+  const submit = async (inputOverride) => {
+    const rawInput = inputOverride ?? input;
+    if (!rawInput.trim()) return;
+    Keyboard.dismiss();
     setLoading(true);
     try {
-      const key = input.trim().toLowerCase();
-      const savedCache = await AsyncStorage.getItem("GPT_CACHE");
-      const cache = savedCache ? JSON.parse(savedCache) : {};
+      const key = rawInput.trim().toLowerCase();
 
-      if (cache[key]) {
-        const data = cache[key];
+      if (gptCache[key]) {
+        const data = gptCache[key];
         setHistoryByDate((prev) => {
           const dayHistory = prev[selectedDate] || [];
           if (entryExistsForDay(dayHistory, data.foodId)) {
@@ -221,10 +220,11 @@ export const useMacroTracker = () => {
           return { ...prev, [selectedDate]: [{ foodId: data.foodId, key, items: newItems }, ...dayHistory] };
         });
       } else {
-        const items = await fetchNutritionFromGPT(input, OPENAI_API_KEY);
+        const items = await fetchNutritionFromGPT(rawInput, OPENAI_API_KEY);
         const uniqueFoodId = Date.now().toString() + Math.random().toString(36).slice(2);
-        cache[key] = { searchKey: key, foodId: uniqueFoodId, items };
-        await AsyncStorage.setItem("GPT_CACHE", JSON.stringify(cache));
+
+        // Update state — the save effect persists this to AsyncStorage automatically
+        setGptCache((prev) => ({ ...prev, [key]: { searchKey: key, foodId: uniqueFoodId, items } }));
 
         setHistoryByDate((prev) => {
           const dayHistory = prev[selectedDate] || [];
