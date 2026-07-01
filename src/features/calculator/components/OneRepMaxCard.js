@@ -1,6 +1,8 @@
 import { View, Text } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Card } from "shared/components/Card";
 import { TextField } from "shared/components/TextField";
+import { COLORS } from "shared/constants/colors";
 import { fmt } from "shared/utils/numberUtils";
 import { calculateEpley1RM, parseInput } from "../utils/conversionUtils";
 import { styles } from "../calculatorStyles";
@@ -16,7 +18,12 @@ export const OneRepMaxCard = ({ weight, onWeightChange, reps, onRepsChange }) =>
 
   return (
     <Card style={styles.card}>
-      <Text style={styles.cardTitle}>1-Rep Max Estimator</Text>
+      <View style={styles.cardTitleRow}>
+        <View style={styles.cardIconBadge}>
+          <Ionicons name="trophy" size={16} color={COLORS.chart.protein} />
+        </View>
+        <Text style={styles.cardTitle}>1-Rep Max Estimator</Text>
+      </View>
       <View style={styles.fieldRow}>
         <View style={styles.fieldFlex}>
           <TextField

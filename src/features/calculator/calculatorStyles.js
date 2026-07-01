@@ -9,7 +9,9 @@ export const styles = StyleSheet.create({
 
   /* ================= CARDS ================= */
   card: { marginBottom: SPACING.lg },
-  cardTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: COLORS.textDark, marginBottom: SPACING.md },
+  cardTitleRow: { flexDirection: "row", alignItems: "center", gap: SPACING.sm, marginBottom: SPACING.md },
+  cardIconBadge: { width: 32, height: 32, borderRadius: BORDER_RADIUS.pill, backgroundColor: COLORS.surface2, justifyContent: "center", alignItems: "center" },
+  cardTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: COLORS.textDark },
 
   /* ================= CONVERTER ROW ================= */
   fieldRow: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },

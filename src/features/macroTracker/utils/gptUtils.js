@@ -10,15 +10,16 @@ const formatName = (name) => {
 };
 
 export const safeParseJSON = (text) => {
+  let parsed;
   try {
     const cleaned = text.replace(/```json/g, "").replace(/```/g, "").trim();
-    const parsed = JSON.parse(cleaned);
-    if (!parsed.items || parsed.items.length === 0) throw new Error("No nutrition items returned");
-    return parsed;
+    parsed = JSON.parse(cleaned);
   } catch (err) {
     console.error("JSON parse error:", err);
     throw new Error("Failed to parse GPT JSON output");
   }
+  if (!parsed.items || parsed.items.length === 0) throw new Error("No nutrition items returned");
+  return parsed;
 };
 
 export const normalizeAndValidateItem = (i) => {

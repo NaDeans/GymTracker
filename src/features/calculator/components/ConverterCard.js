@@ -7,6 +7,8 @@ import { styles } from "../calculatorStyles";
 
 export const ConverterCard = ({
   title,
+  icon,
+  color = COLORS.primary,
   fromLabel,
   fromValue,
   onFromChange,
@@ -17,7 +19,14 @@ export const ConverterCard = ({
   toSuffix,
 }) => (
   <Card style={styles.card}>
-    <Text style={styles.cardTitle}>{title}</Text>
+    <View style={styles.cardTitleRow}>
+      {icon && (
+        <View style={styles.cardIconBadge}>
+          <Ionicons name={icon} size={16} color={color} />
+        </View>
+      )}
+      <Text style={styles.cardTitle}>{title}</Text>
+    </View>
     <View style={styles.fieldRow}>
       <View style={styles.fieldFlex}>
         <TextField
@@ -29,7 +38,7 @@ export const ConverterCard = ({
           suffix={fromSuffix}
         />
       </View>
-      <Ionicons name="swap-horizontal" size={20} color={COLORS.textMuted} style={styles.swapIcon} />
+      <Ionicons name="swap-horizontal" size={20} color={color} style={styles.swapIcon} />
       <View style={styles.fieldFlex}>
         <TextField
           label={toLabel}

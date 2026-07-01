@@ -2,7 +2,7 @@ export const KG_PER_LB = 0.45359237;
 export const LB_PER_KG = 1 / KG_PER_LB;
 export const KCAL_TO_KJ = 4.184;
 export const CM_PER_INCH = 2.54;
-export const L_TO_FLOZ_US = 33.814022702;
+export const ML_PER_CUP_US = 236.588237;
 
 export const kgToLb = (kg) => kg * LB_PER_KG;
 export const lbToKg = (lb) => lb * KG_PER_LB;
@@ -10,8 +10,8 @@ export const lbToKg = (lb) => lb * KG_PER_LB;
 export const kcalToKj = (kcal) => kcal * KCAL_TO_KJ;
 export const kjToKcal = (kj) => kj / KCAL_TO_KJ;
 
-export const litersToFlOz = (l) => l * L_TO_FLOZ_US;
-export const flOzToLiters = (flOz) => flOz / L_TO_FLOZ_US;
+export const mlToCups = (ml) => ml / ML_PER_CUP_US;
+export const cupsToMl = (cups) => cups * ML_PER_CUP_US;
 
 export const cmToFtIn = (cm) => {
   const totalInches = cm / CM_PER_INCH;

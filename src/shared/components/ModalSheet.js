@@ -37,9 +37,7 @@ export const ModalSheet = ({
 
   if (!visible) return null;
 
-  const maxHeight = keyboardHeight > 0
-    ? windowHeight - keyboardHeight - SPACING.xxxl
-    : undefined;
+  const maxHeight = windowHeight - keyboardHeight - SPACING.xxxl;
 
   const handleBackdropPress = () => {
     if (!dismissOnBackdropPress) return;
@@ -64,7 +62,7 @@ export const ModalSheet = ({
       ]}
       onPress={handleBackdropPress}
     >
-      <Pressable style={[styles.container, maxHeight != null && { maxHeight }]} onPress={() => {}}>
+      <Pressable style={[styles.container, { maxHeight }]} onPress={() => {}}>
         {title ? <Text style={styles.title}>{title}</Text> : null}
         {body}
         {footer ? <View style={styles.footer}>{footer}</View> : null}

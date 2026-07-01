@@ -73,9 +73,9 @@ export const DailyControls = ({
   setFoodDbVisible,
 }) => (
   <View style={{ marginTop: SPACING.xl, gap: SPACING.sm }}>
-    <Button variant="primary" fullWidth loading={loading} onPress={() => submit()}>Submit</Button>
+    <Button variant="primary" size="sm" fullWidth loading={loading} onPress={() => submit()}>Submit</Button>
 
-    <Button variant="secondary" fullWidth onPress={() => setFoodDbVisible(true)}>Custom Foods</Button>
+    <Button variant="secondary" size="sm" fullWidth onPress={() => setFoodDbVisible(true)}>Custom Foods</Button>
 
     {(historyByDate[selectedDate] || []).map((entry, idx) => (
       <View key={idx} style={styles.historyBlock}>
@@ -95,6 +95,6 @@ export const DailyControls = ({
       </View>
     ))}
 
-    <Button variant="danger" fullWidth onPress={resetDay} style={{ marginTop: SPACING.lg }}>Reset Day</Button>
+    <Button variant="danger" size="sm" onPress={resetDay} style={{ alignSelf: "center", marginTop: SPACING.lg }}>Reset Day</Button>
   </View>
 );

@@ -4,7 +4,7 @@ import { fmt } from "shared/utils/numberUtils";
 import {
   kgToLb, lbToKg,
   kcalToKj, kjToKcal,
-  litersToFlOz, flOzToLiters,
+  mlToCups, cupsToMl,
   cmToFtIn, ftInToCm,
   parseInput,
 } from "../utils/conversionUtils";
@@ -19,8 +19,8 @@ export const useCalculator = () => {
   const [heightCm, setHeightCm] = useState("");
   const [heightFt, setHeightFt] = useState("");
   const [heightIn, setHeightIn] = useState("");
-  const [volumeL, setVolumeL] = useState("");
-  const [volumeFlOz, setVolumeFlOz] = useState("");
+  const [volumeMl, setVolumeMl] = useState("");
+  const [volumeCups, setVolumeCups] = useState("");
   const [ormWeight, setOrmWeight] = useState("");
   const [ormReps, setOrmReps] = useState("");
 
@@ -35,8 +35,8 @@ export const useCalculator = () => {
       setHeightCm(parsed.heightCm || "");
       setHeightFt(parsed.heightFt || "");
       setHeightIn(parsed.heightIn || "");
-      setVolumeL(parsed.volumeL || "");
-      setVolumeFlOz(parsed.volumeFlOz || "");
+      setVolumeMl(parsed.volumeMl || "");
+      setVolumeCups(parsed.volumeCups || "");
       setOrmWeight(parsed.ormWeight || "");
       setOrmReps(parsed.ormReps || "");
     });
@@ -47,10 +47,10 @@ export const useCalculator = () => {
       weightKg, weightLb,
       energyKcal, energyKj,
       heightCm, heightFt, heightIn,
-      volumeL, volumeFlOz,
+      volumeMl, volumeCups,
       ormWeight, ormReps,
     }));
-  }, [weightKg, weightLb, energyKcal, energyKj, heightCm, heightFt, heightIn, volumeL, volumeFlOz, ormWeight, ormReps]);
+  }, [weightKg, weightLb, energyKcal, energyKj, heightCm, heightFt, heightIn, volumeMl, volumeCups, ormWeight, ormReps]);
 
   const updateWeightKg = (text) => {
     setWeightKg(text);
@@ -74,15 +74,15 @@ export const useCalculator = () => {
     setEnergyKcal(n === null ? "" : fmt(kjToKcal(n)));
   };
 
-  const updateVolumeL = (text) => {
-    setVolumeL(text);
+  const updateVolumeMl = (text) => {
+    setVolumeMl(text);
     const n = parseInput(text);
-    setVolumeFlOz(n === null ? "" : fmt(litersToFlOz(n)));
+    setVolumeCups(n === null ? "" : fmt(mlToCups(n)));
   };
-  const updateVolumeFlOz = (text) => {
-    setVolumeFlOz(text);
+  const updateVolumeCups = (text) => {
+    setVolumeCups(text);
     const n = parseInput(text);
-    setVolumeL(n === null ? "" : fmt(flOzToLiters(n)));
+    setVolumeMl(n === null ? "" : fmt(cupsToMl(n)));
   };
 
   const recomputeCmFrom = (ftText, inText) => {
@@ -124,8 +124,8 @@ export const useCalculator = () => {
     heightCm, updateHeightCm,
     heightFt, updateHeightFt,
     heightIn, updateHeightIn,
-    volumeL, updateVolumeL,
-    volumeFlOz, updateVolumeFlOz,
+    volumeMl, updateVolumeMl,
+    volumeCups, updateVolumeCups,
     ormWeight, setOrmWeight,
     ormReps, setOrmReps,
   };

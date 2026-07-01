@@ -53,8 +53,8 @@ export const FoodSearchInput = ({
           onSubmitEditing={() => submit()}
           style={{ flex: 1 }}
         />
-        <Button variant="secondary" size="sm" icon="add" onPress={onManualEntry}>Manual</Button>
-        <Button variant="secondary" size="sm" icon="camera" loading={loading} disabled={loading} onPress={handleScanLabel}>Scan</Button>
+        <Button variant="secondary" size="md" icon="add" onPress={onManualEntry}>Manual</Button>
+        <Button variant="secondary" size="md" icon="camera" loading={loading} disabled={loading} onPress={handleScanLabel}>Scan</Button>
       </View>
 
       {suggestions.length > 0 && (

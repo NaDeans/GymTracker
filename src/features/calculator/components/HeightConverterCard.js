@@ -1,6 +1,8 @@
 import { View, Text } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Card } from "shared/components/Card";
 import { TextField } from "shared/components/TextField";
+import { COLORS } from "shared/constants/colors";
 import { styles } from "../calculatorStyles";
 
 export const HeightConverterCard = ({
@@ -12,7 +14,12 @@ export const HeightConverterCard = ({
   onInChange,
 }) => (
   <Card style={styles.card}>
-    <Text style={styles.cardTitle}>Height</Text>
+    <View style={styles.cardTitleRow}>
+      <View style={styles.cardIconBadge}>
+        <Ionicons name="resize" size={16} color={COLORS.success} />
+      </View>
+      <Text style={styles.cardTitle}>Height</Text>
+    </View>
     <TextField
       label="cm"
       value={heightCm}

@@ -16,11 +16,13 @@ export const styles = StyleSheet.create({
   dateTextToday: { color: COLORS.success },
 
   /* ================= TOTALS / MACROS ================= */
-  totalsContainer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: SPACING.xl },
+  totalsContainer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: SPACING.lg },
   totalsColumn: { justifyContent: "space-between", flex: 1, marginRight: SPACING.lg },
-  macroBox: { marginBottom: SPACING.sm },
-  macroText: { fontWeight: FONT_WEIGHT.semibold, fontSize: FONT_SIZE.sm, color: COLORS.textDark, marginBottom: SPACING.xs },
-  macroProgressTrack: { height: 6, borderRadius: BORDER_RADIUS.pill, backgroundColor: COLORS.border, overflow: "hidden" },
+  macroBox: { marginBottom: SPACING.xs },
+  macroRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: SPACING.xs },
+  macroLabel: { fontWeight: FONT_WEIGHT.medium, fontSize: FONT_SIZE.sm, color: COLORS.textMedium },
+  macroValue: { fontWeight: FONT_WEIGHT.semibold, fontSize: FONT_SIZE.sm, color: COLORS.textDark },
+  macroProgressTrack: { height: 5, borderRadius: BORDER_RADIUS.pill, backgroundColor: COLORS.border, overflow: "hidden" },
   macroProgressFill: { height: "100%", borderRadius: BORDER_RADIUS.pill },
   wheelContainer: { justifyContent: "center", alignItems: "center", width: 160, height: 160 },
   percOverlay: { position: "absolute", justifyContent: "center", alignItems: "flex-start" },
@@ -30,7 +32,7 @@ export const styles = StyleSheet.create({
 
   /* ================= SEARCH ================= */
   inputContainer: { width: "100%", marginBottom: SPACING.sm },
-  searchRow: { flexDirection: "row", alignItems: "flex-start", gap: SPACING.sm, marginBottom: SPACING.sm },
+  searchRow: { flexDirection: "row", alignItems: "center", gap: SPACING.sm, marginBottom: SPACING.sm },
   suggestionsContainer: { marginBottom: SPACING.sm },
   suggestionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: SPACING.md },
   suggestionDivider: { borderTopWidth: 1, borderTopColor: COLORS.border },

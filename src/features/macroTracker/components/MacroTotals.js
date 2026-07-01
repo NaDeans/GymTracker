@@ -4,6 +4,7 @@ import { fmt } from "shared/utils/numberUtils";
 import { styles } from "../macroTrackerStyles";
 import { Card } from "shared/components/Card";
 import { COLORS } from "shared/constants/colors";
+import { SPACING } from "shared/constants/styles";
 
 const MACRO_COLOR = {
   calories: COLORS.primary,
@@ -40,10 +41,13 @@ export const MacroTotals = ({ totalMacros, goals, setEditingMacro, setGoalInput,
           const pct = Math.min(100, (value / goal) * 100);
           const color = MACRO_COLOR[macro];
           return (
-            <Card key={macro} onPress={() => openGoalModal(macro)} elevation="sm" style={styles.macroBox}>
-              <Text style={styles.macroText}>
-                {MACRO_LABEL[macro]}: {fmt(value)}/{goals[macro]}{macro === "calories" ? " kcal" : " g"}
-              </Text>
+            <Card key={macro} onPress={() => openGoalModal(macro)} elevation="sm" padding={SPACING.sm} style={styles.macroBox}>
+              <View style={styles.macroRow}>
+                <Text style={styles.macroLabel}>{MACRO_LABEL[macro]}</Text>
+                <Text style={styles.macroValue}>
+                  {fmt(value)}/{goals[macro]}{macro === "calories" ? " kcal" : " g"}
+                </Text>
+              </View>
               <View style={styles.macroProgressTrack}>
                 <View style={[styles.macroProgressFill, { width: `${pct}%`, backgroundColor: color }]} />
               </View>

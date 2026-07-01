@@ -7,7 +7,7 @@ import { triggerImpact } from "shared/utils/haptics";
 
 const VARIANTS = {
   primary: { bg: COLORS.primary, pressedBg: COLORS.primaryDark, text: COLORS.textOnPrimary, border: null },
-  secondary: { bg: COLORS.neutralSurface, pressedBg: COLORS.border, text: COLORS.neutralDark, border: null },
+  secondary: { bg: COLORS.primarySurface, pressedBg: COLORS.border, text: COLORS.primary, border: null },
   success: { bg: COLORS.success, pressedBg: COLORS.successDark, text: COLORS.textOnPrimary, border: null },
   danger: { bg: COLORS.danger, pressedBg: COLORS.dangerDark, text: COLORS.textOnPrimary, border: null },
   ghost: { bg: "transparent", pressedBg: COLORS.neutralSurface, text: COLORS.primary, border: null },
