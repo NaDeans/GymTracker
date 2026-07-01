@@ -30,6 +30,13 @@ export const BORDER_RADIUS = {
   sm: 8,
   md: 12,
   lg: 16,
+  xl: 20,
+  pill: 999,
+};
+
+export const CONTROL_HEIGHT = {
+  md: 48,
+  sm: 36,
 };
 
 export const SHADOW = {

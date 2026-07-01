@@ -1,0 +1,80 @@
+import { View, Text, TextInput, StyleSheet } from "react-native";
+import { IconButton } from "./IconButton";
+import { COLORS } from "shared/constants/colors";
+import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from "shared/constants/styles";
+
+const SIZES = {
+  hero: { buttonSize: "md", fontSize: FONT_SIZE.lg, minWidth: 68, height: 48 },
+  compact: { buttonSize: "sm", fontSize: FONT_SIZE.md, minWidth: 40, height: 36 },
+};
+
+const clamp = (n, min, max) => {
+  let v = n;
+  if (min != null) v = Math.max(min, v);
+  if (max != null) v = Math.min(max, v);
+  return v;
+};
+
+const formatValue = (n, decimal) => (decimal ? (Math.round(n * 10) / 10).toString() : Math.round(n).toString());
+
+export const Stepper = ({
+  label,
+  value,
+  onStep,
+  onDraftChange,
+  onCommit,
+  step = 1,
+  min = 0,
+  max,
+  decimal = false,
+  suffix,
+  size = "hero",
+}) => {
+  const s = SIZES[size] || SIZES.hero;
+  const numeric = parseFloat(value) || 0;
+
+  const step_ = (direction) => {
+    const next = clamp(numeric + direction * step, min, max);
+    onStep?.(formatValue(next, decimal));
+  };
+
+  return (
+    <View style={styles.container}>
+      {label ? <Text style={styles.label}>{label}</Text> : null}
+      <View style={styles.row}>
+        <IconButton icon="remove" variant="secondary" size={s.buttonSize} onPress={() => step_(-1)} />
+        <View style={[styles.valueBox, { width: s.minWidth, height: s.height }]}>
+          <TextInput
+            style={[styles.value, { fontSize: s.fontSize, width: "100%" }]}
+            value={value}
+            onChangeText={onDraftChange}
+            onEndEditing={() => onCommit?.(value)}
+            keyboardType={decimal ? "decimal-pad" : "number-pad"}
+            textAlign="center"
+            placeholder="0"
+            placeholderTextColor={COLORS.textPlaceholder}
+          />
+          {suffix ? <Text style={styles.suffix}>{suffix}</Text> : null}
+        </View>
+        <IconButton icon="add" variant="secondary" size={s.buttonSize} onPress={() => step_(1)} />
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { alignItems: "center" },
+  label: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, color: COLORS.textMedium, marginBottom: SPACING.xs },
+  row: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
+  valueBox: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.inputBackground,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    paddingHorizontal: SPACING.sm,
+  },
+  value: { fontWeight: FONT_WEIGHT.bold, color: COLORS.textDark, minWidth: 30, padding: 0 },
+  suffix: { fontSize: FONT_SIZE.xs, color: COLORS.textMuted, marginTop: -2 },
+});

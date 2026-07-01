@@ -27,7 +27,14 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow GymTracker to access your photos to scan a nutrition label.",
+          "cameraPermission": "Allow GymTracker to access your camera to scan a nutrition label."
+        }
+      ]
     ]
   }
 }
