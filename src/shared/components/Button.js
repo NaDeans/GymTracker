@@ -52,6 +52,7 @@ export const Button = ({
 
   return (
     <Pressable
+      style={style}
       onPress={handlePress}
       onPressIn={() => !isDisabled && animateTo(0.96)}
       onPressOut={() => !isDisabled && animateTo(1)}
@@ -72,7 +73,6 @@ export const Button = ({
             transform: [{ scale }],
             opacity: isDisabled ? 0.7 : 1,
           },
-          style,
         ]}
       >
         {icon && !loading && (
