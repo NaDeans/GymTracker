@@ -55,6 +55,7 @@ export const styles = StyleSheet.create({
   /* ================= BUTTON ROW ================= */
   buttonRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginVertical: SPACING.sm, gap: SPACING.sm },
   leftButtons: { flexDirection: "row", gap: SPACING.xs },
+  logActionButton: { minWidth: 84 },
 
   /* ================= FOOD DATABASE ================= */
   sectionTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, marginTop: SPACING.lg, marginBottom: SPACING.sm },
