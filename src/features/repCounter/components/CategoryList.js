@@ -1,5 +1,11 @@
-import { View, Text, Pressable, FlatList, Modal, TextInput } from "react-native";
+import { View, Text, FlatList } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { styles } from "../repCounterStyles";
+import { Card } from "shared/components/Card";
+import { Button } from "shared/components/Button";
+import { ModalSheet } from "shared/components/ModalSheet";
+import { TextField } from "shared/components/TextField";
+import { COLORS } from "shared/constants/colors";
 
 export function CategoryList({
   groups,
@@ -13,42 +19,45 @@ export function CategoryList({
     <View style={styles.container}>
       <Text style={styles.pageTitle}>Categories</Text>
 
-      <Pressable style={styles.viewLogButton} onPress={() => setShowFullLog(true)}>
-        <Text style={styles.viewLogText}>View Full Log</Text>
-      </Pressable>
+      <Card onPress={() => setShowFullLog(true)} surface="raised" elevation="sm" style={styles.viewLogCard}>
+        <View style={styles.viewLogRow}>
+          <Text style={styles.viewLogText}>View Full Log</Text>
+          <Ionicons name="chevron-forward" size={18} color={COLORS.primary} />
+        </View>
+      </Card>
 
       <FlatList
         data={groups}
         keyExtractor={(item) => item}
         renderItem={({ item }) => (
-          <Pressable style={styles.card} onPress={() => setSelectedGroup(item)}>
-            <Text style={styles.cardText}>{item}</Text>
-          </Pressable>
+          <Card onPress={() => setSelectedGroup(item)} style={styles.categoryCardSpacing}>
+            <View style={styles.viewLogRow}>
+              <Text style={styles.cardText}>{item}</Text>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+            </View>
+          </Card>
         )}
         ListFooterComponent={
-          <Pressable style={styles.addButton} onPress={() => setShowGroupModal(true)}>
-            <Text style={styles.addText}>＋ Add Category</Text>
-          </Pressable>
+          <Button variant="ghost" icon="add" onPress={() => setShowGroupModal(true)}>
+            Add Category
+          </Button>
         }
       />
 
-      <Modal visible={showGroupModal} transparent animationType="fade">
-        <Pressable style={styles.modalOverlay} onPress={() => setShowGroupModal(false)}>
-          <Pressable style={styles.modal} onPress={() => {}}>
-            <TextInput
-              placeholder="Category name"
-              placeholderTextColor="#888"
-              value={newGroupName}
-              onChangeText={setNewGroupName}
-              style={styles.input}
-              autoFocus
-            />
-            <Pressable style={styles.saveAdditionButton} onPress={addGroup}>
-              <Text style={styles.buttonText}>Save</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <ModalSheet
+        visible={showGroupModal}
+        onClose={() => setShowGroupModal(false)}
+        title="New Category"
+        scrollable={false}
+        footer={<Button variant="primary" fullWidth onPress={addGroup}>Save</Button>}
+      >
+        <TextField
+          placeholder="Category name"
+          value={newGroupName}
+          onChangeText={setNewGroupName}
+          autoFocus
+        />
+      </ModalSheet>
     </View>
   );
 }

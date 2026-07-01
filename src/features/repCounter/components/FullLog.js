@@ -1,13 +1,15 @@
-import { View, Text, Pressable, FlatList, TextInput } from "react-native";
+import { View, Text, FlatList } from "react-native";
 import { isoToDmy } from "shared/utils/dateUtils";
+import { fmt } from "shared/utils/numberUtils";
 import { styles } from "../repCounterStyles";
+import { Card } from "shared/components/Card";
+import { IconButton } from "shared/components/IconButton";
+import { TextField } from "shared/components/TextField";
 
 export function FullLog({ setShowFullLog, sortedDates, allLogs, dayNotes, updateDayNotesByDate }) {
   return (
     <View style={styles.container}>
-      <Pressable onPress={() => setShowFullLog(false)} style={styles.backButton}>
-        <Text style={styles.buttonText}>Back</Text>
-      </Pressable>
+      <IconButton icon="chevron-back" variant="secondary" onPress={() => setShowFullLog(false)} style={styles.backButtonSpacing} />
       <Text style={styles.pageTitle}>Full Workout Log</Text>
 
       <FlatList
@@ -15,27 +17,26 @@ export function FullLog({ setShowFullLog, sortedDates, allLogs, dayNotes, update
         keyExtractor={(item) => item}
         keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => (
-          <View style={styles.historyDayCard}>
+          <Card style={styles.dayCardSpacing}>
             <Text style={styles.historyDateText}>{isoToDmy(item)}</Text>
-            <TextInput
+            <TextField
               value={dayNotes[item] || ""}
               onChangeText={(text) => updateDayNotesByDate(item, text)}
               placeholder="Write notes about this workout..."
-              placeholderTextColor="#888"
-              style={styles.notesInput}
               multiline
+              style={{ marginBottom: 12 }}
             />
             {allLogs[item].map((entry, index) => (
-              <View key={index} style={{ marginBottom: 8 }}>
-                <Text style={{ fontWeight: "600" }}>{entry.group} — {entry.exercise}</Text>
+              <View key={index} style={styles.logEntryBlock}>
+                <Text style={styles.logEntryHeader}>{entry.group} — {entry.exercise}</Text>
                 {entry.sets.map((set, i) => (
                   <Text key={i} style={styles.historyText}>
-                    Set {i + 1}: {set.reps} reps of {set.weight} kg
+                    Set {i + 1}: {set.reps} reps of {fmt(set.weight)} kg
                   </Text>
                 ))}
               </View>
             ))}
-          </View>
+          </Card>
         )}
       />
     </View>
