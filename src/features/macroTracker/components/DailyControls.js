@@ -45,10 +45,10 @@ const DailyLogItem = ({ item, count, gramValue, setGramValue, updateGrams, addIt
 
       <View style={styles.buttonRow}>
         <View style={styles.leftButtons}>
-          <Button variant="success" size="sm" onPress={() => addItem(item)}>Add</Button>
-          <Button variant="secondary" size="sm" disabled={count === 0} onPress={() => removeItem(item)}>Remove</Button>
+          <Button variant="success" size="sm" style={styles.logActionButton} onPress={() => addItem(item)}>Add</Button>
+          <Button variant="secondary" size="sm" style={styles.logActionButton} disabled={count === 0} onPress={() => removeItem(item)}>Remove</Button>
         </View>
-        <Button variant="outline" size="sm" onPress={() => clearItem(item)}>Clear</Button>
+        <Button variant="outline" size="sm" style={styles.logActionButton} onPress={() => clearItem(item)}>Clear</Button>
       </View>
 
       {count > 0 && <Text style={styles.addedText}>Added ×{count}</Text>}
