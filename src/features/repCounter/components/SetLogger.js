@@ -1,5 +1,6 @@
 import { Alert, View, Text, FlatList, KeyboardAvoidingView, Platform } from "react-native";
 import { isoToDmy } from "shared/utils/dateUtils";
+import { fmt } from "shared/utils/numberUtils";
 import { styles } from "../repCounterStyles";
 import { Card } from "shared/components/Card";
 import { Button } from "shared/components/Button";
@@ -11,6 +12,7 @@ export function SetLogger({
   selectedGroup, selectedExercise, setSelectedExercise,
   data,
   logsState,
+  previousSession,
   reps, setReps, weight, setWeight,
   logSet, updateSet, deleteSet,
   titleDraft, setTitleDraft,
@@ -61,6 +63,13 @@ export function SetLogger({
           decimal
         />
       </View>
+
+      {previousSession && (
+        <Text style={styles.previousSessionText}>
+          Last time ({isoToDmy(previousSession.date)}):{" "}
+          {previousSession.sets.map((s) => `${s.reps} x ${fmt(s.weight)}kg`).join(", ")}
+        </Text>
+      )}
 
       <Button variant="primary" fullWidth disabled={!canAddSet} onPress={logSet}>Add Set</Button>
 

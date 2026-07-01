@@ -1,5 +1,6 @@
 import { View, Text, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { todayString, dmyToIso } from "shared/utils/dateUtils";
 import { styles } from "../repCounterStyles";
 import { Card } from "shared/components/Card";
 import { Button } from "shared/components/Button";
@@ -14,7 +15,11 @@ export function CategoryList({
   setShowFullLog,
   setSelectedGroup,
   addGroup,
+  dayNotes,
+  updateDayNotesByDate,
 }) {
+  const today = dmyToIso(todayString());
+
   return (
     <View style={styles.container}>
       <Text style={styles.pageTitle}>Categories</Text>
@@ -24,6 +29,16 @@ export function CategoryList({
           <Text style={styles.viewLogText}>View Full Log</Text>
           <Ionicons name="chevron-forward" size={18} color={COLORS.primary} />
         </View>
+      </Card>
+
+      <Card style={styles.todayNotesCard}>
+        <Text style={styles.todayNotesLabel}>Today's Notes (shared across all exercises)</Text>
+        <TextField
+          value={dayNotes[today] || ""}
+          onChangeText={(text) => updateDayNotesByDate(today, text)}
+          placeholder="Good session, gym location, how you felt..."
+          multiline
+        />
       </Card>
 
       <FlatList

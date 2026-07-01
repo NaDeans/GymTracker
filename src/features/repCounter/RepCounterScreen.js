@@ -30,6 +30,8 @@ export default function RepCounterScreen() {
         setShowFullLog={rc.setShowFullLog}
         setSelectedGroup={rc.setSelectedGroup}
         addGroup={rc.addGroup}
+        dayNotes={rc.dayNotes}
+        updateDayNotesByDate={rc.updateDayNotesByDate}
       />
     );
   }
@@ -64,6 +66,7 @@ export default function RepCounterScreen() {
       setSelectedExercise={rc.setSelectedExercise}
       data={rc.data}
       logsState={rc.logsState}
+      previousSession={rc.previousSession}
       reps={rc.reps}
       setReps={rc.setReps}
       weight={rc.weight}

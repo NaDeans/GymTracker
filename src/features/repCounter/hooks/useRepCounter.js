@@ -5,6 +5,12 @@ import { todayString, dmyToIso } from "shared/utils/dateUtils";
 
 const DEFAULT_GROUPS = ["Back", "Chest", "Arms", "Legs", "Other"];
 const STORAGE_KEY = "REP_COUNTER_DATA";
+const SESSION_GAP_HOURS = 5;
+const SESSION_GAP_MS = SESSION_GAP_HOURS * 60 * 60 * 1000;
+
+// Legacy entries have no updatedAt, so they never look "open" — safe default.
+const isSessionOpen = (entry) =>
+  !!entry?.updatedAt && Date.now() - new Date(entry.updatedAt).getTime() < SESSION_GAP_MS;
 
 export const useRepCounter = () => {
   const [data, setData] = useState({});
@@ -130,26 +136,30 @@ export const useRepCounter = () => {
   const logSet = () => {
     if (!reps || !weight) return;
     Keyboard.dismiss();
-    const today = dmyToIso(todayString());
+    const now = new Date();
+    const nowIso = now.toISOString();
 
     setData((prev) => {
       const logs = prev[selectedGroup][selectedExercise] || [];
-      const existingDay = logs.find((l) => l.date === today);
 
-      if (existingDay) {
-        const updatedLogs = logs.map((day) =>
-          day.date === today
-            ? { ...day, sets: [...day.sets, { reps: Number(reps), weight: Number(weight) }] }
+      if (isSessionOpen(logs[0])) {
+        const updatedLogs = logs.map((day, i) =>
+          i === 0
+            ? { ...day, sets: [...day.sets, { reps: Number(reps), weight: Number(weight) }], updatedAt: nowIso }
             : day
         );
         return { ...prev, [selectedGroup]: { ...prev[selectedGroup], [selectedExercise]: updatedLogs } };
       }
 
+      const today = dmyToIso(todayString());
       return {
         ...prev,
         [selectedGroup]: {
           ...prev[selectedGroup],
-          [selectedExercise]: [{ date: today, sets: [{ reps: Number(reps), weight: Number(weight) }], notes: "" }, ...logs],
+          [selectedExercise]: [
+            { date: today, sets: [{ reps: Number(reps), weight: Number(weight) }], startedAt: nowIso, updatedAt: nowIso },
+            ...logs,
+          ],
         },
       };
     });
@@ -206,11 +216,13 @@ export const useRepCounter = () => {
     Object.entries(exs).forEach(([exercise, logs]) => {
       logs.forEach((day) => {
         if (!allLogs[day.date]) allLogs[day.date] = [];
-        allLogs[day.date].push({ group, exercise, sets: day.sets, notes: day.notes || "" });
+        allLogs[day.date].push({ group, exercise, sets: day.sets });
       });
     });
   });
   const sortedDates = Object.keys(allLogs).sort((a, b) => new Date(b) - new Date(a));
+
+  const previousSession = isSessionOpen(logsState[0]) ? logsState[1] : logsState[0];
 
   return {
     data, setData, groups, setGroups,
@@ -225,6 +237,7 @@ export const useRepCounter = () => {
     showGroupModal, setShowGroupModal,
     showExerciseModal, setShowExerciseModal,
     logsState,
+    previousSession,
     exercises,
     allLogs, sortedDates,
     addGroup, deleteGroup, renameGroup,
