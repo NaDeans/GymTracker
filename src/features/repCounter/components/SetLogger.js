@@ -11,10 +11,10 @@ export function SetLogger({
   titleDraft, setTitleDraft,
   deleteExercise, renameExercise,
 }) {
+  const canAddSet = reps.trim().length > 0 && weight.trim().length > 0;
+
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <View />
-
       <Pressable onPress={() => setSelectedExercise(null)} style={styles.backButton}>
         <Text style={styles.buttonText}>Back</Text>
       </Pressable>
@@ -61,11 +61,11 @@ export function SetLogger({
         </View>
         <View style={styles.inputCard}>
           <Text style={styles.inputLabel}>Kg</Text>
-          <TextInput value={weight} onChangeText={setWeight} keyboardType="number-pad" style={styles.bigInput} placeholder="0" placeholderTextColor="#888" />
+          <TextInput value={weight} onChangeText={setWeight} keyboardType="decimal-pad" style={styles.bigInput} placeholder="0" placeholderTextColor="#888" />
         </View>
       </View>
 
-      <Pressable style={styles.saveAdditionButton} onPress={logSet}>
+      <Pressable style={[styles.saveAdditionButton, !canAddSet && { opacity: 0.4 }]} onPress={logSet}>
         <Text style={styles.buttonText}>Add Set</Text>
       </Pressable>
 
@@ -74,6 +74,7 @@ export function SetLogger({
       <FlatList
         data={logsState}
         keyExtractor={(item) => item.date}
+        keyboardShouldPersistTaps="handled"
         renderItem={({ item, index: dayIndex }) => (
           <View style={styles.historyDayCard}>
             <Text style={styles.historyDateText}>{isoToDmy(item.date)}</Text>
@@ -94,7 +95,7 @@ export function SetLogger({
                   <Text style={styles.setText}>reps of</Text>
                   <TextInput
                     style={styles.setInput}
-                    keyboardType="number-pad"
+                    keyboardType="decimal-pad"
                     value={s.weightInput ?? s.weight?.toString() ?? ""}
                     onChangeText={(v) => updateSet(dayIndex, i, "weightInput", v)}
                     onEndEditing={() => {

@@ -1,6 +1,6 @@
 import {
   View, Text, TextInput, Modal, ScrollView, Pressable,
-  Keyboard, KeyboardAvoidingView, Platform, StyleSheet,
+  Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Alert,
 } from "react-native";
 import { safeNumber } from "shared/utils/numberUtils";
 import { customFoodFields } from "../utils/macroUtils";
@@ -35,7 +35,7 @@ export const CustomFoodsModal = ({
               <View key={food.id} style={styles.foodCard}>
                 <Text style={styles.foodName}>{food.name}</Text>
                 <Text style={styles.foodMacros}>
-                  {`C: ${food.calories} kcal | P: ${food.protein}g | C: ${food.carbs}g | F: ${food.fats}g`}
+                  {`Cal: ${food.calories} kcal | P: ${food.protein}g | C: ${food.carbs}g | F: ${food.fats}g`}
                 </Text>
                 <View style={styles.foodActionsRow}>
                   <View style={styles.foodActionsLeft}>
@@ -85,6 +85,11 @@ export const CustomFoodsModal = ({
 
             <Pressable
               onPress={() => {
+                if (!newFood.name.trim()) {
+                  Alert.alert("Missing Name", "Please enter a name for this food.");
+                  return;
+                }
+
                 const newItem = {
                   ...newFood,
                   id: editingFoodId || Date.now().toString(),
@@ -103,6 +108,7 @@ export const CustomFoodsModal = ({
 
                 setNewFood({ name: "", amount_g: "", calories: "", protein: "", carbs: "", fats: "" });
                 setEditingFoodId(null);
+                Keyboard.dismiss();
               }}
               style={({ pressed }) => [styles.submitButton, pressed && styles.submitButtonPressed, styles.saveFoodButton]}
             >

@@ -238,7 +238,11 @@ export const useMacroTracker = () => {
       }
     } catch (err) {
       console.error("GPT error:", err);
-      Alert.alert("Error", "Failed to fetch nutrition data. Check your API key or input.");
+      if (err.message === "No nutrition items returned") {
+        Alert.alert("Food not found", "Couldn't find nutrition data for that. Try being more specific (e.g. '100g chicken breast cooked').");
+      } else {
+        Alert.alert("Error", "Something went wrong fetching nutrition data. Check your connection and API key.");
+      }
     } finally {
       setLoading(false);
       setInput("");

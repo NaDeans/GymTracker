@@ -5,7 +5,6 @@ import { styles } from "../repCounterStyles";
 export function FullLog({ setShowFullLog, sortedDates, allLogs, dayNotes, updateDayNotesByDate }) {
   return (
     <View style={styles.container}>
-      <View />
       <Pressable onPress={() => setShowFullLog(false)} style={styles.backButton}>
         <Text style={styles.buttonText}>Back</Text>
       </Pressable>
@@ -14,6 +13,7 @@ export function FullLog({ setShowFullLog, sortedDates, allLogs, dayNotes, update
       <FlatList
         data={sortedDates}
         keyExtractor={(item) => item}
+        keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => (
           <View style={styles.historyDayCard}>
             <Text style={styles.historyDateText}>{isoToDmy(item)}</Text>

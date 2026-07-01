@@ -15,7 +15,6 @@ export function ExerciseList({
 }) {
   return (
     <View style={styles.container}>
-      <View />
       <Pressable onPress={() => setSelectedGroup(null)} style={styles.backButton}>
         <Text style={styles.buttonText}>Back</Text>
       </Pressable>
@@ -88,6 +87,7 @@ export function ExerciseList({
               value={newExerciseName}
               onChangeText={setNewExerciseName}
               style={styles.input}
+              autoFocus
             />
             <Pressable style={styles.saveAdditionButton} onPress={addExercise}>
               <Text style={styles.buttonText}>Save</Text>

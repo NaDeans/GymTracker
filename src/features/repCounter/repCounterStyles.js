@@ -43,7 +43,7 @@ export const styles = StyleSheet.create({
   saveTitleButton: { paddingVertical: SPACING.xs, paddingHorizontal: SPACING.lg, borderRadius: BORDER_RADIUS.lg, backgroundColor: COLORS.blue, alignItems: "center", marginLeft: SPACING.sm },
 
   //==================== EXERCISE SCREEN ====================//
-  exercisePreviewText: { fontSize: FONT_SIZE.lg, color: COLORS.textDark },
+  exercisePreviewText: { fontSize: FONT_SIZE.sm, color: COLORS.textLight },
   historySubtitle: { fontSize: FONT_SIZE.xl, fontWeight: FONT_WEIGHT.semibold, marginTop: SPACING.lg },
 
   //==================== SET ROW ====================//

@@ -11,7 +11,6 @@ export function CategoryList({
 }) {
   return (
     <View style={styles.container}>
-      <View />
       <Text style={styles.pageTitle}>Categories</Text>
 
       <Pressable style={styles.viewLogButton} onPress={() => setShowFullLog(true)}>
@@ -42,6 +41,7 @@ export function CategoryList({
               value={newGroupName}
               onChangeText={setNewGroupName}
               style={styles.input}
+              autoFocus
             />
             <Pressable style={styles.saveAdditionButton} onPress={addGroup}>
               <Text style={styles.buttonText}>Save</Text>

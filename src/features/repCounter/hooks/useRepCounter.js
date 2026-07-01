@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Alert } from "react-native";
+import { Alert, Keyboard } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { todayString, dmyToIso } from "shared/utils/dateUtils";
 
@@ -129,6 +129,7 @@ export const useRepCounter = () => {
 
   const logSet = () => {
     if (!reps || !weight) return;
+    Keyboard.dismiss();
     const today = dmyToIso(todayString());
 
     setData((prev) => {
@@ -170,10 +171,17 @@ export const useRepCounter = () => {
           ? { ...day, sets: day.sets.map((set, sIndex) => (sIndex === setIndex ? { ...set, [key]: value } : set)) }
           : day
       );
-      setData((prevData) => ({
-        ...prevData,
-        [selectedGroup]: { ...prevData[selectedGroup], [selectedExercise]: newLogs },
-      }));
+      // Only persist confirmed values — never write temp input draft fields to storage
+      if (key !== "repsInput" && key !== "weightInput") {
+        const cleanLogs = newLogs.map((day) => ({
+          ...day,
+          sets: day.sets.map(({ repsInput: _r, weightInput: _w, ...s }) => s),
+        }));
+        setData((prevData) => ({
+          ...prevData,
+          [selectedGroup]: { ...prevData[selectedGroup], [selectedExercise]: cleanLogs },
+        }));
+      }
       return newLogs;
     });
   };

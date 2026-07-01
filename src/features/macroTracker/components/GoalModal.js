@@ -1,10 +1,10 @@
-import { Modal, View, Text, TextInput, Pressable } from "react-native";
+import { Modal, Text, TextInput, Pressable, Keyboard } from "react-native";
 import { styles } from "../macroTrackerStyles";
 
 export const GoalModal = ({ visible, setVisible, editingMacro, goalInput, setGoalInput, setGoals }) => (
   <Modal visible={visible} transparent animationType="fade">
-    <Pressable style={styles.modalOverlay} onPress={() => setVisible(false)}>
-      <View style={styles.modalContainer}>
+    <Pressable style={styles.modalOverlay} onPress={() => { Keyboard.dismiss(); setVisible(false); }}>
+      <Pressable style={styles.modalContainer} onPress={() => {}}>
         <Text style={styles.modalTitle}>Set goal for {editingMacro}</Text>
 
         <TextInput
@@ -12,10 +12,12 @@ export const GoalModal = ({ visible, setVisible, editingMacro, goalInput, setGoa
           keyboardType="numeric"
           value={goalInput}
           onChangeText={setGoalInput}
+          autoFocus
         />
 
         <Pressable
           onPress={() => {
+            Keyboard.dismiss();
             setGoals((prev) => ({ ...prev, [editingMacro]: parseFloat(goalInput) || prev[editingMacro] }));
             setVisible(false);
           }}
@@ -23,7 +25,7 @@ export const GoalModal = ({ visible, setVisible, editingMacro, goalInput, setGoa
         >
           <Text style={styles.buttonText}>Save</Text>
         </Pressable>
-      </View>
+      </Pressable>
     </Pressable>
   </Modal>
 );

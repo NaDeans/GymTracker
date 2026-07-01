@@ -1,42 +1,52 @@
 import {
   Modal, View, Text, TextInput, ScrollView, Pressable,
-  KeyboardAvoidingView, Platform, StyleSheet, Alert,
+  KeyboardAvoidingView, Platform, StyleSheet, Alert, Keyboard,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { styles } from "../macroTrackerStyles";
 
-export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditingFood, setGptCache, setSuggestions }) => {
+const FIELD_LABELS = {
+  name: "Name",
+  amount_g: "Amount (g)",
+  calories: "Calories",
+  protein: "Protein (g)",
+  carbs: "Carbs (g)",
+  fats: "Fats (g)",
+};
+
+export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditingFood, gptCache, setGptCache, setSuggestions }) => {
   if (!editingFood) return null;
 
-  const handleDelete = async () => {
-    const raw = await AsyncStorage.getItem("GPT_CACHE");
-    const cache = raw ? JSON.parse(raw) : {};
-    delete cache[editingFood.originalKey];
-    await AsyncStorage.setItem("GPT_CACHE", JSON.stringify(cache));
-    setGptCache(cache);
-    setVisible(false);
+  const handleDelete = () => {
+    setGptCache((prev) => {
+      const updated = { ...prev };
+      delete updated[editingFood.originalKey];
+      return updated;
+    });
     setSuggestions([]);
+    setVisible(false);
+    Keyboard.dismiss();
   };
 
-  const handleSave = async () => {
-    const raw = await AsyncStorage.getItem("GPT_CACHE");
-    const cache = raw ? JSON.parse(raw) : {};
+  const handleSave = () => {
     const oldKey = editingFood.originalKey;
     const newKey = editingFood.key.trim().toLowerCase();
 
     if (!newKey) { Alert.alert("Error", "Search term cannot be empty"); return; }
-    if (oldKey !== newKey && cache[newKey]) { Alert.alert("Error", "Food already exists."); return; }
+    if (oldKey !== newKey && gptCache[newKey]) { Alert.alert("Error", "A food with that name already exists."); return; }
 
-    const existingEntry = cache[oldKey];
-    if (!existingEntry) return;
+    const existingEntry = gptCache[oldKey];
+    if (!existingEntry) { setVisible(false); return; }
 
-    if (oldKey !== newKey) delete cache[oldKey];
-    cache[newKey] = { foodId: existingEntry.foodId, searchKey: newKey, items: editingFood.items };
+    setGptCache((prev) => {
+      const updated = { ...prev };
+      if (oldKey !== newKey) delete updated[oldKey];
+      updated[newKey] = { foodId: existingEntry.foodId, searchKey: newKey, items: editingFood.items };
+      return updated;
+    });
 
-    await AsyncStorage.setItem("GPT_CACHE", JSON.stringify(cache));
-    setGptCache(cache);
-    setVisible(false);
     setSuggestions([]);
+    setVisible(false);
+    Keyboard.dismiss();
   };
 
   return (
@@ -59,9 +69,9 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
               {editingFood.items.map((item, index) => (
                 <View key={index} style={styles.editItemCard}>
                   <Text style={styles.editItemNumber}>Item {index + 1}</Text>
-                  {["name", "calories", "protein", "carbs", "fats"].map((field) => (
+                  {["name", "amount_g", "calories", "protein", "carbs", "fats"].map((field) => (
                     <View key={field}>
-                      <Text>{field}</Text>
+                      <Text>{FIELD_LABELS[field]}</Text>
                       <TextInput
                         value={field === "name" ? item.name : item[field]?.toString() || ""}
                         keyboardType={field === "name" ? "default" : "numeric"}
