@@ -1,6 +1,8 @@
-import { ScrollView, Text, RefreshControl } from "react-native";
+import { View, ScrollView, Text, RefreshControl } from "react-native";
 import { useMacroTracker } from "./hooks/useMacroTracker";
+import { captureAndCompressLabelImage } from "./utils/imageUtils";
 import { styles } from "./macroTrackerStyles";
+import { Badge } from "shared/components/Badge";
 
 import DatePicker from "./components/DatePicker";
 import { MacroTotals } from "./components/MacroTotals";
@@ -9,6 +11,7 @@ import { DailyControls } from "./components/DailyControls";
 import { GoalModal } from "./components/GoalModal";
 import { CustomFoodsModal } from "./components/CustomFoodsModal";
 import { EditCachedFoodModal } from "./components/EditCachedFoodModal";
+import { ManualEntryModal } from "./components/ManualEntryModal";
 
 export default function MacroTrackerScreen() {
   const {
@@ -30,58 +33,89 @@ export default function MacroTrackerScreen() {
     dailyLog,
     gramInputs, setGramInputs,
     totalMacros,
+    currentStreak,
+    selectedDayGoalMet,
     goals, setGoals,
     editingMacro, setEditingMacro,
     goalInput, setGoalInput,
     addItem, removeItem, clearItem, updateGrams, resetDay,
-    addCustomFood, submit,
+    addCustomFood, submit, submitFromImage,
+    manualEntryVisible, setManualEntryVisible,
+    manualEntryName, setManualEntryName,
+    manualEntryInitialValues, closeManualEntry,
+    saveManualEntry,
   } = useMacroTracker();
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      keyboardShouldPersistTaps="handled"
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-    >
-      <Text style={styles.mainTitle}>Macro Tracker</Text>
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        <Text style={styles.mainTitle}>Macro Tracker</Text>
 
-      <DatePicker selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
+        {(currentStreak > 0 || selectedDayGoalMet) && (
+          <View style={styles.badgeRow}>
+            {currentStreak > 0 && (
+              <Badge icon="flame" label={`${currentStreak} day streak`} variant="primary" />
+            )}
+            {selectedDayGoalMet && (
+              <Badge icon="checkmark-circle" label="Goal met" variant="success" />
+            )}
+          </View>
+        )}
 
-      <MacroTotals
-        totalMacros={totalMacros}
-        goals={goals}
-        setEditingMacro={setEditingMacro}
-        setGoalInput={setGoalInput}
-        setGoalModalVisible={setGoalModalVisible}
-      />
+        <DatePicker
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+          dailyLog={dailyLog}
+          goals={goals}
+        />
 
-      <FoodSearchInput
-        input={input}
-        setInput={setInput}
-        suggestions={suggestions}
-        setSuggestions={setSuggestions}
-        setSuppressSuggestions={setSuppressSuggestions}
-        setEditingFood={setEditingFood}
-        setEditModalVisible={setEditModalVisible}
-        gptCache={gptCache}
-        submit={submit}
-      />
+        <MacroTotals
+          totalMacros={totalMacros}
+          goals={goals}
+          setEditingMacro={setEditingMacro}
+          setGoalInput={setGoalInput}
+          setGoalModalVisible={setGoalModalVisible}
+        />
 
-      <DailyControls
-        selectedDate={selectedDate}
-        historyByDate={historyByDate}
-        dailyLog={dailyLog}
-        gramInputs={gramInputs}
-        setGramInputs={setGramInputs}
-        addItem={addItem}
-        removeItem={removeItem}
-        clearItem={clearItem}
-        updateGrams={updateGrams}
-        resetDay={resetDay}
-        submit={submit}
-        loading={loading}
-        setFoodDbVisible={setFoodDbVisible}
-      />
+        <FoodSearchInput
+          input={input}
+          setInput={setInput}
+          suggestions={suggestions}
+          setSuggestions={setSuggestions}
+          setSuppressSuggestions={setSuppressSuggestions}
+          setEditingFood={setEditingFood}
+          setEditModalVisible={setEditModalVisible}
+          gptCache={gptCache}
+          submit={submit}
+          loading={loading}
+          onManualEntry={() => { closeManualEntry(); setManualEntryName(input.trim()); setManualEntryVisible(true); }}
+          onScanLabel={async (source) => {
+            const result = await captureAndCompressLabelImage(source);
+            if (result) submitFromImage(result.base64);
+          }}
+        />
+
+        <DailyControls
+          selectedDate={selectedDate}
+          historyByDate={historyByDate}
+          dailyLog={dailyLog}
+          gramInputs={gramInputs}
+          setGramInputs={setGramInputs}
+          addItem={addItem}
+          removeItem={removeItem}
+          clearItem={clearItem}
+          updateGrams={updateGrams}
+          resetDay={resetDay}
+          submit={submit}
+          loading={loading}
+          setFoodDbVisible={setFoodDbVisible}
+        />
+
+      </ScrollView>
 
       <GoalModal
         visible={goalModalVisible}
@@ -113,6 +147,14 @@ export default function MacroTrackerScreen() {
         setGptCache={setGptCache}
         setSuggestions={setSuggestions}
       />
-    </ScrollView>
+
+      <ManualEntryModal
+        visible={manualEntryVisible}
+        setVisible={closeManualEntry}
+        initialName={manualEntryName}
+        initialValues={manualEntryInitialValues}
+        onSave={saveManualEntry}
+      />
+    </View>
   );
 }

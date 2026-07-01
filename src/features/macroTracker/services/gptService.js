@@ -74,3 +74,70 @@ JSON schema:
 
   return parsed.items.map(normalizeAndValidateItem);
 };
+
+export const fetchNutritionFromImage = async (base64Image, apiKey) => {
+  const systemPrompt = `You are reading a printed Nutrition Facts label from a photo. Transcribe the values exactly as printed — do NOT estimate from a food database or adjust for cooking state.
+
+Return ONLY valid JSON. No markdown, code fences, or commentary.
+
+Rules:
+
+1. VERBATIM — use exactly the numbers printed on the label. Do not round, adjust, or infer values that aren't legible.
+
+2. PRODUCT NAME — use the product/food name printed on the packaging (front-of-pack name if visible, otherwise a reasonable description of the label contents).
+
+3. SERVING SIZE — amount_g must be the serving size in grams as printed (e.g. "Serving size: 40g" → amount_g: 40). If the label states serving size only in a non-gram unit (e.g. "1 bar", "1 cup"), convert using any gram figure printed in parentheses. If no gram figure is determinable, use amount_g: 100 and say so in assumption.
+
+4. ASSUMPTIONS — the assumption field must describe anything you couldn't read clearly or had to infer: illegible/blurry values, a converted serving size, an unclear product name. If every value was clearly legible, assumption: null.
+
+5. UNREADABLE — if the photo does not show a legible nutrition facts panel (wrong subject, too blurry, no label visible), return {"items": []}.
+
+6. SINGLE PRODUCT — return exactly one item for the label shown, even if the package contains multiple servings.
+
+JSON schema:
+{
+  "items": [
+    {
+      "name": string,
+      "amount_g": number,
+      "calories_kcal": number,
+      "protein_g": number,
+      "carbs_g": number,
+      "fat_g": number,
+      "assumption": string | null
+    }
+  ]
+}`;
+
+  const res = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o",
+      temperature: 0,
+      text: { format: { type: "json_object" } },
+      input: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: [
+            { type: "input_text", text: "Read this nutrition label and extract its values." },
+            { type: "input_image", image_url: `data:image/jpeg;base64,${base64Image}`, detail: "high" },
+          ],
+        },
+      ],
+    }),
+  });
+
+  const gptData = await res.json();
+  const rawText = gptData.output_text || gptData.output?.[0]?.content?.[0]?.text;
+  if (!rawText) throw new Error("No response from GPT");
+
+  const parsed = safeParseJSON(rawText);
+  if (!parsed?.items || !Array.isArray(parsed.items)) throw new Error("Invalid GPT output");
+
+  return parsed.items.map(normalizeAndValidateItem);
+};

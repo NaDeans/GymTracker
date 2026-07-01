@@ -13,6 +13,15 @@ export const calcTotals = (items) =>
 export const entryExistsForDay = (dayHistory, foodId) =>
   dayHistory.some((entry) => entry.foodId === foodId);
 
+export const isGoalMet = (totals, goals, hasItems, tolerancePct = 0.10) => {
+  if (!hasItems) return false;
+  return ["calories", "protein", "carbs", "fats"].every((k) => {
+    const goal = goals[k];
+    if (!goal) return totals[k] === 0;
+    return Math.abs(totals[k] - goal) / goal <= tolerancePct;
+  });
+};
+
 export const customFoodFields = [
   { key: "name", label: "Food Name", keyboardType: "default" },
   { key: "amount_g", label: "Weight (g)", keyboardType: "numeric" },

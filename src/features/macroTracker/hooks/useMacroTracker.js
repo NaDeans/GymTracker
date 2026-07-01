@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Alert, Keyboard } from "react-native";
 import { OPENAI_API_KEY } from "@env";
 
 import { todayString } from "shared/utils/dateUtils";
 import { safeNumber } from "shared/utils/numberUtils";
-import { calcTotals, entryExistsForDay } from "../utils/macroUtils";
+import { calcCurrentStreak, dayHasLog } from "shared/utils/streakUtils";
+import { calcTotals, entryExistsForDay, isGoalMet } from "../utils/macroUtils";
 import { loadMacroTrackerData, saveMacroTrackerData } from "../utils/storageUtils";
-import { fetchNutritionFromGPT } from "../services/gptService";
+import { fetchNutritionFromGPT, fetchNutritionFromImage } from "../services/gptService";
 
 export const useMacroTracker = () => {
   // UI
@@ -27,6 +28,11 @@ export const useMacroTracker = () => {
   const [gptCache, setGptCache] = useState({});
   const [suggestions, setSuggestions] = useState([]);
   const [suppressSuggestions, setSuppressSuggestions] = useState(false);
+
+  // Manual entry modal
+  const [manualEntryVisible, setManualEntryVisible] = useState(false);
+  const [manualEntryName, setManualEntryName] = useState("");
+  const [manualEntryInitialValues, setManualEntryInitialValues] = useState(null);
 
   // Logs / dates
   const [selectedDate, setSelectedDate] = useState(todayString());
@@ -239,7 +245,14 @@ export const useMacroTracker = () => {
     } catch (err) {
       console.error("GPT error:", err);
       if (err.message === "No nutrition items returned") {
-        Alert.alert("Food not found", "Couldn't find nutrition data for that. Try being more specific (e.g. '100g chicken breast cooked').");
+        Alert.alert(
+          "Food not found",
+          "Couldn't find nutrition data for that. Enter macros manually?",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Enter manually", onPress: () => { setManualEntryName(rawInput.trim()); setManualEntryVisible(true); } },
+          ]
+        );
       } else {
         Alert.alert("Error", "Something went wrong fetching nutrition data. Check your connection and API key.");
       }
@@ -249,7 +262,81 @@ export const useMacroTracker = () => {
     }
   };
 
+  const submitFromImage = async (base64Image) => {
+    setLoading(true);
+    try {
+      const items = await fetchNutritionFromImage(base64Image, OPENAI_API_KEY);
+      const item = items[0];
+      setManualEntryInitialValues({
+        name: item.name,
+        amount_g: String(item.amount_g ?? ""),
+        calories: String(item.calories),
+        protein: String(item.protein),
+        carbs: String(item.carbs),
+        fats: String(item.fats),
+        assumption: item.assumption,
+      });
+      setManualEntryName(item.name);
+      setManualEntryVisible(true);
+    } catch (err) {
+      console.error("GPT image error:", err);
+      if (err.message === "No nutrition items returned") {
+        Alert.alert(
+          "Couldn't read label",
+          "Enter the values manually instead?",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Enter manually", onPress: () => { setManualEntryInitialValues(null); setManualEntryName(""); setManualEntryVisible(true); } },
+          ]
+        );
+      } else {
+        Alert.alert("Error", "Something went wrong reading that photo. Check your connection and API key.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveManualEntry = ({ name, amount_g, calories, protein, carbs, fats }) => {
+    const key = name.toLowerCase();
+    const uniqueFoodId = Date.now().toString() + Math.random().toString(36).slice(2);
+    const item = { id: uniqueFoodId, name, amount_g, calories, protein, carbs, fats, assumption: null };
+    const itemWithRaw = { ...item, raw: { calories, protein, carbs, fats, amount_g } };
+    const source = manualEntryInitialValues ? "scan" : "manual";
+
+    let duplicate = false;
+    setHistoryByDate((prev) => {
+      const dayHistory = prev[selectedDate] || [];
+      if (dayHistory.some((entry) => entry.key === key)) {
+        duplicate = true;
+        return prev;
+      }
+      return { ...prev, [selectedDate]: [{ foodId: uniqueFoodId, key, items: [itemWithRaw] }, ...dayHistory] };
+    });
+
+    if (duplicate) {
+      Alert.alert("Already added", "This food is already in today's log.");
+      return;
+    }
+
+    setGptCache((prev) => ({ ...prev, [key]: { searchKey: key, foodId: uniqueFoodId, items: [item], source } }));
+    setManualEntryVisible(false);
+    setManualEntryInitialValues(null);
+    setInput("");
+  };
+
+  const closeManualEntry = () => {
+    setManualEntryVisible(false);
+    setManualEntryInitialValues(null);
+  };
+
   const dayData = dailyLog[selectedDate] || { items: {}, totals: { calories: 0, protein: 0, carbs: 0, fats: 0 } };
+
+  const currentStreak = useMemo(() => calcCurrentStreak(dailyLog), [dailyLog]);
+  const selectedDayGoalMet = useMemo(
+    () => isGoalMet(dayData.totals, goals, dayHasLog(dailyLog, selectedDate)),
+    [dayData.totals, goals, dailyLog, selectedDate]
+  );
 
   return {
     refreshing, onRefresh,
@@ -270,10 +357,16 @@ export const useMacroTracker = () => {
     dailyLog,
     gramInputs, setGramInputs,
     totalMacros: dayData.totals,
+    currentStreak,
+    selectedDayGoalMet,
     goals, setGoals,
     editingMacro, setEditingMacro,
     goalInput, setGoalInput,
     addItem, removeItem, clearItem, updateGrams, resetDay,
-    addCustomFood, submit,
+    addCustomFood, submit, submitFromImage,
+    manualEntryVisible, setManualEntryVisible,
+    manualEntryName, setManualEntryName,
+    manualEntryInitialValues, closeManualEntry,
+    saveManualEntry,
   };
 };

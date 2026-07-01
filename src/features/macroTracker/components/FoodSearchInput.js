@@ -1,5 +1,9 @@
-import { View, Text, TextInput, Pressable, Keyboard } from "react-native";
+import { View, Text, Pressable, Keyboard, Alert } from "react-native";
 import { styles } from "../macroTrackerStyles";
+import { TextField } from "shared/components/TextField";
+import { Button } from "shared/components/Button";
+import { IconButton } from "shared/components/IconButton";
+import { Card } from "shared/components/Card";
 
 export const FoodSearchInput = ({
   input,
@@ -11,6 +15,9 @@ export const FoodSearchInput = ({
   setEditModalVisible,
   gptCache,
   submit,
+  onManualEntry,
+  onScanLabel,
+  loading,
 }) => {
   const handleSelectSuggestion = (s) => {
     setSuggestions([]);
@@ -27,30 +34,50 @@ export const FoodSearchInput = ({
     setEditModalVisible(true);
   };
 
+  const handleScanLabel = () => {
+    Alert.alert("Scan Nutrition Label", undefined, [
+      { text: "Take Photo", onPress: () => onScanLabel("camera") },
+      { text: "Choose from Library", onPress: () => onScanLabel("library") },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
+
   return (
     <View style={styles.inputContainer}>
-      <TextInput
-        style={styles.input}
-        placeholder="Search Foods"
-        placeholderTextColor="#888"
-        value={input}
-        onChangeText={setInput}
-        onSubmitEditing={() => submit()}
-      />
+      <View style={styles.searchRow}>
+        <TextField
+          icon="search"
+          placeholder="Search Foods"
+          value={input}
+          onChangeText={setInput}
+          onSubmitEditing={() => submit()}
+          style={{ flex: 1 }}
+        />
+        <Button variant="secondary" size="sm" icon="add" onPress={onManualEntry}>Manual</Button>
+        <Button variant="secondary" size="sm" icon="camera" loading={loading} disabled={loading} onPress={handleScanLabel}>Scan</Button>
+      </View>
 
       {suggestions.length > 0 && (
-        <View style={styles.suggestionsContainer}>
-          {suggestions.map((s) => (
-            <View key={s} style={styles.suggestionRow}>
-              <Pressable onPress={() => handleSelectSuggestion(s)} style={{ flex: 1 }}>
-                <Text>{s}</Text>
+        <Card surface="raised" elevation="md" padding={0} style={styles.suggestionsContainer}>
+          {suggestions.map((s, i) => (
+            <View key={s} style={[styles.suggestionRow, i > 0 && styles.suggestionDivider]}>
+              <Pressable style={styles.suggestionTouchable} onPress={() => handleSelectSuggestion(s)}>
+                <Text style={styles.suggestionText}>{s}</Text>
               </Pressable>
-              <Pressable onPress={() => handleEditSuggestion(s)} style={styles.suggestionEditButton}>
-                <Text>Edit</Text>
-              </Pressable>
+              {gptCache[s]?.source === "manual" && (
+                <View style={styles.manualTag}>
+                  <Text style={styles.manualTagText}>✎</Text>
+                </View>
+              )}
+              {gptCache[s]?.source === "scan" && (
+                <View style={styles.scanTag}>
+                  <Text style={styles.scanTagText}>📷</Text>
+                </View>
+              )}
+              <IconButton icon="pencil" variant="ghost" size="sm" onPress={() => handleEditSuggestion(s)} />
             </View>
           ))}
-        </View>
+        </Card>
       )}
     </View>
   );

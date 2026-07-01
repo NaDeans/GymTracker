@@ -1,6 +1,10 @@
-import { View, Text, TextInput, Pressable } from "react-native";
+import { View, Text } from "react-native";
 import { fmt, safeNumber } from "shared/utils/numberUtils";
 import { styles } from "../macroTrackerStyles";
+import { Card } from "shared/components/Card";
+import { Button } from "shared/components/Button";
+import { Stepper } from "shared/components/Stepper";
+import { SPACING } from "shared/constants/styles";
 
 const DailyLogItem = ({ item, count, gramValue, setGramValue, updateGrams, addItem, removeItem, clearItem }) => {
   const raw = item.raw || item;
@@ -13,22 +17,26 @@ const DailyLogItem = ({ item, count, gramValue, setGramValue, updateGrams, addIt
     fats: (safeNumber(raw.fats) * safeNumber(gramValue)) / baseG,
   };
 
+  const commitGrams = (v) => {
+    const g = parseFloat(v);
+    if (!isNaN(g) && g > 0) updateGrams(item.id, g);
+  };
+
   return (
-    <View style={styles.itemBlock}>
+    <Card style={styles.itemBlock}>
       <Text style={styles.itemName}>{item.name}</Text>
 
       <View style={styles.gramsRow}>
-        <TextInput
-          style={styles.gramsInput}
-          keyboardType="numeric"
+        <Stepper
+          size="compact"
           value={String(gramValue)}
-          onChangeText={setGramValue}
-          onEndEditing={() => {
-            const g = parseFloat(gramValue);
-            if (!isNaN(g) && g > 0) updateGrams(item.id, g);
-          }}
+          onDraftChange={setGramValue}
+          onCommit={commitGrams}
+          onStep={(v) => { setGramValue(v); commitGrams(v); }}
+          step={5}
+          min={1}
+          suffix="g"
         />
-        <Text>g</Text>
       </View>
 
       <Text style={styles.macros}>
@@ -37,25 +45,15 @@ const DailyLogItem = ({ item, count, gramValue, setGramValue, updateGrams, addIt
 
       <View style={styles.buttonRow}>
         <View style={styles.leftButtons}>
-          <Pressable onPress={() => addItem(item)} style={({ pressed }) => [styles.addButton, pressed && styles.addButtonPressed]}>
-            <Text style={styles.buttonText}>Add</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => removeItem(item)}
-            disabled={count === 0}
-            style={({ pressed }) => [styles.removeButton, pressed && styles.removeButtonPressed]}
-          >
-            <Text style={styles.buttonText}>Remove</Text>
-          </Pressable>
+          <Button variant="success" size="sm" onPress={() => addItem(item)}>Add</Button>
+          <Button variant="secondary" size="sm" disabled={count === 0} onPress={() => removeItem(item)}>Remove</Button>
         </View>
-        <Pressable onPress={() => clearItem(item)} style={({ pressed }) => [styles.clearButton, pressed && styles.clearButtonPressed]}>
-          <Text style={styles.buttonText}>Clear</Text>
-        </Pressable>
+        <Button variant="outline" size="sm" onPress={() => clearItem(item)}>Clear</Button>
       </View>
 
       {count > 0 && <Text style={styles.addedText}>Added ×{count}</Text>}
       {item.assumption && <Text style={styles.assumption}>Note: {item.assumption}</Text>}
-    </View>
+    </Card>
   );
 };
 
@@ -74,14 +72,10 @@ export const DailyControls = ({
   loading,
   setFoodDbVisible,
 }) => (
-  <View style={{ marginTop: 20 }}>
-    <Pressable onPress={() => submit()} style={({ pressed }) => [styles.submitButton, pressed && styles.submitButtonPressed]}>
-      <Text style={styles.buttonText}>{loading ? "Processing..." : "Submit"}</Text>
-    </Pressable>
+  <View style={{ marginTop: SPACING.xl, gap: SPACING.sm }}>
+    <Button variant="primary" fullWidth loading={loading} onPress={() => submit()}>Submit</Button>
 
-    <Pressable onPress={() => setFoodDbVisible(true)} style={({ pressed }) => [styles.customButton, pressed && styles.customButtonPressed]}>
-      <Text style={styles.buttonText}>Custom Foods</Text>
-    </Pressable>
+    <Button variant="secondary" fullWidth onPress={() => setFoodDbVisible(true)}>Custom Foods</Button>
 
     {(historyByDate[selectedDate] || []).map((entry, idx) => (
       <View key={idx} style={styles.historyBlock}>
@@ -101,8 +95,6 @@ export const DailyControls = ({
       </View>
     ))}
 
-    <Pressable onPress={resetDay} style={({ pressed }) => [styles.resetButton, pressed && styles.resetButtonPressed]}>
-      <Text style={styles.buttonText}>Reset Day</Text>
-    </Pressable>
+    <Button variant="danger" fullWidth onPress={resetDay} style={{ marginTop: SPACING.lg }}>Reset Day</Button>
   </View>
 );

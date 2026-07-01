@@ -1,10 +1,17 @@
 import { useState } from "react";
-import { View, Text, Pressable, Modal } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { todayString, dmyToIso, isoToDmy } from "shared/utils/dateUtils";
+import { dayHasLog } from "shared/utils/streakUtils";
+import { isGoalMet } from "../utils/macroUtils";
 import { styles } from "../macroTrackerStyles";
+import { Card } from "shared/components/Card";
+import { IconButton } from "shared/components/IconButton";
+import { Button } from "shared/components/Button";
+import { ModalSheet } from "shared/components/ModalSheet";
+import { COLORS } from "shared/constants/colors";
 
-export default function DatePicker({ selectedDate, setSelectedDate }) {
+export default function DatePicker({ selectedDate, setSelectedDate, dailyLog, goals }) {
   const [calendarVisible, setCalendarVisible] = useState(false);
 
   const changeDate = (delta) => {
@@ -15,43 +22,51 @@ export default function DatePicker({ selectedDate, setSelectedDate }) {
 
   const isToday = selectedDate === todayString();
 
+  const markedDates = {};
+  Object.keys(dailyLog).forEach((dmy) => {
+    if (!dayHasLog(dailyLog, dmy)) return;
+    const iso = dmyToIso(dmy);
+    const goalMet = isGoalMet(dailyLog[dmy].totals, goals, true);
+    markedDates[iso] = { dots: [{ color: goalMet ? COLORS.success : COLORS.primary }] };
+  });
+
+  const selectedIso = dmyToIso(selectedDate);
+  markedDates[selectedIso] = { ...(markedDates[selectedIso] || {}), selected: true, selectedColor: COLORS.primary };
+
   return (
     <>
-      <View style={styles.dateRow}>
-        <Pressable onPress={() => changeDate(-1)} style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}>
-          <Text style={styles.buttonText}>◀</Text>
-        </Pressable>
+      <Card surface="raised" elevation="sm" padding={0} style={styles.dateCard}>
+        <View style={styles.dateRow}>
+          <IconButton icon="chevron-back" variant="ghost" size="sm" onPress={() => changeDate(-1)} />
 
-        <Pressable onPress={() => setCalendarVisible(true)}>
-          <Text style={[styles.dateText, isToday && styles.dateTextToday]}>{selectedDate}</Text>
-        </Pressable>
+          <Pressable style={styles.dateTextTouchable} onPress={() => setCalendarVisible(true)}>
+            <Text style={[styles.dateText, isToday && styles.dateTextToday]}>{selectedDate}</Text>
+          </Pressable>
 
-        <Pressable onPress={() => changeDate(1)} style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}>
-          <Text style={styles.buttonText}>▶</Text>
-        </Pressable>
+          <IconButton icon="chevron-forward" variant="ghost" size="sm" onPress={() => changeDate(1)} />
 
-        <Pressable onPress={() => setSelectedDate(todayString())} style={({ pressed }) => [styles.todayButton, pressed && styles.todayButtonPressed]}>
-          <Text style={styles.buttonText}>Today</Text>
-        </Pressable>
-      </View>
+          {!isToday && (
+            <Button variant="secondary" size="sm" onPress={() => setSelectedDate(todayString())}>Today</Button>
+          )}
+        </View>
+      </Card>
 
-      <Modal visible={calendarVisible} transparent animationType="fade">
-        <Pressable style={styles.modalOverlay} onPress={() => setCalendarVisible(false)}>
-          <View style={styles.modalContainer}>
-            <Calendar
-              current={dmyToIso(selectedDate)}
-              onDayPress={(day) => {
-                setSelectedDate(isoToDmy(day.dateString));
-                setCalendarVisible(false);
-              }}
-              markedDates={{
-                [dmyToIso(selectedDate)]: { selected: true, selectedColor: "#3498db" },
-                [dmyToIso(todayString())]: { marked: true, dotColor: "green" },
-              }}
-            />
-          </View>
-        </Pressable>
-      </Modal>
+      <ModalSheet visible={calendarVisible} onClose={() => setCalendarVisible(false)} scrollable={false}>
+        <Calendar
+          current={dmyToIso(selectedDate)}
+          markingType="multi-dot"
+          onDayPress={(day) => {
+            setSelectedDate(isoToDmy(day.dateString));
+            setCalendarVisible(false);
+          }}
+          theme={{
+            selectedDayBackgroundColor: COLORS.primary,
+            todayTextColor: COLORS.primary,
+            arrowColor: COLORS.primary,
+          }}
+          markedDates={markedDates}
+        />
+      </ModalSheet>
     </>
   );
 }

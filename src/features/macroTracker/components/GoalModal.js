@@ -1,31 +1,35 @@
-import { Modal, Text, TextInput, Pressable, Keyboard } from "react-native";
-import { styles } from "../macroTrackerStyles";
+import { ModalSheet } from "shared/components/ModalSheet";
+import { Stepper } from "shared/components/Stepper";
+import { Button } from "shared/components/Button";
+import { Keyboard } from "react-native";
 
-export const GoalModal = ({ visible, setVisible, editingMacro, goalInput, setGoalInput, setGoals }) => (
-  <Modal visible={visible} transparent animationType="fade">
-    <Pressable style={styles.modalOverlay} onPress={() => { Keyboard.dismiss(); setVisible(false); }}>
-      <Pressable style={styles.modalContainer} onPress={() => {}}>
-        <Text style={styles.modalTitle}>Set goal for {editingMacro}</Text>
+export const GoalModal = ({ visible, setVisible, editingMacro, goalInput, setGoalInput, setGoals }) => {
+  const step = editingMacro === "calories" ? 50 : 5;
+  const suffix = editingMacro === "calories" ? "kcal" : "g";
 
-        <TextInput
-          style={styles.input}
-          keyboardType="numeric"
-          value={goalInput}
-          onChangeText={setGoalInput}
-          autoFocus
-        />
+  const handleSave = () => {
+    Keyboard.dismiss();
+    setGoals((prev) => ({ ...prev, [editingMacro]: parseFloat(goalInput) || prev[editingMacro] }));
+    setVisible(false);
+  };
 
-        <Pressable
-          onPress={() => {
-            Keyboard.dismiss();
-            setGoals((prev) => ({ ...prev, [editingMacro]: parseFloat(goalInput) || prev[editingMacro] }));
-            setVisible(false);
-          }}
-          style={({ pressed }) => [styles.submitButton, pressed && styles.submitButtonPressed]}
-        >
-          <Text style={styles.buttonText}>Save</Text>
-        </Pressable>
-      </Pressable>
-    </Pressable>
-  </Modal>
-);
+  return (
+    <ModalSheet
+      visible={visible}
+      onClose={() => setVisible(false)}
+      title={`Set goal for ${editingMacro}`}
+      scrollable={false}
+      footer={<Button variant="primary" fullWidth onPress={handleSave}>Save</Button>}
+    >
+      <Stepper
+        value={goalInput}
+        onStep={setGoalInput}
+        onDraftChange={setGoalInput}
+        onCommit={setGoalInput}
+        step={step}
+        min={0}
+        suffix={suffix}
+      />
+    </ModalSheet>
+  );
+};

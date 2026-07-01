@@ -1,7 +1,18 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Text } from "react-native";
 import { Donut } from "./Donut";
 import { fmt } from "shared/utils/numberUtils";
 import { styles } from "../macroTrackerStyles";
+import { Card } from "shared/components/Card";
+import { COLORS } from "shared/constants/colors";
+
+const MACRO_COLOR = {
+  calories: COLORS.primary,
+  protein: COLORS.chart.protein,
+  carbs: COLORS.chart.carbs,
+  fats: COLORS.chart.fats,
+};
+
+const MACRO_LABEL = { calories: "Calories", protein: "Protein", carbs: "Carbs", fats: "Fats" };
 
 export const MacroTotals = ({ totalMacros, goals, setEditingMacro, setGoalInput, setGoalModalVisible }) => {
   const totalSum = totalMacros.protein + totalMacros.carbs + totalMacros.fats;
@@ -23,15 +34,22 @@ export const MacroTotals = ({ totalMacros, goals, setEditingMacro, setGoalInput,
   return (
     <View style={styles.totalsContainer}>
       <View style={styles.totalsColumn}>
-        {["calories", "protein", "carbs", "fats"].map((macro) => (
-          <Pressable key={macro} onPress={() => openGoalModal(macro)} style={styles.macroBox}>
-            <Text style={styles.macroText}>
-              {macro === "calories" ? "Calories" : macro.charAt(0).toUpperCase() + macro.slice(1)}
-              : {fmt(totalMacros[macro])}/{goals[macro]}
-              {macro === "calories" ? " kcal" : " g"}
-            </Text>
-          </Pressable>
-        ))}
+        {["calories", "protein", "carbs", "fats"].map((macro) => {
+          const value = totalMacros[macro];
+          const goal = goals[macro] || 1;
+          const pct = Math.min(100, (value / goal) * 100);
+          const color = MACRO_COLOR[macro];
+          return (
+            <Card key={macro} onPress={() => openGoalModal(macro)} elevation="sm" style={styles.macroBox}>
+              <Text style={styles.macroText}>
+                {MACRO_LABEL[macro]}: {fmt(value)}/{goals[macro]}{macro === "calories" ? " kcal" : " g"}
+              </Text>
+              <View style={styles.macroProgressTrack}>
+                <View style={[styles.macroProgressFill, { width: `${pct}%`, backgroundColor: color }]} />
+              </View>
+            </Card>
+          );
+        })}
       </View>
 
       <View style={styles.wheelContainer}>
@@ -41,12 +59,26 @@ export const MacroTotals = ({ totalMacros, goals, setEditingMacro, setGoalInput,
               macros={totalMacros}
               size={140}
               strokeWidth={18}
-              colors={{ protein: "#e74c3c", carbs: "#f1c40f", fats: "#3498db", background: "#ddd" }}
+              colors={{
+                protein: COLORS.chart.protein,
+                carbs: COLORS.chart.carbs,
+                fats: COLORS.chart.fats,
+                background: COLORS.chart.track,
+              }}
             />
             <View style={styles.percOverlay}>
-              <Text style={[styles.percText, styles.proteinColor]}>P {perc.protein}%</Text>
-              <Text style={[styles.percText, styles.carbsColor]}>C {perc.carbs}%</Text>
-              <Text style={[styles.percText, styles.fatsColor]}>F {perc.fats}%</Text>
+              <View style={styles.legendRow}>
+                <View style={[styles.legendDot, { backgroundColor: COLORS.chart.protein }]} />
+                <Text style={styles.percText}>P {perc.protein}%</Text>
+              </View>
+              <View style={styles.legendRow}>
+                <View style={[styles.legendDot, { backgroundColor: COLORS.chart.carbs }]} />
+                <Text style={styles.percText}>C {perc.carbs}%</Text>
+              </View>
+              <View style={styles.legendRow}>
+                <View style={[styles.legendDot, { backgroundColor: COLORS.chart.fats }]} />
+                <Text style={styles.percText}>F {perc.fats}%</Text>
+              </View>
             </View>
           </>
         )}
