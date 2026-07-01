@@ -10,6 +10,8 @@ export const styles = StyleSheet.create({
 
   //==================== CATEGORY / EXERCISE CARDS ====================//
   viewLogCard: { marginBottom: SPACING.xl },
+  todayNotesCard: { marginBottom: SPACING.xl },
+  todayNotesLabel: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: COLORS.textMuted, marginBottom: SPACING.sm },
   viewLogRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   viewLogText: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: COLORS.primary },
   cardText: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.medium, color: COLORS.textDark },
@@ -18,6 +20,7 @@ export const styles = StyleSheet.create({
 
   //==================== SET LOGGER ====================//
   heroStepperRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-around", rowGap: SPACING.md, marginBottom: SPACING.lg },
+  previousSessionText: { fontSize: FONT_SIZE.sm, color: COLORS.textLight, marginBottom: SPACING.md, textAlign: "center" },
   historySubtitle: { fontSize: FONT_SIZE.xl, fontWeight: FONT_WEIGHT.semibold, marginTop: SPACING.xl, marginBottom: SPACING.md },
   dayCardSpacing: { marginBottom: SPACING.md },
   historyDateText: { fontWeight: FONT_WEIGHT.semibold, marginBottom: SPACING.sm, color: COLORS.textDark },
