@@ -79,19 +79,23 @@ export const DailyControls = ({
 
     {(historyByDate[selectedDate] || []).map((entry, idx) => (
       <View key={idx} style={styles.historyBlock}>
-        {entry.items.map((item) => (
-          <DailyLogItem
-            key={item.id}
-            item={item}
-            count={dailyLog[selectedDate]?.items[item.id]?.count || 0}
-            gramValue={parseFloat(gramInputs[item.id] ?? item.amount_g)}
-            setGramValue={(v) => setGramInputs((prev) => ({ ...prev, [item.id]: v }))}
-            updateGrams={updateGrams}
-            addItem={addItem}
-            removeItem={removeItem}
-            clearItem={clearItem}
-          />
-        ))}
+        {entry.items.map((item) => {
+          const draft = gramInputs[item.id];
+          const gramValue = draft === undefined ? safeNumber(item.amount_g) : safeNumber(parseFloat(draft));
+          return (
+            <DailyLogItem
+              key={item.id}
+              item={item}
+              count={dailyLog[selectedDate]?.items[item.id]?.count || 0}
+              gramValue={gramValue}
+              setGramValue={(v) => setGramInputs((prev) => ({ ...prev, [item.id]: v }))}
+              updateGrams={updateGrams}
+              addItem={addItem}
+              removeItem={removeItem}
+              clearItem={clearItem}
+            />
+          );
+        })}
       </View>
     ))}
 
