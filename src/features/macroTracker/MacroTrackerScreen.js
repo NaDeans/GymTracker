@@ -44,6 +44,7 @@ export default function MacroTrackerScreen() {
     manualEntryName, setManualEntryName,
     manualEntryInitialValues, closeManualEntry,
     saveManualEntry,
+    addEditedFoodToLog,
   } = useMacroTracker();
 
   return (
@@ -146,6 +147,7 @@ export default function MacroTrackerScreen() {
         gptCache={gptCache}
         setGptCache={setGptCache}
         setSuggestions={setSuggestions}
+        onAddToLog={addEditedFoodToLog}
       />
 
       <ManualEntryModal

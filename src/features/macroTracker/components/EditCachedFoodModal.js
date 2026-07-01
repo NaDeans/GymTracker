@@ -15,7 +15,7 @@ const FIELD_LABELS = {
   fats: "Fats (g)",
 };
 
-export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditingFood, gptCache, setGptCache, setSuggestions }) => {
+export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditingFood, gptCache, setGptCache, setSuggestions, onAddToLog }) => {
   if (!editingFood) return null;
 
   const handleDelete = () => {
@@ -32,11 +32,11 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
     const oldKey = editingFood.originalKey;
     const newKey = editingFood.key.trim().toLowerCase();
 
-    if (!newKey) { Alert.alert("Error", "Search term cannot be empty"); return; }
-    if (oldKey !== newKey && gptCache[newKey]) { Alert.alert("Error", "A food with that name already exists."); return; }
+    if (!newKey) { Alert.alert("Error", "Search term cannot be empty"); return false; }
+    if (oldKey !== newKey && gptCache[newKey]) { Alert.alert("Error", "A food with that name already exists."); return false; }
 
     const existingEntry = gptCache[oldKey];
-    if (!existingEntry) { setVisible(false); return; }
+    if (!existingEntry) { setVisible(false); return true; }
 
     setGptCache((prev) => {
       const updated = { ...prev };
@@ -47,6 +47,12 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
 
     setSuggestions([]);
     setVisible(false);
+    return true;
+  };
+
+  const handleAddToLog = () => {
+    if (!handleSave()) return;
+    onAddToLog();
   };
 
   return (
@@ -55,9 +61,12 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
       onClose={() => setVisible(false)}
       title="Edit Cached Food"
       footer={
-        <View style={{ flexDirection: "row", gap: SPACING.sm }}>
-          <Button variant="danger" onPress={handleDelete} style={{ flex: 1 }}>Delete</Button>
-          <Button variant="primary" onPress={handleSave} style={{ flex: 1 }}>Save</Button>
+        <View style={{ gap: SPACING.sm }}>
+          <View style={{ flexDirection: "row", gap: SPACING.sm }}>
+            <Button variant="danger" onPress={handleDelete} style={{ flex: 1 }}>Delete</Button>
+            <Button variant="primary" onPress={handleSave} style={{ flex: 1 }}>Save</Button>
+          </View>
+          <Button variant="success" onPress={handleAddToLog} fullWidth>Add to Log</Button>
         </View>
       }
     >

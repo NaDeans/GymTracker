@@ -56,14 +56,14 @@ export const ManualEntryModal = ({ visible, setVisible, initialName, initialValu
       footer={
         <View style={{ flexDirection: "row", gap: SPACING.sm }}>
           <Button variant="secondary" onPress={() => setVisible(false)} style={{ flex: 1 }}>Cancel</Button>
-          <Button variant="primary" onPress={handleSave} style={{ flex: 1 }}>Save</Button>
+          <Button variant="primary" onPress={handleSave} style={{ flex: 1 }}>Add to Log</Button>
         </View>
       }
     >
       <Text style={{ fontSize: FONT_SIZE.xs, color: COLORS.textMuted, marginBottom: SPACING.md }}>
         {initialValues?.assumption
-          ? `Scanned from photo — GPT noted: "${initialValues.assumption}". Review before saving.`
-          : "Saved to your search history with a ✎ tag so you can find it again."}
+          ? `Scanned from photo — GPT noted: "${initialValues.assumption}". Review before adding to your log.`
+          : "Adds this food to today's log and saves it to your search history with a ✎ tag so you can find it again."}
       </Text>
 
       {FIELDS.map(({ key, label, keyboard }, i) => (

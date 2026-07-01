@@ -320,9 +320,33 @@ export const useMacroTracker = () => {
     }
 
     setGptCache((prev) => ({ ...prev, [key]: { searchKey: key, foodId: uniqueFoodId, items: [item], source } }));
+    addItem(itemWithRaw);
     setManualEntryVisible(false);
     setManualEntryInitialValues(null);
     setInput("");
+  };
+
+  const addEditedFoodToLog = () => {
+    if (!editingFood) return;
+    const itemsWithRaw = editingFood.items.map((i) => ({
+      ...i,
+      raw: { calories: i.calories, protein: i.protein, carbs: i.carbs, fats: i.fats, amount_g: i.amount_g },
+    }));
+    const foodId = editingFood.foodId;
+    const key = editingFood.key.trim().toLowerCase();
+
+    setHistoryByDate((prev) => {
+      const dayHistory = prev[selectedDate] || [];
+      const idx = dayHistory.findIndex((entry) => entry.foodId === foodId);
+      if (idx === -1) {
+        return { ...prev, [selectedDate]: [{ foodId, key, items: itemsWithRaw }, ...dayHistory] };
+      }
+      const updated = [...dayHistory];
+      updated[idx] = { ...updated[idx], key, items: itemsWithRaw };
+      return { ...prev, [selectedDate]: updated };
+    });
+
+    itemsWithRaw.forEach((item) => addItem(item));
   };
 
   const closeManualEntry = () => {
@@ -368,5 +392,6 @@ export const useMacroTracker = () => {
     manualEntryName, setManualEntryName,
     manualEntryInitialValues, closeManualEntry,
     saveManualEntry,
+    addEditedFoodToLog,
   };
 };
