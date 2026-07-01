@@ -4,8 +4,8 @@ import { COLORS } from "shared/constants/colors";
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from "shared/constants/styles";
 
 const SIZES = {
-  hero: { buttonSize: "md", fontSize: FONT_SIZE.lg, minWidth: 68, height: 48 },
-  compact: { buttonSize: "sm", fontSize: FONT_SIZE.md, minWidth: 40, height: 36 },
+  hero: { buttonSize: "md", fontSize: FONT_SIZE.lg, minWidth: 68, height: 48, suffixExtra: 34 },
+  compact: { buttonSize: "sm", fontSize: FONT_SIZE.md, minWidth: 40, height: 36, suffixExtra: 22 },
 };
 
 const clamp = (n, min, max) => {
@@ -32,6 +32,7 @@ export const Stepper = ({
 }) => {
   const s = SIZES[size] || SIZES.hero;
   const numeric = parseFloat(value) || 0;
+  const boxWidth = suffix ? s.minWidth + s.suffixExtra : s.minWidth;
 
   const step_ = (direction) => {
     const next = clamp(numeric + direction * step, min, max);
@@ -43,9 +44,9 @@ export const Stepper = ({
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <View style={styles.row}>
         <IconButton icon="remove" variant="secondary" size={s.buttonSize} onPress={() => step_(-1)} />
-        <View style={[styles.valueBox, { width: s.minWidth, height: s.height }]}>
+        <View style={[styles.valueBox, { width: boxWidth, height: s.height }]}>
           <TextInput
-            style={[styles.value, { fontSize: s.fontSize, width: "100%" }]}
+            style={[styles.value, { fontSize: s.fontSize, flex: 1 }]}
             value={value}
             onChangeText={onDraftChange}
             onEndEditing={() => onCommit?.(value)}
@@ -67,8 +68,10 @@ const styles = StyleSheet.create({
   label: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, color: COLORS.textMedium, marginBottom: SPACING.xs },
   row: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
   valueBox: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: SPACING.xs,
     backgroundColor: COLORS.inputBackground,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1.5,
@@ -76,5 +79,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm,
   },
   value: { fontWeight: FONT_WEIGHT.bold, color: COLORS.textDark, minWidth: 30, padding: 0 },
-  suffix: { fontSize: FONT_SIZE.xs, color: COLORS.textMuted, marginTop: -2 },
+  suffix: { fontSize: FONT_SIZE.xs, color: COLORS.textMuted },
 });
