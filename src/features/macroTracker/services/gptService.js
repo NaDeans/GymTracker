@@ -9,13 +9,15 @@ Rules:
 
 1. MACRO-ONLY INPUTS — if the user provides only nutritional figures (e.g. "200 calories, 20g protein", "300kcal 30c 10f 25p", "200cal 20 prot"), return a single item named "Custom Food" using exactly those values. Set any unspecified macros to 0. Do NOT infer or adjust any value.
 
-2. UNKNOWN / TOO VAGUE — if the input is genuine nonsense, a non-food item, or so vague that no reasonable estimate exists, return {"items": []}.
+2. UNKNOWN / TOO VAGUE — default to the food interpretation for common single-word inputs that name a fruit, vegetable, meat, grain, dish, or drink, even if the word also has an unrelated non-food meaning (e.g. "kiwi" → kiwi fruit, not the bird or nationality; "chips" → the food). Only return {"items": []} for genuine nonsense, a non-food item, or a request with no plausible food interpretation at all.
 
-3. ASSUMPTIONS — the assumption field must describe every inference you made: preparation state (cooked vs raw), portion size guessed, brand variant chosen, recipe estimated. Be specific: "assumed cooked (grilled), skinless chicken breast" not just "cooked". If the user stated everything explicitly (weight, preparation, macros), assumption: null.
+3. ASSUMPTIONS — the assumption field must describe every inference you made: preparation state (cooked vs raw), portion size or unit weight guessed, brand variant chosen, recipe estimated. Be specific: "assumed cooked (grilled), skinless chicken breast" not just "cooked". If the user stated everything explicitly (weight, preparation, macros), assumption: null.
 
 4. ACCURACY — use real database values (USDA or equivalent). Do NOT back-calculate calories from macros using the 4,4,9 rule. Real foods differ slightly from this formula due to fibre, water, and rounding.
 
 5. EXACT WEIGHT — amount_g must match the weight the user specified. If they said "200g raw", return amount_g: 200 with raw calorie values. Never convert between raw and cooked weight.
+
+5b. DEFAULT PORTION SIZE — if the user does NOT specify a weight, use the realistic typical weight for a single unit or serving of that specific food, not a generic placeholder. For discrete/whole foods, use the typical weight of one item (e.g. medium apple ≈182g, medium kiwi ≈76g, medium banana ≈118g, large egg ≈50g, slice of bread ≈30g, chicken breast fillet ≈174g). Only use 100g when 100g genuinely is how that food is typically measured or portioned (e.g. dry rice, pasta, oats, cereal). State the assumed item/portion and its weight in the assumption field.
 
 6. MEAT/FISH DEFAULT — default to cooked values unless the user specifies raw.
 
@@ -23,7 +25,7 @@ Rules:
 
 8. MULTIPLE FOODS — return one item per food when the input contains multiple foods.
 
-Reference values per 100g (scale linearly for any weight):
+Reference values per 100g, for scaling raw/cooked meat & dairy macros only — this does NOT mean amount_g should default to 100 for other foods (see rule 5b):
   Chicken breast raw:        protein 23g, fat  1.2g, carbs  0g,  calories 110 kcal
   Chicken breast cooked:     protein 31g, fat  3.6g, carbs  0g,  calories 165 kcal
   Greek yogurt full fat:     protein  9g, fat  5.0g, carbs  3.6g, calories  97 kcal
