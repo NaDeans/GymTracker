@@ -38,6 +38,14 @@
           "photosPermission": "Allow GymTracker to access your photos to scan a nutrition label.",
           "cameraPermission": "Allow GymTracker to access your camera to scan a nutrition label."
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow GymTracker to use the microphone to search for foods by voice.",
+          "speechRecognitionPermission": "Allow GymTracker to use speech recognition to search for foods by voice.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+        }
       ]
     ],
     "extra": {

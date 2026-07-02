@@ -4,6 +4,7 @@ import { TextField } from "shared/components/TextField";
 import { Button } from "shared/components/Button";
 import { IconButton } from "shared/components/IconButton";
 import { Card } from "shared/components/Card";
+import { useVoiceSearch } from "shared/hooks/useVoiceSearch";
 
 export const FoodSearchInput = ({
   input,
@@ -19,6 +20,8 @@ export const FoodSearchInput = ({
   onScanLabel,
   loading,
 }) => {
+  const { listening, toggle: toggleVoiceSearch } = useVoiceSearch(setInput);
+
   const handleSelectSuggestion = (s) => {
     setSuggestions([]);
     setSuppressSuggestions(true);
@@ -47,10 +50,13 @@ export const FoodSearchInput = ({
       <View style={styles.searchRow}>
         <TextField
           icon="search"
-          placeholder="Search Foods"
+          placeholder={listening ? "Listening..." : "Search Foods"}
           value={input}
           onChangeText={setInput}
           onSubmitEditing={() => submit()}
+          rightIcon={listening ? "mic" : "mic-outline"}
+          onRightIconPress={toggleVoiceSearch}
+          rightIconActive={listening}
           style={{ flex: 1 }}
         />
         <Button variant="secondary" size="md" icon="add" onPress={onManualEntry}>Manual</Button>
