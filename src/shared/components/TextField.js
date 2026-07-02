@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TextInput, StyleSheet } from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "shared/constants/colors";
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, CONTROL_HEIGHT } from "shared/constants/styles";
@@ -20,6 +20,9 @@ export const TextField = ({
   suffix,
   prefix,
   icon,
+  rightIcon,
+  onRightIconPress,
+  rightIconActive = false,
   style,
   inputStyle,
 }) => {
@@ -63,6 +66,11 @@ export const TextField = ({
           onBlur={() => setFocused(false)}
         />
         {suffix ? <Text style={styles.affix}>{suffix}</Text> : null}
+        {rightIcon ? (
+          <Pressable onPress={onRightIconPress} hitSlop={8} style={styles.trailingIcon}>
+            <Ionicons name={rightIcon} size={20} color={rightIconActive ? COLORS.danger : COLORS.textMuted} />
+          </Pressable>
+        ) : null}
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
@@ -79,8 +87,9 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.md,
   },
-  input: { flex: 1, paddingVertical: 0 },
+  input: { flex: 1, minWidth: 0, paddingVertical: 0 },
   affix: { fontSize: FONT_SIZE.sm, color: COLORS.textMuted, marginHorizontal: SPACING.xs },
   leadingIcon: { marginRight: SPACING.xs },
+  trailingIcon: { marginLeft: SPACING.xs },
   error: { fontSize: FONT_SIZE.xs, color: COLORS.danger, marginTop: SPACING.xs },
 });
