@@ -4,15 +4,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "shared/constants/colors";
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, CONTROL_HEIGHT } from "shared/constants/styles";
 import { triggerImpact } from "shared/utils/haptics";
+import { useTheme } from "shared/hooks/useTheme";
 
-const VARIANTS = {
-  primary: { bg: COLORS.primary, pressedBg: COLORS.primaryDark, text: COLORS.textOnPrimary, border: null },
-  secondary: { bg: COLORS.primarySurface, pressedBg: COLORS.border, text: COLORS.primary, border: null },
-  success: { bg: COLORS.success, pressedBg: COLORS.successDark, text: COLORS.textOnPrimary, border: null },
-  danger: { bg: COLORS.danger, pressedBg: COLORS.dangerDark, text: COLORS.textOnPrimary, border: null },
-  ghost: { bg: "transparent", pressedBg: COLORS.neutralSurface, text: COLORS.primary, border: null },
-  outline: { bg: "transparent", pressedBg: COLORS.primarySurface, text: COLORS.primary, border: COLORS.border },
-};
+const createVariants = (colors) => ({
+  primary: { bg: colors.primary, pressedBg: colors.primaryDark, text: colors.textOnPrimary, border: null },
+  secondary: { bg: colors.primarySurface, pressedBg: colors.border, text: colors.primary, border: null },
+  success: { bg: colors.success, pressedBg: colors.successDark, text: colors.textOnPrimary, border: null },
+  danger: { bg: colors.danger, pressedBg: colors.dangerDark, text: colors.textOnPrimary, border: null },
+  ghost: { bg: "transparent", pressedBg: colors.neutralSurface, text: colors.primary, border: null },
+  outline: { bg: "transparent", pressedBg: colors.primarySurface, text: colors.primary, border: colors.border },
+});
 
 const SIZES = {
   sm: { height: CONTROL_HEIGHT.sm, paddingHorizontal: SPACING.md, fontSize: FONT_SIZE.sm, iconSize: 16 },
@@ -35,8 +36,10 @@ export const Button = ({
   style,
   textStyle,
 }) => {
+  const { colors } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
   const isDisabled = disabled || loading;
+  const VARIANTS = createVariants(colors);
   const v = VARIANTS[variant] || VARIANTS.primary;
   const s = SIZES[size] || SIZES.md;
 
@@ -66,7 +69,7 @@ export const Button = ({
           {
             height: s.height,
             paddingHorizontal: s.paddingHorizontal,
-            backgroundColor: isDisabled ? COLORS.neutralSurface : v.bg,
+            backgroundColor: isDisabled ? colors.neutralSurface : v.bg,
             borderWidth: v.border ? 1 : 0,
             borderColor: v.border || "transparent",
             width: fullWidth ? "100%" : undefined,
@@ -76,15 +79,15 @@ export const Button = ({
         ]}
       >
         {icon && !loading && (
-          <Ionicons name={icon} size={s.iconSize} color={isDisabled ? COLORS.textDisabled : v.text} style={styles.icon} />
+          <Ionicons name={icon} size={s.iconSize} color={isDisabled ? colors.textDisabled : v.text} style={styles.icon} />
         )}
         {loading ? (
-          <ActivityIndicator size="small" color={isDisabled ? COLORS.textDisabled : v.text} />
+          <ActivityIndicator size="small" color={isDisabled ? colors.textDisabled : v.text} />
         ) : (
           <Text
             style={[
               styles.label,
-              { fontSize: s.fontSize, color: isDisabled ? COLORS.textDisabled : v.text },
+              { fontSize: s.fontSize, color: isDisabled ? colors.textDisabled : v.text },
               textStyle,
             ]}
           >

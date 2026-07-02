@@ -3,6 +3,7 @@ import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "shared/constants/colors";
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, CONTROL_HEIGHT } from "shared/constants/styles";
+import { useTheme } from "shared/hooks/useTheme";
 
 export const TextField = ({
   label,
@@ -26,29 +27,30 @@ export const TextField = ({
   style,
   inputStyle,
 }) => {
+  const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
   const height = size === "sm" ? CONTROL_HEIGHT.sm : CONTROL_HEIGHT.md;
 
   return (
     <View style={[styles.container, style]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? <Text style={[styles.label, { color: colors.textPrimary }]}>{label}</Text> : null}
       <View
         style={[
           styles.fieldRow,
           {
             height: multiline ? undefined : height,
             minHeight: multiline ? height : undefined,
-            borderColor: error ? COLORS.danger : focused ? COLORS.primary : COLORS.border,
-            backgroundColor: disabled ? COLORS.neutralSurface : COLORS.inputBackground,
+            borderColor: error ? colors.danger : focused ? colors.primary : colors.border,
+            backgroundColor: disabled ? colors.neutralSurface : colors.inputBackground,
           },
         ]}
       >
-        {icon ? <Ionicons name={icon} size={18} color={COLORS.textMuted} style={styles.leadingIcon} /> : null}
-        {prefix ? <Text style={styles.affix}>{prefix}</Text> : null}
+        {icon ? <Ionicons name={icon} size={18} color={colors.textMuted} style={styles.leadingIcon} /> : null}
+        {prefix ? <Text style={[styles.affix, { color: colors.textMedium }]}>{prefix}</Text> : null}
         <TextInput
           style={[
             styles.input,
-            { fontSize: size === "sm" ? FONT_SIZE.sm : FONT_SIZE.md, color: disabled ? COLORS.textDisabled : COLORS.textPrimary },
+            { fontSize: size === "sm" ? FONT_SIZE.sm : FONT_SIZE.md, color: disabled ? colors.textDisabled : colors.textPrimary },
             multiline && { minHeight: height, textAlignVertical: "top", paddingVertical: SPACING.sm },
             inputStyle,
           ]}
@@ -56,7 +58,7 @@ export const TextField = ({
           onChangeText={onChangeText}
           keyboardType={keyboardType}
           placeholder={placeholder}
-          placeholderTextColor={COLORS.textPlaceholder}
+          placeholderTextColor={colors.textPlaceholder}
           autoFocus={autoFocus}
           multiline={multiline}
           editable={!disabled}
