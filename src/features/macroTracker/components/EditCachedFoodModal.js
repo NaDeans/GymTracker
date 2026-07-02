@@ -30,13 +30,24 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
 
   const handleSave = () => {
     const oldKey = editingFood.originalKey;
-    const newKey = editingFood.key.trim().toLowerCase();
+    let newKey = editingFood.key.trim().toLowerCase();
 
     if (!newKey) { Alert.alert("Error", "Search term cannot be empty"); return false; }
-    if (oldKey !== newKey && gptCache[newKey]) { Alert.alert("Error", "A food with that name already exists."); return false; }
 
     const existingEntry = gptCache[oldKey];
     if (!existingEntry) { setVisible(false); return true; }
+
+    // If the first food item's name changed and the search key hasn't been manually updated,
+    // automatically update the search key to match the new food name
+    const originalFirstItemName = existingEntry.items?.[0]?.name?.toLowerCase() || oldKey;
+    const editedFirstItemName = editingFood.items?.[0]?.name?.toLowerCase() || editingFood.key.toLowerCase();
+    const keyWasNotManuallyChanged = editingFood.key.toLowerCase() === oldKey;
+
+    if (keyWasNotManuallyChanged && editedFirstItemName !== originalFirstItemName) {
+      newKey = editedFirstItemName;
+    }
+
+    if (oldKey !== newKey && gptCache[newKey]) { Alert.alert("Error", "A food with that name already exists."); return false; }
 
     setGptCache((prev) => {
       const updated = { ...prev };
