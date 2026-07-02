@@ -2,8 +2,10 @@ import { safeParseJSON, normalizeAndValidateItem } from "../utils/gptUtils";
 
 // Raw fetch instead of @anthropic-ai/sdk: the SDK imports node:fs internally,
 // which Metro cannot resolve for native Android/iOS bundles.
-const MODEL = "claude-sonnet-5";
+const MODEL = "claude-haiku-4-5";
 const ANTHROPIC_VERSION = "2023-06-01";
+const MAX_RETRIES = 3;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Structured-output schema enforced by the API — the response text is guaranteed
 // to be valid JSON matching this shape.
@@ -33,29 +35,48 @@ const NUTRITION_SCHEMA = {
 };
 
 const callClaude = async (apiKey, systemPrompt, userContent) => {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": ANTHROPIC_VERSION,
-      "content-type": "application/json",
-      // lets the `npm run web` target call the API directly from the browser;
-      // the key lives on-device by design in this local-only app
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 16000,
-      output_config: {
-        effort: "medium",
-        format: { type: "json_schema", schema: NUTRITION_SCHEMA },
+  let response;
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": ANTHROPIC_VERSION,
+        "content-type": "application/json",
+        // lets the `npm run web` target call the API directly from the browser;
+        // the key lives on-device by design in this local-only app
+        "anthropic-dangerous-direct-browser-access": "true",
       },
-      system: systemPrompt,
-      messages: [{ role: "user", content: userContent }],
-    }),
-  });
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 16000,
+        // Haiku 4.5 doesn't support `effort`/thinking (errors if set) — omitting it
+        // both satisfies the API and keeps every request thinking-off.
+        output_config: {
+          format: { type: "json_schema", schema: NUTRITION_SCHEMA },
+        },
+        system: systemPrompt,
+        messages: [{ role: "user", content: userContent }],
+      }),
+    });
 
-  const response = await res.json();
+    response = await res.json();
+
+    // Overload/rate-limit/5xx are transient — retry with backoff rather than
+    // surfacing a search failure to the user.
+    const retryable =
+      res.status === 429 ||
+      res.status === 529 ||
+      res.status >= 500 ||
+      response.error?.type === "overloaded_error" ||
+      response.error?.type === "rate_limit_error";
+    if (retryable && attempt < MAX_RETRIES) {
+      await sleep(500 * 2 ** attempt + Math.random() * 250);
+      continue;
+    }
+    break;
+  }
+
   if (response.error) throw new Error(response.error.message || "Claude API error");
   if (response.stop_reason === "refusal") throw new Error("Request declined");
 
@@ -70,8 +91,6 @@ const callClaude = async (apiKey, systemPrompt, userContent) => {
 
 export const fetchNutritionFromGPT = async (input, apiKey) => {
   const systemPrompt = `You are an expert nutritionist estimating calories and macros for a food diary. Reason from broad nutrition knowledge like a human expert: you can estimate ANY food or drink, including ones never asked about before, by reasoning about what it is made of and how people actually eat it. Always prefer a reasonable estimate over refusing.
-
-Return ONLY valid JSON. No markdown, code fences, or commentary.
 
 HOW TO REASON — apply these steps, in order, to every input:
 
@@ -107,30 +126,13 @@ REGION — assume Australian portion conventions, units and product formulations
 
 CONTRADICTIONS — if the description contradicts nutritional reality ("fat free avocado", "zero calorie protein shake"), do NOT return empty items: return the closest real food or product with accurate real values and explain the contradiction in the assumption. If the user names a real food but attaches an impossible figure ("500g chicken breast with 50 calories"), return the food's real values and note that the stated figure was ignored. Macro-only inputs (above) still apply when there is no named food.
 
-REJECTION — default to a food interpretation for any word that names a food, dish or drink, even if it has another meaning ("kiwi" → the fruit). Only return {"items": []} for genuine nonsense, a non-food item, or input with no plausible food interpretation. Input that is predominantly gibberish or random tokens is nonsense — reject it even if a food word appears inside the noise.
-
-JSON schema:
-{
-  "items": [
-    {
-      "name": string,
-      "amount_g": number,
-      "calories_kcal": number,
-      "protein_g": number,
-      "carbs_g": number,
-      "fat_g": number,
-      "assumption": string | null
-    }
-  ]
-}`;
+REJECTION — default to a food interpretation for any word that names a food, dish or drink, even if it has another meaning ("kiwi" → the fruit). Only return {"items": []} for genuine nonsense, a non-food item, or input with no plausible food interpretation. Input that is predominantly gibberish or random tokens is nonsense — reject it even if a food word appears inside the noise.`;
 
   return callClaude(apiKey, systemPrompt, input);
 };
 
 export const fetchNutritionFromImage = async (base64Image, apiKey) => {
   const systemPrompt = `You are reading a printed Nutrition Facts label from a photo. Transcribe the values exactly as printed — do NOT estimate from a food database or adjust for cooking state.
-
-Return ONLY valid JSON. No markdown, code fences, or commentary.
 
 Rules:
 
@@ -144,22 +146,7 @@ Rules:
 
 5. UNREADABLE — if the photo does not show a legible nutrition facts panel (wrong subject, too blurry, no label visible), return {"items": []}.
 
-6. SINGLE PRODUCT — return exactly one item for the label shown, even if the package contains multiple servings.
-
-JSON schema:
-{
-  "items": [
-    {
-      "name": string,
-      "amount_g": number,
-      "calories_kcal": number,
-      "protein_g": number,
-      "carbs_g": number,
-      "fat_g": number,
-      "assumption": string | null
-    }
-  ]
-}`;
+6. SINGLE PRODUCT — return exactly one item for the label shown, even if the package contains multiple servings.`;
 
   return callClaude(apiKey, systemPrompt, [
     {

@@ -1,4 +1,4 @@
-// Stress-test harness for GymTracker food search (Claude Sonnet 5).
+// Stress-test harness for GymTracker food search (Claude Haiku 4.5).
 // Extracts the LIVE system prompt + output schema from gptService.js so prompt edits are picked
 // up automatically, replicates the exact API call + normalization, runs a case file, evaluates,
 // writes results JSON.
@@ -61,10 +61,9 @@ async function query(input) {
           "content-type": "application/json",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-5",
+          model: "claude-haiku-4-5",
           max_tokens: 16000,
           output_config: {
-            effort: "medium",
             format: { type: "json_schema", schema: NUTRITION_SCHEMA },
           },
           system: systemPrompt,
