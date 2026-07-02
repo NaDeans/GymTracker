@@ -23,7 +23,7 @@ const DailyLogItem = ({ item, count, gramValue, setGramValue, updateGrams, addIt
   };
 
   return (
-    <Card style={styles.itemBlock}>
+    <Card padding={SPACING.md} style={styles.itemBlock}>
       <Text style={styles.itemName}>{item.name}</Text>
 
       <View style={styles.gramsRow}>
@@ -72,32 +72,30 @@ export const DailyControls = ({
   loading,
   setFoodDbVisible,
 }) => (
-  <View style={{ marginTop: SPACING.xl, gap: SPACING.sm }}>
+  <View style={{ marginTop: SPACING.xl, gap: SPACING.xs }}>
     <Button variant="primary" size="sm" fullWidth loading={loading} onPress={() => submit()}>Submit</Button>
 
     <Button variant="secondary" size="sm" fullWidth onPress={() => setFoodDbVisible(true)}>Custom Foods</Button>
 
-    {(historyByDate[selectedDate] || []).map((entry, idx) => (
-      <View key={idx} style={styles.historyBlock}>
-        {entry.items.map((item) => {
-          const draft = gramInputs[item.id];
-          const gramValue = draft === undefined ? safeNumber(item.amount_g) : safeNumber(parseFloat(draft));
-          return (
-            <DailyLogItem
-              key={item.id}
-              item={item}
-              count={dailyLog[selectedDate]?.items[item.id]?.count || 0}
-              gramValue={gramValue}
-              setGramValue={(v) => setGramInputs((prev) => ({ ...prev, [item.id]: v }))}
-              updateGrams={updateGrams}
-              addItem={addItem}
-              removeItem={removeItem}
-              clearItem={clearItem}
-            />
-          );
-        })}
-      </View>
-    ))}
+    {(historyByDate[selectedDate] || []).map((entry, idx) =>
+      entry.items.map((item) => {
+        const draft = gramInputs[item.id];
+        const gramValue = draft === undefined ? safeNumber(item.amount_g) : safeNumber(parseFloat(draft));
+        return (
+          <DailyLogItem
+            key={item.id}
+            item={item}
+            count={dailyLog[selectedDate]?.items[item.id]?.count || 0}
+            gramValue={gramValue}
+            setGramValue={(v) => setGramInputs((prev) => ({ ...prev, [item.id]: v }))}
+            updateGrams={updateGrams}
+            addItem={addItem}
+            removeItem={removeItem}
+            clearItem={clearItem}
+          />
+        );
+      })
+    )}
 
     <Button variant="danger" size="sm" onPress={resetDay} style={{ alignSelf: "center", marginTop: SPACING.lg }}>Reset Day</Button>
   </View>
