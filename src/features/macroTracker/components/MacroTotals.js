@@ -38,8 +38,11 @@ export const MacroTotals = ({ totalMacros, goals, setEditingMacro, setGoalInput,
         {["calories", "protein", "carbs", "fats"].map((macro) => {
           const value = totalMacros[macro];
           const goal = goals[macro] || 1;
-          const pct = Math.min(100, (value / goal) * 100);
+          const pct = (value / goal) * 100;
+          const displayPct = Math.min(150, pct);
           const color = MACRO_COLOR[macro];
+          const isOvershot = pct > 100;
+
           return (
             <Card key={macro} onPress={() => openGoalModal(macro)} elevation="sm" padding={SPACING.sm} style={styles.macroBox}>
               <View style={styles.macroRow}>
@@ -49,7 +52,17 @@ export const MacroTotals = ({ totalMacros, goals, setEditingMacro, setGoalInput,
                 </Text>
               </View>
               <View style={styles.macroProgressTrack}>
-                <View style={[styles.macroProgressFill, { width: `${pct}%`, backgroundColor: color }]} />
+                <View style={[styles.macroSafeZone, { width: "20%", left: "40%" }]} />
+                <View
+                  style={[
+                    styles.macroProgressFill,
+                    {
+                      width: `${displayPct}%`,
+                      backgroundColor: isOvershot ? COLORS.danger : color,
+                      opacity: isOvershot ? 0.7 : 1,
+                    },
+                  ]}
+                />
               </View>
             </Card>
           );
