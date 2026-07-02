@@ -1,8 +1,10 @@
-import { View, ScrollView, Text, RefreshControl } from "react-native";
+import { View, ScrollView, Text, RefreshControl, StyleSheet } from "react-native";
 import { useMacroTracker } from "./hooks/useMacroTracker";
 import { captureAndCompressLabelImage } from "./utils/imageUtils";
-import { styles } from "./macroTrackerStyles";
+import { createThemedStyles } from "./macroTrackerStyles";
 import { Badge } from "shared/components/Badge";
+import { IconButton } from "shared/components/IconButton";
+import { useTheme } from "shared/hooks/useTheme";
 
 import DatePicker from "./components/DatePicker";
 import { MacroTotals } from "./components/MacroTotals";
@@ -47,14 +49,27 @@ export default function MacroTrackerScreen() {
     addEditedFoodToLog,
   } = useMacroTracker();
 
+  const { colors, isDarkMode, toggleTheme } = useTheme();
+  const styles = createThemedStyles(colors);
+  const headerStyles = createThemedScreenStyles(colors);
+
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <View style={headerStyles.header}>
+        <Text style={headerStyles.mainTitle}>Macro Tracker</Text>
+        <IconButton
+          icon={isDarkMode ? "sunny" : "moon"}
+          onPress={toggleTheme}
+          variant="secondary"
+          size="sm"
+        />
+      </View>
       <ScrollView
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[styles.container]}
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <Text style={styles.mainTitle}>Macro Tracker</Text>
+        <Text style={styles.mainTitle}></Text>
 
         {(currentStreak > 0 || selectedDayGoalMet) && (
           <View style={styles.badgeRow}>
@@ -159,4 +174,23 @@ export default function MacroTrackerScreen() {
       />
     </View>
   );
+}
+
+function createThemedScreenStyles(colors) {
+  return StyleSheet.create({
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingTop: 10,
+      paddingBottom: 10,
+      backgroundColor: colors.background,
+    },
+    mainTitle: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+  });
 }

@@ -2,9 +2,10 @@ import { Pressable } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "shared/constants/colors";
 import { FONT_SIZE, FONT_WEIGHT, SHADOW } from "shared/constants/styles";
 import { triggerSelection } from "shared/utils/haptics";
+import { ThemeProvider } from "shared/context/ThemeContext";
+import { useTheme } from "shared/hooks/useTheme";
 
 import MacroTrackerScreen from "features/macroTracker/MacroTrackerScreen";
 import RepCounterScreen from "features/repCounter/RepCounterScreen";
@@ -18,16 +19,18 @@ const TAB_ICONS = {
 
 const Tab = createBottomTabNavigator();
 
-export default function AppNavigator() {
+function NavigatorContent() {
+  const { colors } = useTheme();
+
   return (
     <NavigationContainer>
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
-          tabBarActiveTintColor: COLORS.primary,
-          tabBarInactiveTintColor: COLORS.textMuted,
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.textMuted,
           tabBarStyle: {
-            backgroundColor: COLORS.surfaceRaised,
+            backgroundColor: colors.surfaceRaised,
             borderTopWidth: 0,
             height: 64,
             paddingTop: 8,
@@ -37,6 +40,7 @@ export default function AppNavigator() {
           tabBarLabelStyle: {
             fontSize: FONT_SIZE.xs,
             fontWeight: FONT_WEIGHT.medium,
+            color: colors.textPrimary,
           },
           tabBarButton: (props) => (
             <TabButton {...props} />
@@ -53,6 +57,14 @@ export default function AppNavigator() {
         <Tab.Screen name="Calculator" component={CalculatorScreen} />
       </Tab.Navigator>
     </NavigationContainer>
+  );
+}
+
+export default function AppNavigator() {
+  return (
+    <ThemeProvider>
+      <NavigatorContent />
+    </ThemeProvider>
   );
 }
 

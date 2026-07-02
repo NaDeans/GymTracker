@@ -4,13 +4,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "shared/constants/colors";
 import { BORDER_RADIUS } from "shared/constants/styles";
 import { triggerImpact } from "shared/utils/haptics";
+import { useTheme } from "shared/hooks/useTheme";
 
-const VARIANTS = {
-  primary: { bg: COLORS.primary, pressedBg: COLORS.primaryDark, icon: COLORS.textOnPrimary },
-  secondary: { bg: COLORS.neutralSurface, pressedBg: COLORS.border, icon: COLORS.neutralDark },
-  danger: { bg: COLORS.dangerSurface, pressedBg: COLORS.redLight, icon: COLORS.danger },
-  ghost: { bg: "transparent", pressedBg: COLORS.neutralSurface, icon: COLORS.neutralDark },
-};
+const createVariants = (colors) => ({
+  primary: { bg: colors.primary, pressedBg: colors.primaryDark, icon: colors.textOnPrimary },
+  secondary: { bg: colors.neutralSurface, pressedBg: colors.border, icon: colors.neutralDark },
+  danger: { bg: colors.dangerSurface, pressedBg: colors.redLight, icon: colors.danger },
+  ghost: { bg: "transparent", pressedBg: colors.neutralSurface, icon: colors.neutralDark },
+});
 
 const SIZES = { sm: 32, md: 40, lg: 48 };
 
@@ -24,7 +25,9 @@ export const IconButton = ({
   hapticStyle = "light",
   style,
 }) => {
+  const { colors } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
+  const VARIANTS = createVariants(colors);
   const v = VARIANTS[variant] || VARIANTS.ghost;
   const dim = SIZES[size] || SIZES.md;
 
@@ -54,14 +57,14 @@ export const IconButton = ({
             width: dim,
             height: dim,
             borderRadius: BORDER_RADIUS.pill,
-            backgroundColor: disabled ? COLORS.neutralSurface : v.bg,
+            backgroundColor: disabled ? colors.neutralSurface : v.bg,
             transform: [{ scale }],
             opacity: disabled ? 0.6 : 1,
           },
           style,
         ]}
       >
-        <Ionicons name={icon} size={Math.round(dim * 0.5)} color={disabled ? COLORS.textDisabled : v.icon} />
+        <Ionicons name={icon} size={Math.round(dim * 0.5)} color={disabled ? colors.textDisabled : v.icon} />
       </Animated.View>
     </Pressable>
   );
