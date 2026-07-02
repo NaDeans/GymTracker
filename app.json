@@ -21,7 +21,11 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.nathandeans.GymTracker"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -35,6 +39,11 @@
           "cameraPermission": "Allow GymTracker to access your camera to scan a nutrition label."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "eb126b77-bab1-484b-b96f-c8e4fc73ad8a"
+      }
+    }
   }
 }
