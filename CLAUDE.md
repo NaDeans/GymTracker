@@ -18,10 +18,10 @@ No test suite or linter is configured.
 A `.env` file is required at the project root:
 
 ```
-OPENAI_API_KEY=your_key_here
+ANTHROPIC_API_KEY=your_key_here
 ```
 
-This is loaded via `react-native-dotenv` and imported as `import { OPENAI_API_KEY } from '@env'`.
+This is loaded via `react-native-dotenv` and imported as `import { ANTHROPIC_API_KEY } from '@env'`.
 
 ## Architecture
 
@@ -45,7 +45,7 @@ React Native / Expo app with two tab screens. All state is local React hooks; pe
 | `gptCache` | `GPT_CACHE` | `{ [searchKey]: { searchKey, foodId, items } }` — cached GPT responses |
 | `goals` | `GOALS` | `{ calories, protein, carbs, fats }` targets |
 
-Food lookup flow: user types → check `gptCache` → if miss, call OpenAI (`gpt-4.1-mini`) via `src/services/gptService.js` → normalize via `src/utils/gptUtils.js` → store in cache and add to `historyByDate`.
+Food lookup flow: user types → check `gptCache` → if miss, call the Claude API (`claude-sonnet-5` via `@anthropic-ai/sdk`, structured outputs) from `gptService.js` → normalize via `gptUtils.js` → store in cache and add to `historyByDate`. (File/state names keep the legacy "gpt" prefix.)
 
 `dailyLog` and `historyByDate` serve different purposes: `dailyLog` tracks item counts and running totals for display; `historyByDate` preserves the original GPT entries (used by `DailyControls` to render each meal entry with +/- controls).
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Alert, Keyboard } from "react-native";
-import { OPENAI_API_KEY } from "@env";
+import { ANTHROPIC_API_KEY } from "@env";
 
 import { todayString } from "shared/utils/dateUtils";
 import { safeNumber } from "shared/utils/numberUtils";
@@ -226,7 +226,7 @@ export const useMacroTracker = () => {
           return { ...prev, [selectedDate]: [{ foodId: data.foodId, key, items: newItems }, ...dayHistory] };
         });
       } else {
-        const items = await fetchNutritionFromGPT(rawInput, OPENAI_API_KEY);
+        const items = await fetchNutritionFromGPT(rawInput, ANTHROPIC_API_KEY);
         const uniqueFoodId = Date.now().toString() + Math.random().toString(36).slice(2);
 
         // Update state — the save effect persists this to AsyncStorage automatically
@@ -265,7 +265,7 @@ export const useMacroTracker = () => {
   const submitFromImage = async (base64Image) => {
     setLoading(true);
     try {
-      const items = await fetchNutritionFromImage(base64Image, OPENAI_API_KEY);
+      const items = await fetchNutritionFromImage(base64Image, ANTHROPIC_API_KEY);
       const item = items[0];
       setManualEntryInitialValues({
         name: item.name,

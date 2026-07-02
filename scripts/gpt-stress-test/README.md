@@ -1,7 +1,7 @@
-# GPT Food Search — Stress Test Harness
+# Food Search — Stress Test Harness
 
 Tests the live system prompt in `src/features/macroTracker/services/gptService.js` against
-real OpenAI API calls (uses `OPENAI_API_KEY` from the project `.env`; costs a fraction of a
+real Claude API calls (Claude Sonnet 5) (uses `ANTHROPIC_API_KEY` from the project `.env`; costs a fraction of a
 cent per case). The prompt is extracted from the source file at runtime, so any prompt edit
 is picked up automatically — edit the prompt, rerun, compare.
 

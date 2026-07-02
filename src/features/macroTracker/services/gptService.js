@@ -1,5 +1,73 @@
 import { safeParseJSON, normalizeAndValidateItem } from "../utils/gptUtils";
 
+// Raw fetch instead of @anthropic-ai/sdk: the SDK imports node:fs internally,
+// which Metro cannot resolve for native Android/iOS bundles.
+const MODEL = "claude-sonnet-5";
+const ANTHROPIC_VERSION = "2023-06-01";
+
+// Structured-output schema enforced by the API — the response text is guaranteed
+// to be valid JSON matching this shape.
+const NUTRITION_SCHEMA = {
+  type: "object",
+  properties: {
+    items: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          amount_g: { anyOf: [{ type: "number" }, { type: "null" }] },
+          calories_kcal: { type: "number" },
+          protein_g: { type: "number" },
+          carbs_g: { type: "number" },
+          fat_g: { type: "number" },
+          assumption: { anyOf: [{ type: "string" }, { type: "null" }] },
+        },
+        required: ["name", "amount_g", "calories_kcal", "protein_g", "carbs_g", "fat_g", "assumption"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["items"],
+  additionalProperties: false,
+};
+
+const callClaude = async (apiKey, systemPrompt, userContent) => {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "content-type": "application/json",
+      // lets the `npm run web` target call the API directly from the browser;
+      // the key lives on-device by design in this local-only app
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 16000,
+      output_config: {
+        effort: "medium",
+        format: { type: "json_schema", schema: NUTRITION_SCHEMA },
+      },
+      system: systemPrompt,
+      messages: [{ role: "user", content: userContent }],
+    }),
+  });
+
+  const response = await res.json();
+  if (response.error) throw new Error(response.error.message || "Claude API error");
+  if (response.stop_reason === "refusal") throw new Error("Request declined");
+
+  const rawText = response.content?.find((b) => b.type === "text")?.text;
+  if (!rawText) throw new Error("No response from Claude");
+
+  const parsed = safeParseJSON(rawText);
+  if (!parsed?.items || !Array.isArray(parsed.items)) throw new Error("Invalid model output");
+
+  return parsed.items.map(normalizeAndValidateItem);
+};
+
 export const fetchNutritionFromGPT = async (input, apiKey) => {
   const systemPrompt = `You are an expert nutritionist estimating calories and macros for a food diary. Reason from broad nutrition knowledge like a human expert: you can estimate ANY food or drink, including ones never asked about before, by reasoning about what it is made of and how people actually eat it. Always prefer a reasonable estimate over refusing.
 
@@ -56,31 +124,7 @@ JSON schema:
   ]
 }`;
 
-  const res = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o",
-      temperature: 0,
-      text: { format: { type: "json_object" } },
-      input: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: input },
-      ],
-    }),
-  });
-
-  const gptData = await res.json();
-  const rawText = gptData.output_text || gptData.output?.[0]?.content?.[0]?.text;
-  if (!rawText) throw new Error("No response from GPT");
-
-  const parsed = safeParseJSON(rawText);
-  if (!parsed?.items || !Array.isArray(parsed.items)) throw new Error("Invalid GPT output");
-
-  return parsed.items.map(normalizeAndValidateItem);
+  return callClaude(apiKey, systemPrompt, input);
 };
 
 export const fetchNutritionFromImage = async (base64Image, apiKey) => {
@@ -117,35 +161,11 @@ JSON schema:
   ]
 }`;
 
-  const res = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
+  return callClaude(apiKey, systemPrompt, [
+    {
+      type: "image",
+      source: { type: "base64", media_type: "image/jpeg", data: base64Image },
     },
-    body: JSON.stringify({
-      model: "gpt-4o",
-      temperature: 0,
-      text: { format: { type: "json_object" } },
-      input: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: [
-            { type: "input_text", text: "Read this nutrition label and extract its values." },
-            { type: "input_image", image_url: `data:image/jpeg;base64,${base64Image}`, detail: "high" },
-          ],
-        },
-      ],
-    }),
-  });
-
-  const gptData = await res.json();
-  const rawText = gptData.output_text || gptData.output?.[0]?.content?.[0]?.text;
-  if (!rawText) throw new Error("No response from GPT");
-
-  const parsed = safeParseJSON(rawText);
-  if (!parsed?.items || !Array.isArray(parsed.items)) throw new Error("Invalid GPT output");
-
-  return parsed.items.map(normalizeAndValidateItem);
+    { type: "text", text: "Read this nutrition label and extract its values." },
+  ]);
 };
