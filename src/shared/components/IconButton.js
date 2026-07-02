@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import { Pressable, Animated, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "shared/constants/colors";
 import { BORDER_RADIUS } from "shared/constants/styles";
 import { triggerImpact } from "shared/utils/haptics";
 import { useTheme } from "shared/hooks/useTheme";

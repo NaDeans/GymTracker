@@ -4,7 +4,7 @@ import { TextField } from "shared/components/TextField";
 import { Button } from "shared/components/Button";
 import { Card } from "shared/components/Card";
 import { SPACING, FONT_WEIGHT, FONT_SIZE } from "shared/constants/styles";
-import { COLORS } from "shared/constants/colors";
+import { useTheme } from "shared/hooks/useTheme";
 
 const FIELD_LABELS = {
   name: "Name",
@@ -16,6 +16,7 @@ const FIELD_LABELS = {
 };
 
 export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditingFood, gptCache, setGptCache, setSuggestions, onAddToLog }) => {
+  const { colors } = useTheme();
   if (!editingFood) return null;
 
   const handleDelete = () => {
@@ -90,7 +91,7 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
 
       {editingFood.items.map((item, index) => (
         <Card key={index} style={{ marginBottom: SPACING.md }}>
-          <Text style={{ fontWeight: FONT_WEIGHT.semibold, fontSize: FONT_SIZE.sm, color: COLORS.textDark, marginBottom: SPACING.sm }}>
+          <Text style={{ fontWeight: FONT_WEIGHT.semibold, fontSize: FONT_SIZE.sm, color: colors.textDark, marginBottom: SPACING.sm }}>
             Item {index + 1}
           </Text>
           {["name", "amount_g", "calories", "protein", "carbs", "fats"].map((field) => (

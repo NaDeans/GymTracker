@@ -1,21 +1,22 @@
 import { View, Text } from "react-native";
 import { Donut } from "./Donut";
 import { fmt } from "shared/utils/numberUtils";
-import { styles } from "../macroTrackerStyles";
+import { createThemedStyles } from "../macroTrackerStyles";
 import { Card } from "shared/components/Card";
-import { COLORS } from "shared/constants/colors";
 import { SPACING } from "shared/constants/styles";
-
-const MACRO_COLOR = {
-  calories: COLORS.primary,
-  protein: COLORS.chart.protein,
-  carbs: COLORS.chart.carbs,
-  fats: COLORS.chart.fats,
-};
+import { useTheme } from "shared/hooks/useTheme";
 
 const MACRO_LABEL = { calories: "Calories", protein: "Protein", carbs: "Carbs", fats: "Fats" };
 
 export const MacroTotals = ({ totalMacros, goals, setEditingMacro, setGoalInput, setGoalModalVisible }) => {
+  const { colors } = useTheme();
+  const styles = createThemedStyles(colors);
+  const MACRO_COLOR = {
+    calories: colors.primary,
+    protein: colors.chart.protein,
+    carbs: colors.chart.carbs,
+    fats: colors.chart.fats,
+  };
   const totalSum = totalMacros.protein + totalMacros.carbs + totalMacros.fats;
 
   const perc = totalSum
@@ -52,13 +53,13 @@ export const MacroTotals = ({ totalMacros, goals, setEditingMacro, setGoalInput,
                 </Text>
               </View>
               <View style={styles.macroProgressTrack}>
-                <View style={[styles.macroSafeZone, { width: "20%", left: "40%" }]} />
+                <View style={[styles.macroSafeZone, { left: `${(90 / 150) * 100}%`, width: `${(20 / 150) * 100}%` }]} />
                 <View
                   style={[
                     styles.macroProgressFill,
                     {
                       width: `${displayPct}%`,
-                      backgroundColor: isOvershot ? COLORS.danger : color,
+                      backgroundColor: isOvershot ? colors.danger : color,
                       opacity: isOvershot ? 0.7 : 1,
                     },
                   ]}
@@ -77,23 +78,23 @@ export const MacroTotals = ({ totalMacros, goals, setEditingMacro, setGoalInput,
               size={140}
               strokeWidth={18}
               colors={{
-                protein: COLORS.chart.protein,
-                carbs: COLORS.chart.carbs,
-                fats: COLORS.chart.fats,
-                background: COLORS.chart.track,
+                protein: colors.chart.protein,
+                carbs: colors.chart.carbs,
+                fats: colors.chart.fats,
+                background: colors.chart.track,
               }}
             />
             <View style={styles.percOverlay}>
               <View style={styles.legendRow}>
-                <View style={[styles.legendDot, { backgroundColor: COLORS.chart.protein }]} />
+                <View style={[styles.legendDot, { backgroundColor: colors.chart.protein }]} />
                 <Text style={styles.percText}>P {perc.protein}%</Text>
               </View>
               <View style={styles.legendRow}>
-                <View style={[styles.legendDot, { backgroundColor: COLORS.chart.carbs }]} />
+                <View style={[styles.legendDot, { backgroundColor: colors.chart.carbs }]} />
                 <Text style={styles.percText}>C {perc.carbs}%</Text>
               </View>
               <View style={styles.legendRow}>
-                <View style={[styles.legendDot, { backgroundColor: COLORS.chart.fats }]} />
+                <View style={[styles.legendDot, { backgroundColor: colors.chart.fats }]} />
                 <Text style={styles.percText}>F {perc.fats}%</Text>
               </View>
             </View>

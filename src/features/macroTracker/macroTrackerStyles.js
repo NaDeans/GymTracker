@@ -33,7 +33,7 @@ export const createThemedStyles = (colors) => StyleSheet.create({
 
   /* ================= SEARCH ================= */
   inputContainer: { width: "100%", marginBottom: SPACING.sm },
-  searchRow: { flexDirection: "row", alignItems: "flex-start", gap: SPACING.sm, marginBottom: SPACING.sm },
+  searchButtonRow: { flexDirection: "row", gap: SPACING.sm, marginBottom: SPACING.sm },
   suggestionsContainer: { marginBottom: SPACING.sm, backgroundColor: colors.surface1, borderRadius: BORDER_RADIUS.md },
   suggestionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: SPACING.md, backgroundColor: colors.surface1 },
   suggestionDivider: { borderTopWidth: 1, borderTopColor: colors.border },

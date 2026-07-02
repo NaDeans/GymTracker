@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import { Pressable, Animated, Text, View, ActivityIndicator, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "shared/constants/colors";
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, CONTROL_HEIGHT } from "shared/constants/styles";
 import { triggerImpact } from "shared/utils/haptics";
 import { useTheme } from "shared/hooks/useTheme";

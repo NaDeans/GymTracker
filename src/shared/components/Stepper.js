@@ -1,7 +1,7 @@
 import { View, Text, TextInput, StyleSheet } from "react-native";
 import { IconButton } from "./IconButton";
-import { COLORS } from "shared/constants/colors";
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from "shared/constants/styles";
+import { useTheme } from "shared/hooks/useTheme";
 
 const SIZES = {
   hero: { buttonSize: "md", fontSize: FONT_SIZE.lg, minWidth: 68, height: 48, suffixExtra: 34 },
@@ -30,9 +30,11 @@ export const Stepper = ({
   suffix,
   size = "hero",
 }) => {
+  const { colors } = useTheme();
   const s = SIZES[size] || SIZES.hero;
   const numeric = parseFloat(value) || 0;
   const boxWidth = suffix ? s.minWidth + s.suffixExtra : s.minWidth;
+  const styles = createThemedStyles(colors);
 
   const step_ = (direction) => {
     const next = clamp(numeric + direction * step, min, max);
@@ -53,7 +55,7 @@ export const Stepper = ({
             keyboardType={decimal ? "decimal-pad" : "number-pad"}
             textAlign="center"
             placeholder="0"
-            placeholderTextColor={COLORS.textPlaceholder}
+            placeholderTextColor={colors.textPlaceholder}
           />
           {suffix ? <Text style={styles.suffix}>{suffix}</Text> : null}
         </View>
@@ -63,21 +65,21 @@ export const Stepper = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createThemedStyles = (colors) => StyleSheet.create({
   container: { alignItems: "center" },
-  label: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, color: COLORS.textMedium, marginBottom: SPACING.xs },
+  label: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, color: colors.textMedium, marginBottom: SPACING.xs },
   row: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
   valueBox: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: SPACING.xs,
-    backgroundColor: COLORS.inputBackground,
+    backgroundColor: colors.inputBackground,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     paddingHorizontal: SPACING.sm,
   },
-  value: { fontWeight: FONT_WEIGHT.bold, color: COLORS.textDark, minWidth: 30, padding: 0 },
-  suffix: { fontSize: FONT_SIZE.xs, color: COLORS.textMuted },
+  value: { fontWeight: FONT_WEIGHT.bold, color: colors.textDark, minWidth: 30, padding: 0 },
+  suffix: { fontSize: FONT_SIZE.xs, color: colors.textMuted },
 });

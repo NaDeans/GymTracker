@@ -1,12 +1,12 @@
 import { View, Text, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { todayString, dmyToIso } from "shared/utils/dateUtils";
-import { styles } from "../repCounterStyles";
+import { createThemedStyles } from "../repCounterStyles";
 import { Card } from "shared/components/Card";
 import { Button } from "shared/components/Button";
 import { ModalSheet } from "shared/components/ModalSheet";
 import { TextField } from "shared/components/TextField";
-import { COLORS } from "shared/constants/colors";
+import { useTheme } from "shared/hooks/useTheme";
 
 export function CategoryList({
   groups,
@@ -18,6 +18,8 @@ export function CategoryList({
   dayNotes,
   updateDayNotesByDate,
 }) {
+  const { colors } = useTheme();
+  const styles = createThemedStyles(colors);
   const today = dmyToIso(todayString());
 
   return (
@@ -27,7 +29,7 @@ export function CategoryList({
       <Card onPress={() => setShowFullLog(true)} surface="raised" elevation="sm" style={styles.viewLogCard}>
         <View style={styles.viewLogRow}>
           <Text style={styles.viewLogText}>View Full Log</Text>
-          <Ionicons name="chevron-forward" size={18} color={COLORS.primary} />
+          <Ionicons name="chevron-forward" size={18} color={colors.primary} />
         </View>
       </Card>
 
@@ -48,7 +50,7 @@ export function CategoryList({
           <Card onPress={() => setSelectedGroup(item)} style={styles.categoryCardSpacing}>
             <View style={styles.viewLogRow}>
               <Text style={styles.cardText}>{item}</Text>
-              <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
             </View>
           </Card>
         )}

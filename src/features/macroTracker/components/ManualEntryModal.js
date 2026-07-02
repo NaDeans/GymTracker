@@ -3,8 +3,8 @@ import { View, Text, Alert, Keyboard } from "react-native";
 import { ModalSheet } from "shared/components/ModalSheet";
 import { TextField } from "shared/components/TextField";
 import { Button } from "shared/components/Button";
-import { COLORS } from "shared/constants/colors";
 import { SPACING, FONT_SIZE } from "shared/constants/styles";
+import { useTheme } from "shared/hooks/useTheme";
 
 const FIELDS = [
   { key: "name", label: "Name", keyboard: "default" },
@@ -18,6 +18,7 @@ const FIELDS = [
 const EMPTY = { name: "", amount_g: "100", calories: "", protein: "", carbs: "", fats: "" };
 
 export const ManualEntryModal = ({ visible, setVisible, initialName, initialValues, onSave }) => {
+  const { colors } = useTheme();
   const [form, setForm] = useState(EMPTY);
 
   useEffect(() => {
@@ -60,7 +61,7 @@ export const ManualEntryModal = ({ visible, setVisible, initialName, initialValu
         </View>
       }
     >
-      <Text style={{ fontSize: FONT_SIZE.xs, color: COLORS.textMuted, marginBottom: SPACING.md }}>
+      <Text style={{ fontSize: FONT_SIZE.xs, color: colors.textMuted, marginBottom: SPACING.md }}>
         {initialValues?.assumption
           ? `Scanned from photo — GPT noted: "${initialValues.assumption}". Review before adding to your log.`
           : "Adds this food to today's log and saves it to your search history with a ✎ tag so you can find it again."}

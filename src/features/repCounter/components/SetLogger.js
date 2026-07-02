@@ -1,12 +1,13 @@
 import { Alert, View, Text, FlatList, KeyboardAvoidingView, Platform } from "react-native";
 import { isoToDmy } from "shared/utils/dateUtils";
 import { fmt } from "shared/utils/numberUtils";
-import { styles } from "../repCounterStyles";
+import { createThemedStyles } from "../repCounterStyles";
 import { Card } from "shared/components/Card";
 import { Button } from "shared/components/Button";
 import { IconButton } from "shared/components/IconButton";
 import { Stepper } from "shared/components/Stepper";
 import { EditableTitle } from "shared/components/EditableTitle";
+import { useTheme } from "shared/hooks/useTheme";
 
 export function SetLogger({
   selectedGroup, selectedExercise, setSelectedExercise,
@@ -18,6 +19,8 @@ export function SetLogger({
   titleDraft, setTitleDraft,
   deleteExercise, renameExercise,
 }) {
+  const { colors } = useTheme();
+  const styles = createThemedStyles(colors);
   const canAddSet = reps.trim().length > 0 && weight.trim().length > 0;
 
   const handleSave = (trimmed) => {

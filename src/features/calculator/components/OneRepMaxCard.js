@@ -2,14 +2,16 @@ import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Card } from "shared/components/Card";
 import { TextField } from "shared/components/TextField";
-import { COLORS } from "shared/constants/colors";
 import { fmt } from "shared/utils/numberUtils";
 import { calculateEpley1RM, parseInput } from "../utils/conversionUtils";
-import { styles } from "../calculatorStyles";
+import { createThemedStyles } from "../calculatorStyles";
+import { useTheme } from "shared/hooks/useTheme";
 
 const HIGH_REP_WARNING_THRESHOLD = 12;
 
 export const OneRepMaxCard = ({ weight, onWeightChange, reps, onRepsChange }) => {
+  const { colors } = useTheme();
+  const styles = createThemedStyles(colors);
   const weightNum = parseInput(weight);
   const repsNum = parseInput(reps);
   const hasResult = weightNum !== null && repsNum !== null && weightNum > 0 && repsNum > 0;
@@ -20,7 +22,7 @@ export const OneRepMaxCard = ({ weight, onWeightChange, reps, onRepsChange }) =>
     <Card style={styles.card}>
       <View style={styles.cardTitleRow}>
         <View style={styles.cardIconBadge}>
-          <Ionicons name="trophy" size={16} color={COLORS.chart.protein} />
+          <Ionicons name="trophy" size={16} color={colors.chart.protein} />
         </View>
         <Text style={styles.cardTitle}>1-Rep Max Estimator</Text>
       </View>

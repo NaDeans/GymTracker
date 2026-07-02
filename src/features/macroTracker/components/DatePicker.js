@@ -4,14 +4,16 @@ import { Calendar } from "react-native-calendars";
 import { todayString, dmyToIso, isoToDmy } from "shared/utils/dateUtils";
 import { dayHasLog } from "shared/utils/streakUtils";
 import { isGoalMet } from "../utils/macroUtils";
-import { styles } from "../macroTrackerStyles";
+import { createThemedStyles } from "../macroTrackerStyles";
 import { Card } from "shared/components/Card";
 import { IconButton } from "shared/components/IconButton";
 import { Button } from "shared/components/Button";
 import { ModalSheet } from "shared/components/ModalSheet";
-import { COLORS } from "shared/constants/colors";
+import { useTheme } from "shared/hooks/useTheme";
 
 export default function DatePicker({ selectedDate, setSelectedDate, dailyLog, goals }) {
+  const { colors } = useTheme();
+  const styles = createThemedStyles(colors);
   const [calendarVisible, setCalendarVisible] = useState(false);
 
   const changeDate = (delta) => {
@@ -27,11 +29,11 @@ export default function DatePicker({ selectedDate, setSelectedDate, dailyLog, go
     if (!dayHasLog(dailyLog, dmy)) return;
     const iso = dmyToIso(dmy);
     const goalMet = isGoalMet(dailyLog[dmy].totals, goals, true);
-    markedDates[iso] = { dots: [{ color: goalMet ? COLORS.success : COLORS.primary }] };
+    markedDates[iso] = { dots: [{ color: goalMet ? colors.success : colors.primary }] };
   });
 
   const selectedIso = dmyToIso(selectedDate);
-  markedDates[selectedIso] = { ...(markedDates[selectedIso] || {}), selected: true, selectedColor: COLORS.primary };
+  markedDates[selectedIso] = { ...(markedDates[selectedIso] || {}), selected: true, selectedColor: colors.primary };
 
   return (
     <>
@@ -60,9 +62,13 @@ export default function DatePicker({ selectedDate, setSelectedDate, dailyLog, go
             setCalendarVisible(false);
           }}
           theme={{
-            selectedDayBackgroundColor: COLORS.primary,
-            todayTextColor: COLORS.primary,
-            arrowColor: COLORS.primary,
+            selectedDayBackgroundColor: colors.primary,
+            todayTextColor: colors.primary,
+            arrowColor: colors.primary,
+            calendarBackground: colors.surfaceRaised,
+            dayTextColor: colors.textDark,
+            monthTextColor: colors.textDark,
+            textDisabledColor: colors.textDisabled,
           }}
           markedDates={markedDates}
         />

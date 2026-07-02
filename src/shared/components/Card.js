@@ -1,14 +1,14 @@
 import { useRef } from "react";
 import { View, Pressable, Animated, StyleSheet } from "react-native";
-import { COLORS } from "shared/constants/colors";
 import { SPACING, BORDER_RADIUS, SHADOW } from "shared/constants/styles";
 import { triggerImpact } from "shared/utils/haptics";
+import { useTheme } from "shared/hooks/useTheme";
 
-const SURFACES = {
-  surface1: COLORS.surface1,
-  surface2: COLORS.surface2,
-  raised: COLORS.surfaceRaised,
-};
+const createSurfaces = (colors) => ({
+  surface1: colors.surface1,
+  surface2: colors.surface2,
+  raised: colors.surfaceRaised,
+});
 
 const ELEVATIONS = { none: null, sm: SHADOW.sm, md: SHADOW.md, lg: SHADOW.lg };
 
@@ -20,9 +20,11 @@ export const Card = ({
   padding = SPACING.lg,
   style,
 }) => {
+  const { colors } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
   const shadow = ELEVATIONS[elevation] || null;
-  const bg = SURFACES[surface] || COLORS.surface1;
+  const SURFACES = createSurfaces(colors);
+  const bg = SURFACES[surface] || colors.surface1;
 
   const cardStyle = [
     styles.base,

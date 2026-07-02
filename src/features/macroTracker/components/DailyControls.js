@@ -1,12 +1,15 @@
 import { View, Text } from "react-native";
 import { fmt, safeNumber } from "shared/utils/numberUtils";
-import { styles } from "../macroTrackerStyles";
+import { createThemedStyles } from "../macroTrackerStyles";
 import { Card } from "shared/components/Card";
 import { Button } from "shared/components/Button";
 import { Stepper } from "shared/components/Stepper";
 import { SPACING } from "shared/constants/styles";
+import { useTheme } from "shared/hooks/useTheme";
 
 const DailyLogItem = ({ item, count, gramValue, setGramValue, updateGrams, addItem, removeItem, clearItem }) => {
+  const { colors } = useTheme();
+  const styles = createThemedStyles(colors);
   const raw = item.raw || item;
   const baseG = safeNumber(raw.amount_g) || 1;
 

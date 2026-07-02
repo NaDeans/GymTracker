@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "shared/constants/colors";
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, CONTROL_HEIGHT } from "shared/constants/styles";
 import { useTheme } from "shared/hooks/useTheme";
 
@@ -30,6 +29,7 @@ export const TextField = ({
   const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
   const height = size === "sm" ? CONTROL_HEIGHT.sm : CONTROL_HEIGHT.md;
+  const styles = createThemedStyles(colors);
 
   return (
     <View style={[styles.container, style]}>
@@ -70,7 +70,7 @@ export const TextField = ({
         {suffix ? <Text style={styles.affix}>{suffix}</Text> : null}
         {rightIcon ? (
           <Pressable onPress={onRightIconPress} hitSlop={8} style={styles.trailingIcon}>
-            <Ionicons name={rightIcon} size={20} color={rightIconActive ? COLORS.danger : COLORS.textMuted} />
+            <Ionicons name={rightIcon} size={20} color={rightIconActive ? colors.danger : colors.textMuted} />
           </Pressable>
         ) : null}
       </View>
@@ -79,9 +79,9 @@ export const TextField = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createThemedStyles = (colors) => StyleSheet.create({
   container: { width: "100%" },
-  label: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, color: COLORS.textMedium, marginBottom: SPACING.xs },
+  label: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, color: colors.textMedium, marginBottom: SPACING.xs },
   fieldRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -90,8 +90,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
   },
   input: { flex: 1, minWidth: 0, paddingVertical: 0 },
-  affix: { fontSize: FONT_SIZE.sm, color: COLORS.textMuted, marginHorizontal: SPACING.xs },
+  affix: { fontSize: FONT_SIZE.sm, color: colors.textMuted, marginHorizontal: SPACING.xs },
   leadingIcon: { marginRight: SPACING.xs },
   trailingIcon: { marginLeft: SPACING.xs },
-  error: { fontSize: FONT_SIZE.xs, color: COLORS.danger, marginTop: SPACING.xs },
+  error: { fontSize: FONT_SIZE.xs, color: colors.danger, marginTop: SPACING.xs },
 });

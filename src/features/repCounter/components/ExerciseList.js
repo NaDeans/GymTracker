@@ -2,14 +2,14 @@ import { Alert, View, Text, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { isoToDmy } from "shared/utils/dateUtils";
 import { fmt } from "shared/utils/numberUtils";
-import { styles } from "../repCounterStyles";
+import { createThemedStyles } from "../repCounterStyles";
 import { Card } from "shared/components/Card";
 import { Button } from "shared/components/Button";
 import { IconButton } from "shared/components/IconButton";
 import { EditableTitle } from "shared/components/EditableTitle";
 import { ModalSheet } from "shared/components/ModalSheet";
 import { TextField } from "shared/components/TextField";
-import { COLORS } from "shared/constants/colors";
+import { useTheme } from "shared/hooks/useTheme";
 
 export function ExerciseList({
   selectedGroup, setSelectedGroup,
@@ -22,6 +22,8 @@ export function ExerciseList({
   newExerciseName, setNewExerciseName,
   setSelectedExercise,
 }) {
+  const { colors } = useTheme();
+  const styles = createThemedStyles(colors);
   const handleSave = (trimmed) => {
     if (!trimmed || trimmed === selectedGroup) { setTitleDraft(null); return; }
     if (groups.some((g) => g !== selectedGroup && g === trimmed)) {
@@ -61,7 +63,7 @@ export function ExerciseList({
                     </Text>
                   )}
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
               </View>
             </Card>
           );

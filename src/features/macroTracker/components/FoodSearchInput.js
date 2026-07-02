@@ -1,10 +1,12 @@
 import { View, Text, Pressable, Keyboard, Alert } from "react-native";
-import { styles } from "../macroTrackerStyles";
+import { createThemedStyles } from "../macroTrackerStyles";
 import { TextField } from "shared/components/TextField";
 import { Button } from "shared/components/Button";
 import { IconButton } from "shared/components/IconButton";
 import { Card } from "shared/components/Card";
 import { useVoiceSearch } from "shared/hooks/useVoiceSearch";
+import { useTheme } from "shared/hooks/useTheme";
+import { SPACING } from "shared/constants/styles";
 
 export const FoodSearchInput = ({
   input,
@@ -20,6 +22,8 @@ export const FoodSearchInput = ({
   onScanLabel,
   loading,
 }) => {
+  const { colors } = useTheme();
+  const styles = createThemedStyles(colors);
   const { listening, toggle: toggleVoiceSearch } = useVoiceSearch(setInput);
 
   const handleSelectSuggestion = (s) => {
@@ -47,21 +51,21 @@ export const FoodSearchInput = ({
 
   return (
     <View style={styles.inputContainer}>
-      <View style={styles.searchRow}>
-        <TextField
-          icon="search"
-          placeholder={listening ? "Listening..." : "Search Foods"}
-          value={input}
-          onChangeText={setInput}
-          onSubmitEditing={() => submit()}
-          rightIcon={listening ? "mic" : "mic-outline"}
-          onRightIconPress={toggleVoiceSearch}
-          rightIconActive={listening}
-          multiline={true}
-          style={{ flex: 1 }}
-        />
-        <Button variant="secondary" size="md" icon="add" onPress={onManualEntry}>Manual</Button>
-        <Button variant="secondary" size="md" icon="camera" loading={loading} disabled={loading} onPress={handleScanLabel}>Scan Label</Button>
+      <TextField
+        icon="search"
+        placeholder={listening ? "Listening..." : "Search Foods"}
+        value={input}
+        onChangeText={setInput}
+        onSubmitEditing={() => submit()}
+        rightIcon={listening ? "mic" : "mic-outline"}
+        onRightIconPress={toggleVoiceSearch}
+        rightIconActive={listening}
+        multiline={true}
+        style={{ marginBottom: SPACING.sm }}
+      />
+      <View style={styles.searchButtonRow}>
+        <Button variant="secondary" size="md" icon="add" onPress={onManualEntry} style={{ flex: 1 }}>Manual</Button>
+        <Button variant="secondary" size="md" icon="camera" loading={loading} disabled={loading} onPress={handleScanLabel} style={{ flex: 1 }}>Scan Label</Button>
       </View>
 
       {suggestions.length > 0 && (

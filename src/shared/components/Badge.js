@@ -1,14 +1,16 @@
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "shared/constants/colors";
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from "shared/constants/styles";
+import { useTheme } from "shared/hooks/useTheme";
 
-const VARIANTS = {
-  primary: { bg: COLORS.primarySurface, fg: COLORS.primary },
-  success: { bg: COLORS.successSurface, fg: COLORS.success },
-};
+const createVariants = (colors) => ({
+  primary: { bg: colors.primarySurface, fg: colors.primary },
+  success: { bg: colors.successSurface, fg: colors.success },
+});
 
 export const Badge = ({ icon, label, variant = "primary", style }) => {
+  const { colors } = useTheme();
+  const VARIANTS = createVariants(colors);
   const v = VARIANTS[variant] || VARIANTS.primary;
   return (
     <View style={[styles.base, { backgroundColor: v.bg }, style]}>

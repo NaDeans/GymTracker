@@ -1,13 +1,13 @@
 import { View, Text, Alert } from "react-native";
 import { safeNumber } from "shared/utils/numberUtils";
 import { customFoodFields } from "../utils/macroUtils";
-import { styles } from "../macroTrackerStyles";
+import { createThemedStyles } from "../macroTrackerStyles";
 import { ModalSheet } from "shared/components/ModalSheet";
 import { TextField } from "shared/components/TextField";
 import { Button } from "shared/components/Button";
 import { Card } from "shared/components/Card";
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from "shared/constants/styles";
-import { COLORS } from "shared/constants/colors";
+import { useTheme } from "shared/hooks/useTheme";
 
 export const CustomFoodsModal = ({
   visible,
@@ -20,6 +20,8 @@ export const CustomFoodsModal = ({
   editingFoodId,
   setEditingFoodId,
 }) => {
+  const { colors } = useTheme();
+  const styles = createThemedStyles(colors);
   const handleSave = () => {
     if (!newFood.name.trim()) {
       Alert.alert("Missing Name", "Please enter a name for this food.");
@@ -51,7 +53,7 @@ export const CustomFoodsModal = ({
       {customFoods.map((food) => (
         <Card key={food.id} style={{ marginBottom: SPACING.md }}>
           <Text style={{ fontWeight: FONT_WEIGHT.semibold, fontSize: FONT_SIZE.md, marginBottom: SPACING.sm }}>{food.name}</Text>
-          <Text style={{ fontSize: FONT_SIZE.sm, color: COLORS.textLight, marginBottom: SPACING.sm }}>
+          <Text style={{ fontSize: FONT_SIZE.sm, color: colors.textLight, marginBottom: SPACING.sm }}>
             {`Cal: ${food.calories} kcal | P: ${food.protein}g | C: ${food.carbs}g | F: ${food.fats}g`}
           </Text>
           <View style={styles.foodActionsRow}>

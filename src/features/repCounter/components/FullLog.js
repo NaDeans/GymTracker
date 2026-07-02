@@ -1,12 +1,15 @@
 import { View, Text, FlatList } from "react-native";
 import { isoToDmy } from "shared/utils/dateUtils";
 import { fmt } from "shared/utils/numberUtils";
-import { styles } from "../repCounterStyles";
+import { createThemedStyles } from "../repCounterStyles";
 import { Card } from "shared/components/Card";
 import { IconButton } from "shared/components/IconButton";
 import { TextField } from "shared/components/TextField";
+import { useTheme } from "shared/hooks/useTheme";
 
 export function FullLog({ setShowFullLog, sortedDates, allLogs, dayNotes, updateDayNotesByDate }) {
+  const { colors } = useTheme();
+  const styles = createThemedStyles(colors);
   return (
     <View style={styles.container}>
       <IconButton icon="chevron-back" variant="secondary" onPress={() => setShowFullLog(false)} style={styles.backButtonSpacing} />

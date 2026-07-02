@@ -69,8 +69,6 @@ export default function MacroTrackerScreen() {
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <Text style={styles.mainTitle}></Text>
-
         {(currentStreak > 0 || selectedDayGoalMet) && (
           <View style={styles.badgeRow}>
             {currentStreak > 0 && (

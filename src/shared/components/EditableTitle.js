@@ -1,10 +1,13 @@
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Button } from "./Button";
 import { TextField } from "./TextField";
-import { COLORS } from "shared/constants/colors";
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from "shared/constants/styles";
+import { useTheme } from "shared/hooks/useTheme";
 
 export const EditableTitle = ({ value, draft, setDraft, onSave, onDelete }) => {
+  const { colors } = useTheme();
+  const styles = createThemedStyles(colors);
+
   if (draft === null) {
     return (
       <View style={styles.row}>
@@ -25,10 +28,10 @@ export const EditableTitle = ({ value, draft, setDraft, onSave, onDelete }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createThemedStyles = (colors) => StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: SPACING.sm, marginBottom: SPACING.lg },
   titleTouchable: { flex: 1 },
-  titleText: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold, color: COLORS.textDark },
+  titleText: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold, color: colors.textDark },
   field: { flex: 1 },
   actionSpacing: {},
 });

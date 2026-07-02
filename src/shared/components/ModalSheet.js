@@ -3,8 +3,8 @@ import {
   View, Text, Pressable, ScrollView,
   Platform, Keyboard, BackHandler, useWindowDimensions,
 } from "react-native";
-import { COLORS } from "shared/constants/colors";
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, SHADOW } from "shared/constants/styles";
+import { useTheme } from "shared/hooks/useTheme";
 
 export const ModalSheet = ({
   visible,
@@ -15,6 +15,8 @@ export const ModalSheet = ({
   scrollable = true,
   dismissOnBackdropPress = true,
 }) => {
+  const { colors } = useTheme();
+  const styles = createThemedStyles(colors);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const { height: windowHeight } = useWindowDimensions();
 
@@ -71,16 +73,16 @@ export const ModalSheet = ({
   );
 };
 
-const styles = {
+const createThemedStyles = (colors) => ({
   overlay: {
     flex: 1,
-    backgroundColor: COLORS.overlayDark,
+    backgroundColor: colors.overlayDark,
     justifyContent: "center",
     alignItems: "center",
     padding: SPACING.md,
   },
   container: {
-    backgroundColor: COLORS.surfaceRaised,
+    backgroundColor: colors.surfaceRaised,
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.xl,
     width: "100%",
@@ -90,10 +92,10 @@ const styles = {
   title: {
     fontWeight: FONT_WEIGHT.bold,
     fontSize: FONT_SIZE.lg,
-    color: COLORS.textDark,
+    color: colors.textDark,
     marginBottom: SPACING.sm,
   },
   footer: {
     marginTop: SPACING.sm,
   },
-};
+});
