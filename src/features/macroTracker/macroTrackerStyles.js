@@ -44,16 +44,16 @@ export const styles = StyleSheet.create({
   scanTagText: { fontSize: FONT_SIZE.xs, color: COLORS.success, fontWeight: FONT_WEIGHT.semibold },
 
   /* ================= HISTORY / DAILY LOG ================= */
-  historyBlock: { marginBottom: SPACING.sm },
-  itemBlock: { marginBottom: SPACING.sm },
-  itemName: { fontWeight: FONT_WEIGHT.bold, fontSize: FONT_SIZE.lg, marginBottom: SPACING.sm, color: COLORS.textDark },
-  gramsRow: { flexDirection: "row", alignItems: "center", marginBottom: SPACING.sm },
-  macros: { fontSize: FONT_SIZE.sm, color: COLORS.textMedium, marginBottom: SPACING.sm },
+  historyBlock: {},
+  itemBlock: {},
+  itemName: { fontWeight: FONT_WEIGHT.bold, fontSize: FONT_SIZE.lg, marginBottom: SPACING.xs, color: COLORS.textDark },
+  gramsRow: { flexDirection: "row", alignItems: "center", marginBottom: SPACING.xs },
+  macros: { fontSize: FONT_SIZE.sm, color: COLORS.textMedium, marginBottom: SPACING.xs },
   addedText: { marginTop: SPACING.xs, fontSize: FONT_SIZE.xs, color: COLORS.success },
   assumption: { fontStyle: "italic", fontSize: FONT_SIZE.xs, color: COLORS.textMuted },
 
   /* ================= BUTTON ROW ================= */
-  buttonRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginVertical: SPACING.sm, gap: SPACING.sm },
+  buttonRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: SPACING.xs, gap: SPACING.xs },
   leftButtons: { flexDirection: "row", gap: SPACING.xs },
   logActionButton: { minWidth: 84 },
 
