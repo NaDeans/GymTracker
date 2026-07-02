@@ -32,7 +32,7 @@ export const styles = StyleSheet.create({
 
   /* ================= SEARCH ================= */
   inputContainer: { width: "100%", marginBottom: SPACING.sm },
-  searchRow: { flexDirection: "row", alignItems: "center", gap: SPACING.sm, marginBottom: SPACING.sm },
+  searchRow: { flexDirection: "row", alignItems: "flex-start", gap: SPACING.sm, marginBottom: SPACING.sm },
   suggestionsContainer: { marginBottom: SPACING.sm },
   suggestionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: SPACING.md },
   suggestionDivider: { borderTopWidth: 1, borderTopColor: COLORS.border },

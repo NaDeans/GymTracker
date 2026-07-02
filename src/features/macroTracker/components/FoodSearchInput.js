@@ -57,6 +57,7 @@ export const FoodSearchInput = ({
           rightIcon={listening ? "mic" : "mic-outline"}
           onRightIconPress={toggleVoiceSearch}
           rightIconActive={listening}
+          multiline={true}
           style={{ flex: 1 }}
         />
         <Button variant="secondary" size="md" icon="add" onPress={onManualEntry}>Manual</Button>
