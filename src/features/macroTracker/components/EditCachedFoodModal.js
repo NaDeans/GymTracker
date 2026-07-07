@@ -1,4 +1,5 @@
 import { View, Text, Alert } from "react-native";
+import { safeNumber } from "shared/utils/numberUtils";
 import { ModalSheet } from "shared/components/ModalSheet";
 import { TextField } from "shared/components/TextField";
 import { Button } from "shared/components/Button";
@@ -15,6 +16,18 @@ const FIELD_LABELS = {
   fats: "Fats (g)",
 };
 
+// Fields are edited as raw strings (so partial input like "2." survives typing);
+// numbers are coerced only when saving.
+const normalizeItems = (items) =>
+  items.map((item) => ({
+    ...item,
+    amount_g: safeNumber(item.amount_g),
+    calories: safeNumber(item.calories),
+    protein: safeNumber(item.protein),
+    carbs: safeNumber(item.carbs),
+    fats: safeNumber(item.fats),
+  }));
+
 export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditingFood, gptCache, setGptCache, setSuggestions, onAddToLog }) => {
   const { colors } = useTheme();
   if (!editingFood) return null;
@@ -29,14 +42,16 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
     setVisible(false);
   };
 
+  // Returns the normalized items on success, or false if validation failed.
   const handleSave = () => {
     const oldKey = editingFood.originalKey;
     let newKey = editingFood.key.trim().toLowerCase();
 
     if (!newKey) { Alert.alert("Error", "Search term cannot be empty"); return false; }
 
+    const normalized = normalizeItems(editingFood.items);
     const existingEntry = gptCache[oldKey];
-    if (!existingEntry) { setVisible(false); return true; }
+    if (!existingEntry) { setVisible(false); return normalized; }
 
     // If the first food item's name changed and the search key hasn't been manually updated,
     // automatically update the search key to match the new food name
@@ -53,18 +68,19 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
     setGptCache((prev) => {
       const updated = { ...prev };
       if (oldKey !== newKey) delete updated[oldKey];
-      updated[newKey] = { ...existingEntry, searchKey: newKey, items: editingFood.items };
+      updated[newKey] = { ...existingEntry, searchKey: newKey, items: normalized };
       return updated;
     });
 
     setSuggestions([]);
     setVisible(false);
-    return true;
+    return normalized;
   };
 
   const handleAddToLog = () => {
-    if (!handleSave()) return;
-    onAddToLog();
+    const normalized = handleSave();
+    if (!normalized) return;
+    onAddToLog({ ...editingFood, items: normalized });
   };
 
   return (
@@ -102,7 +118,7 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
               keyboardType={field === "name" ? "default" : "numeric"}
               onChangeText={(v) => {
                 const items = [...editingFood.items];
-                items[index] = { ...items[index], [field]: field === "name" ? v : Number(v) || 0 };
+                items[index] = { ...items[index], [field]: v };
                 setEditingFood((prev) => ({ ...prev, items }));
               }}
               style={{ marginBottom: SPACING.sm }}

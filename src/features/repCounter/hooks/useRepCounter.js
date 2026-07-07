@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Alert, Keyboard } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { todayString, dmyToIso } from "shared/utils/dateUtils";
@@ -34,6 +34,10 @@ export const useRepCounter = () => {
     }
   }, [selectedGroup, selectedExercise, data]);
 
+  // Guards the save effect: without it, the first render saves the empty
+  // initial state over the stored data before the load below resolves.
+  const hasLoaded = useRef(false);
+
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
       if (stored) {
@@ -43,10 +47,12 @@ export const useRepCounter = () => {
       } else {
         setGroups(DEFAULT_GROUPS);
       }
+      hasLoaded.current = true;
     });
   }, []);
 
   useEffect(() => {
+    if (!hasLoaded.current) return;
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ data, groups }));
   }, [data, groups]);
 

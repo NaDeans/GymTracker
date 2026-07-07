@@ -52,7 +52,7 @@ export const CustomFoodsModal = ({
     <ModalSheet visible={visible} onClose={() => setVisible(false)} title="Custom Foods">
       {customFoods.map((food) => (
         <Card key={food.id} style={{ marginBottom: SPACING.md }}>
-          <Text style={{ fontWeight: FONT_WEIGHT.semibold, fontSize: FONT_SIZE.md, marginBottom: SPACING.sm }}>{food.name}</Text>
+          <Text style={{ fontWeight: FONT_WEIGHT.semibold, fontSize: FONT_SIZE.md, color: colors.textDark, marginBottom: SPACING.sm }}>{food.name}</Text>
           <Text style={{ fontSize: FONT_SIZE.sm, color: colors.textLight, marginBottom: SPACING.sm }}>
             {`Cal: ${food.calories} kcal | P: ${food.protein}g | C: ${food.carbs}g | F: ${food.fats}g`}
           </Text>

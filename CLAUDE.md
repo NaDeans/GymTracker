@@ -25,17 +25,20 @@ This is loaded via `react-native-dotenv` and imported as `import { ANTHROPIC_API
 
 ## Architecture
 
-React Native / Expo app with two tab screens. All state is local React hooks; persistence is `AsyncStorage` only — there is no backend or database.
+React Native / Expo app with three tab screens. All state is local React hooks; persistence is `AsyncStorage` only — there is no backend or database. Code is organized by feature under `src/features/`, with shared components/hooks/utils under `src/shared/`.
 
 ### Navigation
 
-`App.js` → React Navigation bottom tab with two screens:
-- **Macros** → `src/screens/macroTrackerScreen.js`
-- **Reps** → `src/screens/repCounterScreen.js`
+`App.js` → `src/navigation/AppNavigator.js` → React Navigation bottom tab with three screens:
+- **Macros** → `src/features/macroTracker/MacroTrackerScreen.js`
+- **Reps** → `src/features/repCounter/RepCounterScreen.js`
+- **Calculator** → `src/features/calculator/CalculatorScreen.js`
+
+`AppNavigator` wraps everything in `ThemeProvider` (`src/shared/context/ThemeContext.js`) — light/dark theme, toggled from the Macros header, persisted at `THEME_MODE`.
 
 ### Macro Tracker
 
-`macroTrackerScreen.js` owns all macro state and passes handlers down as props. Key state objects:
+`useMacroTracker` (`src/features/macroTracker/hooks/useMacroTracker.js`) owns all macro state; the screen passes handlers down as props. Key state objects:
 
 | State | AsyncStorage key | Description |
 |---|---|---|
@@ -45,13 +48,13 @@ React Native / Expo app with two tab screens. All state is local React hooks; pe
 | `gptCache` | `GPT_CACHE` | `{ [searchKey]: { searchKey, foodId, items } }` — cached GPT responses |
 | `goals` | `GOALS` | `{ calories, protein, carbs, fats }` targets |
 
-Food lookup flow: user types → check `gptCache` → if miss, call the Claude API (`claude-sonnet-5` via `@anthropic-ai/sdk`, structured outputs) from `gptService.js` → normalize via `gptUtils.js` → store in cache and add to `historyByDate`. (File/state names keep the legacy "gpt" prefix.)
+Food lookup flow: user types → check `gptCache` → if miss, call the Claude API (`claude-haiku-4-5`, structured outputs, via raw `fetch` — the `@anthropic-ai/sdk` package is deliberately NOT used because it imports `node:fs`, which Metro cannot bundle for native) from `services/gptService.js` → normalize via `utils/gptUtils.js` → store in cache and add to `historyByDate`. (File/state names keep the legacy "gpt" prefix.) There is also a scan-label flow: photo → `utils/imageUtils.js` (resize/compress via expo-image-manipulator) → `fetchNutritionFromImage`.
 
 `dailyLog` and `historyByDate` serve different purposes: `dailyLog` tracks item counts and running totals for display; `historyByDate` preserves the original GPT entries (used by `DailyControls` to render each meal entry with +/- controls).
 
 ### Rep Counter
 
-`repCounterScreen.js` owns all data in a single `data` state object stored at `REP_COUNTER_DATA`:
+`useRepCounter` (`src/features/repCounter/hooks/useRepCounter.js`) owns all data in a single `data` state object stored at `REP_COUNTER_DATA`:
 
 ```
 data: {
@@ -70,15 +73,16 @@ Screen renders as a drill-down: Categories → Exercises → Set log. Navigated 
 `jsconfig.json` sets `baseUrl: "src"`, so all imports resolve from `src/`. Examples:
 
 ```js
-import { styles } from "styles/macroTrackerStyles";
-import DatePicker from "components/macroTrackerComponents/DatePicker";
+import { useTheme } from "shared/hooks/useTheme";
+import { Button } from "shared/components/Button";
+import MacroTrackerScreen from "features/macroTracker/MacroTrackerScreen";
 ```
 
 ### Date Formats
 
 - `DD/MM/YY` — display format and primary key for macro tracker state (`todayString()`, `selectedDate`)
-- `YYYY-MM-DD` — ISO format used internally in rep counter and for calendar library; convert with `dmyToIso` / `isoToDmy` from `src/utils/dateUtils.js`
+- `YYYY-MM-DD` — ISO format used internally in rep counter and for calendar library; convert with `dmyToIso` / `isoToDmy` from `src/shared/utils/dateUtils.js`
 
 ### Styling
 
-Shared design tokens live in `src/constants/colors.js` (`COLORS`) and `src/constants/styles.js` (`SPACING`, `FONT_SIZE`, `FONT_WEIGHT`, `BORDER_RADIUS`, `SHADOW`). Screen-level StyleSheets are in `src/styles/`.
+Theme palettes (light + dark) live in `src/shared/constants/colors.js` (`themes`, plus legacy `COLORS` = light). Layout tokens are in `src/shared/constants/styles.js` (`SPACING`, `FONT_SIZE`, `FONT_WEIGHT`, `BORDER_RADIUS`, `SHADOW`, `CONTROL_HEIGHT`). Components get colors via `useTheme()` and per-feature `createThemedStyles(colors)` factories (e.g. `src/features/macroTracker/macroTrackerStyles.js`) — never import `COLORS` directly in new UI.

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Alert, Keyboard } from "react-native";
 import { ANTHROPIC_API_KEY } from "@env";
 
@@ -45,6 +45,10 @@ export const useMacroTracker = () => {
   const [editingMacro, setEditingMacro] = useState("");
   const [goalInput, setGoalInput] = useState("");
 
+  // Guards the save effect: without it, the first render saves the empty
+  // initial state over the stored data before the load below resolves.
+  const hasLoaded = useRef(false);
+
   useEffect(() => {
     loadMacroTrackerData().then((data) => {
       setCustomFoods(data.customFoods);
@@ -52,10 +56,12 @@ export const useMacroTracker = () => {
       setHistoryByDate(data.historyByDate);
       setGoals(data.goals);
       setGptCache(data.gptCache);
+      hasLoaded.current = true;
     });
   }, []);
 
   useEffect(() => {
+    if (!hasLoaded.current) return;
     saveMacroTrackerData({ customFoods, dailyLog, historyByDate, goals, gptCache });
   }, [customFoods, dailyLog, historyByDate, goals, gptCache]);
 
@@ -326,14 +332,17 @@ export const useMacroTracker = () => {
     setInput("");
   };
 
-  const addEditedFoodToLog = () => {
-    if (!editingFood) return;
-    const itemsWithRaw = editingFood.items.map((i) => ({
+  // Accepts the edited food from the modal (which has already normalized the
+  // number fields) rather than reading this hook's not-yet-updated state.
+  const addEditedFoodToLog = (foodOverride) => {
+    const food = foodOverride || editingFood;
+    if (!food) return;
+    const itemsWithRaw = food.items.map((i) => ({
       ...i,
       raw: { calories: i.calories, protein: i.protein, carbs: i.carbs, fats: i.fats, amount_g: i.amount_g },
     }));
-    const foodId = editingFood.foodId;
-    const key = editingFood.key.trim().toLowerCase();
+    const foodId = food.foodId;
+    const key = food.key.trim().toLowerCase();
 
     setHistoryByDate((prev) => {
       const dayHistory = prev[selectedDate] || [];

@@ -4,7 +4,6 @@ import { TextField } from "shared/components/TextField";
 import { Button } from "shared/components/Button";
 import { IconButton } from "shared/components/IconButton";
 import { Card } from "shared/components/Card";
-import { useVoiceSearch } from "shared/hooks/useVoiceSearch";
 import { useTheme } from "shared/hooks/useTheme";
 import { SPACING } from "shared/constants/styles";
 
@@ -24,7 +23,6 @@ export const FoodSearchInput = ({
 }) => {
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
-  const { listening, toggle: toggleVoiceSearch } = useVoiceSearch(setInput);
 
   const handleSelectSuggestion = (s) => {
     setSuggestions([]);
@@ -53,13 +51,10 @@ export const FoodSearchInput = ({
     <View style={styles.inputContainer}>
       <TextField
         icon="search"
-        placeholder={listening ? "Listening..." : "Search Foods"}
+        placeholder="Search Foods"
         value={input}
         onChangeText={setInput}
         onSubmitEditing={() => submit()}
-        rightIcon={listening ? "mic" : "mic-outline"}
-        onRightIconPress={toggleVoiceSearch}
-        rightIconActive={listening}
         multiline={true}
         style={{ marginBottom: SPACING.sm }}
       />
