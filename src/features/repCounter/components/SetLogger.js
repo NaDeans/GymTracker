@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Alert, View, Text, FlatList, KeyboardAvoidingView, Platform } from "react-native";
 import { isoToDmy } from "shared/utils/dateUtils";
 import { fmt } from "shared/utils/numberUtils";
@@ -8,6 +9,7 @@ import { IconButton } from "shared/components/IconButton";
 import { Stepper } from "shared/components/Stepper";
 import { EditableTitle } from "shared/components/EditableTitle";
 import { useTheme } from "shared/hooks/useTheme";
+import { KeyboardScrollProvider } from "shared/context/KeyboardScrollContext";
 
 export function SetLogger({
   selectedGroup, selectedExercise, setSelectedExercise,
@@ -22,6 +24,7 @@ export function SetLogger({
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
   const canAddSet = reps.trim().length > 0 && weight.trim().length > 0;
+  const listRef = useRef(null);
 
   const handleSave = (trimmed) => {
     if (!trimmed || trimmed === selectedExercise) { setTitleDraft(null); return; }
@@ -78,10 +81,13 @@ export function SetLogger({
 
       <Text style={styles.historySubtitle}>History</Text>
 
+      <KeyboardScrollProvider scrollRef={listRef}>
       <FlatList
+        ref={listRef}
         data={logsState}
         keyExtractor={(item) => item.date}
         keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
         renderItem={({ item, index: dayIndex }) => (
           <Card style={styles.dayCardSpacing}>
             <Text style={styles.historyDateText}>{isoToDmy(item.date)}</Text>
@@ -122,6 +128,7 @@ export function SetLogger({
           </Card>
         )}
       />
+      </KeyboardScrollProvider>
     </KeyboardAvoidingView>
   );
 }

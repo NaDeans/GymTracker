@@ -1,4 +1,5 @@
-import { View, Text, FlatList } from "react-native";
+import { useRef } from "react";
+import { View, Text, FlatList, KeyboardAvoidingView, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { todayString, dmyToIso } from "shared/utils/dateUtils";
 import { createThemedStyles } from "../repCounterStyles";
@@ -7,6 +8,7 @@ import { Button } from "shared/components/Button";
 import { ModalSheet } from "shared/components/ModalSheet";
 import { TextField } from "shared/components/TextField";
 import { useTheme } from "shared/hooks/useTheme";
+import { KeyboardScrollProvider } from "shared/context/KeyboardScrollContext";
 
 export function CategoryList({
   groups,
@@ -21,9 +23,11 @@ export function CategoryList({
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
   const today = dmyToIso(todayString());
+  const listRef = useRef(null);
 
   return (
-    <View style={styles.container}>
+    <View style={{ flex: 1 }}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Text style={styles.pageTitle}>Categories</Text>
 
       <Card onPress={() => setShowFullLog(true)} surface="raised" elevation="sm" style={styles.viewLogCard}>
@@ -33,6 +37,7 @@ export function CategoryList({
         </View>
       </Card>
 
+      <KeyboardScrollProvider scrollRef={listRef}>
       <Card style={styles.todayNotesCard}>
         <Text style={styles.todayNotesLabel}>Today's Notes (shared across all exercises)</Text>
         <TextField
@@ -44,8 +49,11 @@ export function CategoryList({
       </Card>
 
       <FlatList
+        ref={listRef}
         data={groups}
         keyExtractor={(item) => item}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
         renderItem={({ item }) => (
           <Card onPress={() => setSelectedGroup(item)} style={styles.categoryCardSpacing}>
             <View style={styles.viewLogRow}>
@@ -60,6 +68,8 @@ export function CategoryList({
           </Button>
         }
       />
+      </KeyboardScrollProvider>
+    </KeyboardAvoidingView>
 
       <ModalSheet
         visible={showGroupModal}

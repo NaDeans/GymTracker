@@ -3,6 +3,7 @@ import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, CONTROL_HEIGHT } from "shared/constants/styles";
 import { useTheme } from "shared/hooks/useTheme";
+import { useKeyboardScroll } from "shared/context/KeyboardScrollContext";
 
 export const TextField = ({
   label,
@@ -30,6 +31,7 @@ export const TextField = ({
   const [focused, setFocused] = useState(false);
   const height = size === "sm" ? CONTROL_HEIGHT.sm : CONTROL_HEIGHT.md;
   const styles = createThemedStyles(colors);
+  const scrollToInput = useKeyboardScroll();
 
   return (
     <View style={[styles.container, style]}>
@@ -64,7 +66,7 @@ export const TextField = ({
           editable={!disabled}
           onSubmitEditing={onSubmitEditing}
           onEndEditing={onEndEditing}
-          onFocus={() => setFocused(true)}
+          onFocus={(e) => { setFocused(true); scrollToInput?.(e); }}
           onBlur={() => setFocused(false)}
         />
         {suffix ? <Text style={styles.affix}>{suffix}</Text> : null}

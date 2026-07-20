@@ -138,15 +138,17 @@ Rules:
 
 1. VERBATIM — use exactly the numbers printed on the label. Do not round, adjust, or infer values that aren't legible.
 
-2. PRODUCT NAME — use the product/food name printed on the packaging (front-of-pack name if visible, otherwise a reasonable description of the label contents).
+2. ENERGY UNITS — kJ (kilojoules) and kcal/Cal/Calories are DIFFERENT units for the same thing on purpose: the kJ figure is always roughly 4x larger than the kcal figure for identical energy (kcal = kJ / 4.184). Never pick the larger printed number thinking it's more precise or more correct — calories_kcal must ALWAYS be the kcal/Cal/Calorie figure, never the kJ figure. Labels commonly print energy as kJ only, kcal/Cal only, or both side by side (e.g. "1046kJ / 250Cal" or "Energy: 1046kJ (250Cal)"). If both are printed, use the printed kcal/Cal figure directly and verbatim per rule 1 — do not recompute it from the kJ figure even if it doesn't exactly match kJ/4.184 (real labels round each figure independently). If ONLY kJ is printed anywhere on the label (no kcal/Cal figure at all), convert: calories_kcal = kJ / 4.184, rounded to the nearest whole number, and state in the assumption field that the value was converted from kJ.
 
-3. SERVING SIZE — amount_g must be the serving size in grams as printed (e.g. "Serving size: 40g" → amount_g: 40). If the label states serving size only in a non-gram unit (e.g. "1 bar", "1 cup"), convert using any gram figure printed in parentheses. If no gram figure is determinable, use amount_g: 100 and say so in assumption.
+3. PRODUCT NAME — use the product/food name printed on the packaging (front-of-pack name if visible, otherwise a reasonable description of the label contents).
 
-4. ASSUMPTIONS — the assumption field must describe anything you couldn't read clearly or had to infer: illegible/blurry values, a converted serving size, an unclear product name. If every value was clearly legible, assumption: null.
+4. SERVING SIZE — amount_g must be the serving size in grams as printed (e.g. "Serving size: 40g" → amount_g: 40). If the label states serving size only in a non-gram unit (e.g. "1 bar", "1 cup"), convert using any gram figure printed in parentheses. If no gram figure is determinable, use amount_g: 100 and say so in assumption.
 
-5. UNREADABLE — if the photo does not show a legible nutrition facts panel (wrong subject, too blurry, no label visible), return {"items": []}.
+5. ASSUMPTIONS — the assumption field must describe anything you couldn't read clearly or had to infer: illegible/blurry values, a converted serving size, an unclear product name, or a kJ-to-kcal conversion (rule 2). If every value was clearly legible and no conversion was needed, assumption: null.
 
-6. SINGLE PRODUCT — return exactly one item for the label shown, even if the package contains multiple servings.`;
+6. UNREADABLE — if the photo does not show a legible nutrition facts panel (wrong subject, too blurry, no label visible), return {"items": []}.
+
+7. SINGLE PRODUCT — return exactly one item for the label shown, even if the package contains multiple servings.`;
 
   return callClaude(apiKey, systemPrompt, [
     {

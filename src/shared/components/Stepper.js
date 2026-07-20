@@ -2,6 +2,7 @@ import { View, Text, TextInput, StyleSheet } from "react-native";
 import { IconButton } from "./IconButton";
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from "shared/constants/styles";
 import { useTheme } from "shared/hooks/useTheme";
+import { useKeyboardScroll } from "shared/context/KeyboardScrollContext";
 
 const SIZES = {
   hero: { buttonSize: "md", fontSize: FONT_SIZE.lg, minWidth: 68, height: 48, suffixExtra: 34 },
@@ -35,6 +36,7 @@ export const Stepper = ({
   const numeric = parseFloat(value) || 0;
   const boxWidth = suffix ? s.minWidth + s.suffixExtra : s.minWidth;
   const styles = createThemedStyles(colors);
+  const scrollToInput = useKeyboardScroll();
 
   const step_ = (direction) => {
     const next = clamp(numeric + direction * step, min, max);
@@ -52,6 +54,7 @@ export const Stepper = ({
             value={value}
             onChangeText={onDraftChange}
             onEndEditing={() => onCommit?.(value)}
+            onFocus={(e) => scrollToInput?.(e)}
             keyboardType={decimal ? "decimal-pad" : "number-pad"}
             textAlign="center"
             placeholder="0"

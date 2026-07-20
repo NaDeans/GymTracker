@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Alert, Keyboard } from "react-native";
+import { Alert, Keyboard, Share } from "react-native";
 import { ANTHROPIC_API_KEY } from "@env";
 
 import { todayString } from "shared/utils/dateUtils";
@@ -8,6 +8,7 @@ import { calcCurrentStreak, dayHasLog } from "shared/utils/streakUtils";
 import { calcTotals, entryExistsForDay, isGoalMet } from "../utils/macroUtils";
 import { loadMacroTrackerData, saveMacroTrackerData } from "../utils/storageUtils";
 import { fetchNutritionFromGPT, fetchNutritionFromImage } from "../services/gptService";
+import { formatDayForExport } from "../utils/exportUtils";
 
 export const useMacroTracker = () => {
   // UI
@@ -192,6 +193,15 @@ export const useMacroTracker = () => {
         },
       ]
     );
+  };
+
+  const exportDay = async () => {
+    try {
+      const message = formatDayForExport(selectedDate, historyByDate, dailyLog, goals);
+      await Share.share({ message });
+    } catch (err) {
+      console.error("Export day error:", err);
+    }
   };
 
   const addCustomFood = (food) => {
@@ -395,7 +405,7 @@ export const useMacroTracker = () => {
     goals, setGoals,
     editingMacro, setEditingMacro,
     goalInput, setGoalInput,
-    addItem, removeItem, clearItem, updateGrams, resetDay,
+    addItem, removeItem, clearItem, updateGrams, resetDay, exportDay,
     addCustomFood, submit, submitFromImage,
     manualEntryVisible, setManualEntryVisible,
     manualEntryName, setManualEntryName,

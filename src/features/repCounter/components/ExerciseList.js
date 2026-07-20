@@ -1,4 +1,5 @@
-import { Alert, View, Text, FlatList } from "react-native";
+import { useRef } from "react";
+import { Alert, View, Text, FlatList, KeyboardAvoidingView, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { isoToDmy } from "shared/utils/dateUtils";
 import { fmt } from "shared/utils/numberUtils";
@@ -10,6 +11,7 @@ import { EditableTitle } from "shared/components/EditableTitle";
 import { ModalSheet } from "shared/components/ModalSheet";
 import { TextField } from "shared/components/TextField";
 import { useTheme } from "shared/hooks/useTheme";
+import { KeyboardScrollProvider } from "shared/context/KeyboardScrollContext";
 
 export function ExerciseList({
   selectedGroup, setSelectedGroup,
@@ -24,6 +26,7 @@ export function ExerciseList({
 }) {
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
+  const listRef = useRef(null);
   const handleSave = (trimmed) => {
     if (!trimmed || trimmed === selectedGroup) { setTitleDraft(null); return; }
     if (groups.some((g) => g !== selectedGroup && g === trimmed)) {
@@ -34,7 +37,8 @@ export function ExerciseList({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={{ flex: 1 }}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <IconButton icon="chevron-back" variant="secondary" onPress={() => setSelectedGroup(null)} style={styles.backButtonSpacing} />
 
       <EditableTitle
@@ -45,9 +49,13 @@ export function ExerciseList({
         onDelete={() => deleteGroup(selectedGroup)}
       />
 
+      <KeyboardScrollProvider scrollRef={listRef}>
       <FlatList
+        ref={listRef}
         data={exercises}
         keyExtractor={(item) => item}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
         renderItem={({ item }) => {
           const logs = data[selectedGroup]?.[item] || [];
           const mostRecentDay = logs[0];
@@ -74,6 +82,8 @@ export function ExerciseList({
           </Button>
         }
       />
+      </KeyboardScrollProvider>
+    </KeyboardAvoidingView>
 
       <ModalSheet
         visible={showExerciseModal}

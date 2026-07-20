@@ -2,6 +2,15 @@ import { StyleSheet } from "react-native";
 import { COLORS } from "shared/constants/colors";
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from "shared/constants/styles";
 
+const hexToRgba = (hex, alpha) => {
+  const h = hex.replace("#", "");
+  const bigint = parseInt(h, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 export const createThemedStyles = (colors) => StyleSheet.create({
   /* ================= MAIN SCREEN ================= */
   container: { flexGrow: 1, paddingTop: SPACING.xxxl, paddingHorizontal: SPACING.xl, paddingBottom: SPACING.screenBottom, backgroundColor: colors.background },
@@ -24,7 +33,7 @@ export const createThemedStyles = (colors) => StyleSheet.create({
   macroValue: { fontWeight: FONT_WEIGHT.semibold, fontSize: FONT_SIZE.sm, color: colors.textDark },
   macroProgressTrack: { height: 5, borderRadius: BORDER_RADIUS.pill, backgroundColor: colors.border, overflow: "hidden", position: "relative" },
   macroProgressFill: { height: "100%", borderRadius: BORDER_RADIUS.pill },
-  macroSafeZone: { height: "100%", position: "absolute", backgroundColor: "rgba(46, 204, 113, 0.2)", borderRadius: BORDER_RADIUS.pill },
+  macroSafeZone: { height: "100%", position: "absolute", backgroundColor: hexToRgba(colors.success, 0.2), borderRadius: BORDER_RADIUS.pill },
   wheelContainer: { justifyContent: "center", alignItems: "center", width: 160, height: 160 },
   percOverlay: { position: "absolute", justifyContent: "center", alignItems: "flex-start" },
   percText: { fontWeight: FONT_WEIGHT.bold, fontSize: FONT_SIZE.sm, color: colors.textPrimary },

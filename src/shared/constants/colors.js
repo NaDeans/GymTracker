@@ -61,6 +61,10 @@ const lightTheme = {
   successDark: "#27AE60",
   successSurface: "#E7F9EF",
 
+  warning: "#F5A623",
+  warningDark: "#D6890F",
+  warningSurface: "#FFF4E0",
+
   danger: "#FF3B30",
   dangerDark: "#D9362B",
   dangerSurface: "#FFE9E7",
@@ -144,6 +148,10 @@ const darkTheme = {
   success: "#2ECC71",
   successDark: "#27AE60",
   successSurface: "#1B3A25",
+
+  warning: "#F7A94D",
+  warningDark: "#D6890F",
+  warningSurface: "#3D2F1B",
 
   danger: "#FF3B30",
   dangerDark: "#D9362B",

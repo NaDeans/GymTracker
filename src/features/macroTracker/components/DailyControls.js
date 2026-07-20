@@ -71,6 +71,7 @@ export const DailyControls = ({
   clearItem,
   updateGrams,
   resetDay,
+  exportDay,
   submit,
   loading,
   setFoodDbVisible,
@@ -100,6 +101,8 @@ export const DailyControls = ({
       })
     )}
 
-    <Button variant="danger" size="sm" onPress={resetDay} style={{ alignSelf: "center", marginTop: SPACING.lg }}>Reset Day</Button>
+    <Button variant="outline" size="sm" fullWidth onPress={exportDay} style={{ marginTop: SPACING.lg }}>Export Day</Button>
+
+    <Button variant="danger" size="sm" onPress={resetDay} style={{ alignSelf: "center", marginTop: SPACING.sm }}>Reset Day</Button>
   </View>
 );

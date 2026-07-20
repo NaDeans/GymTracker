@@ -1,10 +1,12 @@
-import { View, ScrollView, Text, RefreshControl, StyleSheet } from "react-native";
+import { useRef } from "react";
+import { View, ScrollView, Text, RefreshControl, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
 import { useMacroTracker } from "./hooks/useMacroTracker";
 import { captureAndCompressLabelImage } from "./utils/imageUtils";
 import { createThemedStyles } from "./macroTrackerStyles";
 import { Badge } from "shared/components/Badge";
 import { IconButton } from "shared/components/IconButton";
 import { useTheme } from "shared/hooks/useTheme";
+import { KeyboardScrollProvider } from "shared/context/KeyboardScrollContext";
 
 import DatePicker from "./components/DatePicker";
 import { MacroTotals } from "./components/MacroTotals";
@@ -40,7 +42,7 @@ export default function MacroTrackerScreen() {
     goals, setGoals,
     editingMacro, setEditingMacro,
     goalInput, setGoalInput,
-    addItem, removeItem, clearItem, updateGrams, resetDay,
+    addItem, removeItem, clearItem, updateGrams, resetDay, exportDay,
     addCustomFood, submit, submitFromImage,
     manualEntryVisible, setManualEntryVisible,
     manualEntryName, setManualEntryName,
@@ -52,6 +54,7 @@ export default function MacroTrackerScreen() {
   const { colors, isDarkMode, toggleTheme } = useTheme();
   const styles = createThemedStyles(colors);
   const headerStyles = createThemedScreenStyles(colors);
+  const scrollRef = useRef(null);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -64,11 +67,15 @@ export default function MacroTrackerScreen() {
           size="sm"
         />
       </View>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={[styles.container]}
         keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
+      <KeyboardScrollProvider scrollRef={scrollRef}>
         {(currentStreak > 0 || selectedDayGoalMet) && (
           <View style={styles.badgeRow}>
             {currentStreak > 0 && (
@@ -124,12 +131,14 @@ export default function MacroTrackerScreen() {
           clearItem={clearItem}
           updateGrams={updateGrams}
           resetDay={resetDay}
+          exportDay={exportDay}
           submit={submit}
           loading={loading}
           setFoodDbVisible={setFoodDbVisible}
         />
-
+      </KeyboardScrollProvider>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       <GoalModal
         visible={goalModalVisible}
