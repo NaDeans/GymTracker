@@ -30,6 +30,7 @@ export const Stepper = ({
   decimal = false,
   suffix,
   size = "hero",
+  scrollOnFocus = true,
 }) => {
   const { colors } = useTheme();
   const s = SIZES[size] || SIZES.hero;
@@ -54,7 +55,7 @@ export const Stepper = ({
             value={value}
             onChangeText={onDraftChange}
             onEndEditing={() => onCommit?.(value)}
-            onFocus={(e) => scrollToInput?.(e)}
+            onFocus={(e) => scrollOnFocus && scrollToInput?.(e)}
             keyboardType={decimal ? "decimal-pad" : "number-pad"}
             textAlign="center"
             placeholder="0"

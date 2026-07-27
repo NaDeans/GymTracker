@@ -39,6 +39,7 @@ const DailyLogItem = ({ item, count, gramValue, setGramValue, updateGrams, addIt
           step={5}
           min={1}
           suffix="g"
+          scrollOnFocus={false}
         />
       </View>
 

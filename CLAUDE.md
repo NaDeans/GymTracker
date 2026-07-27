@@ -34,7 +34,7 @@ React Native / Expo app with three tab screens. All state is local React hooks; 
 - **Reps** → `src/features/repCounter/RepCounterScreen.js`
 - **Calculator** → `src/features/calculator/CalculatorScreen.js`
 
-`AppNavigator` wraps everything in `ThemeProvider` (`src/shared/context/ThemeContext.js`) — light/dark theme, toggled from the Macros header, persisted at `THEME_MODE`.
+`AppNavigator` wraps everything in `ThemeProvider` (`src/shared/context/ThemeContext.js`), which supplies the app's single light color palette via `useTheme()`.
 
 ### Macro Tracker
 
@@ -85,4 +85,4 @@ import MacroTrackerScreen from "features/macroTracker/MacroTrackerScreen";
 
 ### Styling
 
-Theme palettes (light + dark) live in `src/shared/constants/colors.js` (`themes`, plus legacy `COLORS` = light). Layout tokens are in `src/shared/constants/styles.js` (`SPACING`, `FONT_SIZE`, `FONT_WEIGHT`, `BORDER_RADIUS`, `SHADOW`, `CONTROL_HEIGHT`). Components get colors via `useTheme()` and per-feature `createThemedStyles(colors)` factories (e.g. `src/features/macroTracker/macroTrackerStyles.js`) — never import `COLORS` directly in new UI.
+The color palette lives in `src/shared/constants/colors.js` (`COLORS`, also exported as `themes.light`). Layout tokens are in `src/shared/constants/styles.js` (`SPACING`, `FONT_SIZE`, `FONT_WEIGHT`, `BORDER_RADIUS`, `SHADOW`, `CONTROL_HEIGHT`). Components get colors via `useTheme()` and per-feature `createThemedStyles(colors)` factories (e.g. `src/features/macroTracker/macroTrackerStyles.js`) — never import `COLORS` directly in new UI.

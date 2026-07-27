@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  View, Text, Pressable, ScrollView,
+  View, Text, Pressable, ScrollView, Modal,
   Platform, Keyboard, BackHandler, useWindowDimensions,
 } from "react-native";
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, SHADOW } from "shared/constants/styles";
@@ -66,20 +66,24 @@ export const ModalSheet = ({
   );
 
   return (
-    <Pressable
-      style={[
-        styles.overlay,
-        { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 999, elevation: 999 },
-        keyboardHeight > 0 && { paddingBottom: keyboardHeight },
-      ]}
-      onPress={handleBackdropPress}
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={onClose}
     >
-      <Pressable style={[styles.container, { maxHeight }]} onPress={() => {}}>
-        {title ? <Text style={styles.title}>{title}</Text> : null}
-        {body}
-        {footer ? <View style={styles.footer}>{footer}</View> : null}
+      <Pressable
+        style={[styles.overlay, keyboardHeight > 0 && { paddingBottom: keyboardHeight }]}
+        onPress={handleBackdropPress}
+      >
+        <Pressable style={[styles.container, { maxHeight }]} onPress={() => {}}>
+          {title ? <Text style={styles.title}>{title}</Text> : null}
+          {body}
+          {footer ? <View style={styles.footer}>{footer}</View> : null}
+        </Pressable>
       </Pressable>
-    </Pressable>
+    </Modal>
   );
 };
 

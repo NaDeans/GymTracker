@@ -4,7 +4,6 @@ import { useMacroTracker } from "./hooks/useMacroTracker";
 import { captureAndCompressLabelImage } from "./utils/imageUtils";
 import { createThemedStyles } from "./macroTrackerStyles";
 import { Badge } from "shared/components/Badge";
-import { IconButton } from "shared/components/IconButton";
 import { useTheme } from "shared/hooks/useTheme";
 import { KeyboardScrollProvider } from "shared/context/KeyboardScrollContext";
 
@@ -51,7 +50,7 @@ export default function MacroTrackerScreen() {
     addEditedFoodToLog,
   } = useMacroTracker();
 
-  const { colors, isDarkMode, toggleTheme } = useTheme();
+  const { colors } = useTheme();
   const styles = createThemedStyles(colors);
   const headerStyles = createThemedScreenStyles(colors);
   const scrollRef = useRef(null);
@@ -60,12 +59,6 @@ export default function MacroTrackerScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={headerStyles.header}>
         <Text style={headerStyles.mainTitle}>Macro Tracker</Text>
-        <IconButton
-          icon={isDarkMode ? "sunny" : "moon"}
-          onPress={toggleTheme}
-          variant="secondary"
-          size="sm"
-        />
       </View>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView
