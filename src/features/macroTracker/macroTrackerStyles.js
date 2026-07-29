@@ -51,6 +51,8 @@ export const createThemedStyles = (colors) => StyleSheet.create({
   manualTagText: { fontSize: FONT_SIZE.xs, color: colors.primary, fontWeight: FONT_WEIGHT.semibold },
   scanTag: { backgroundColor: colors.successSurface, borderRadius: BORDER_RADIUS.pill, paddingHorizontal: SPACING.sm, paddingVertical: 2, marginRight: SPACING.xs },
   scanTagText: { fontSize: FONT_SIZE.xs, color: colors.success, fontWeight: FONT_WEIGHT.semibold },
+  customFoodTag: { backgroundColor: colors.neutralSurface, borderRadius: BORDER_RADIUS.pill, paddingHorizontal: SPACING.sm, paddingVertical: 2 },
+  customFoodTagText: { fontSize: FONT_SIZE.xs, color: colors.neutralDark, fontWeight: FONT_WEIGHT.semibold },
 
   /* ================= HISTORY / DAILY LOG ================= */
   historyBlock: {},

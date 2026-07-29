@@ -8,7 +8,7 @@ import { Stepper } from "shared/components/Stepper";
 import { SPACING } from "shared/constants/styles";
 import { useTheme } from "shared/hooks/useTheme";
 
-const DailyLogItem = ({ item, count, gramValue, setGramValue, updateGrams, addItem, removeItem, clearItem, onEdit }) => {
+const DailyLogItem = ({ item, count, gramValue, setGramValue, updateGrams, addItem, removeItem, clearItem, onEdit, isCustom }) => {
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
   const raw = item.raw || item;
@@ -30,7 +30,13 @@ const DailyLogItem = ({ item, count, gramValue, setGramValue, updateGrams, addIt
     <Card padding={SPACING.md} style={styles.itemBlock}>
       <View style={styles.itemHeaderRow}>
         <Text style={styles.itemName}>{item.name}</Text>
-        <IconButton icon="pencil" variant="ghost" size="sm" onPress={onEdit} />
+        {isCustom ? (
+          <View style={styles.customFoodTag}>
+            <Text style={styles.customFoodTagText}>Custom</Text>
+          </View>
+        ) : (
+          <IconButton icon="pencil" variant="ghost" size="sm" onPress={onEdit} />
+        )}
       </View>
 
       <View style={styles.gramsRow}>
@@ -107,6 +113,7 @@ export const DailyControls = ({
             removeItem={removeItem}
             clearItem={clearItem}
             onEdit={() => onEditEntry(entry, idx)}
+            isCustom={!entry.foodId}
           />
         );
       })

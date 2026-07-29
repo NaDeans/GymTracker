@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { View, Text, Alert } from "react-native";
+import { View, Text, Alert, FlatList, useWindowDimensions } from "react-native";
 import { fmt, safeNumber } from "shared/utils/numberUtils";
 import { createThemedStyles } from "../macroTrackerStyles";
 import { ModalSheet } from "shared/components/ModalSheet";
@@ -25,6 +25,7 @@ const sumMacros = (items) =>
 export const CacheManagerModal = ({ visible, setVisible, gptCache, setGptCache, setEditingFood, setEditModalVisible }) => {
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
+  const { height: windowHeight } = useWindowDimensions();
   const [query, setQuery] = useState("");
 
   const entries = useMemo(() => {
@@ -55,62 +56,61 @@ export const CacheManagerModal = ({ visible, setVisible, gptCache, setGptCache, 
     );
   };
 
+  const renderItem = ({ item: { key, data } }) => {
+    const items = data.items || [];
+    const macros = sumMacros(items);
+    return (
+      <Card padding={SPACING.sm} style={{ marginBottom: SPACING.sm }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.xs }}>
+          <Text style={{ flex: 1, fontWeight: FONT_WEIGHT.semibold, fontSize: FONT_SIZE.sm, color: colors.textDark }} numberOfLines={1}>
+            {titleCase(key)}
+          </Text>
+          {data.source === "manual" && (
+            <View style={styles.manualTag}>
+              <Text style={styles.manualTagText}>✎</Text>
+            </View>
+          )}
+          {data.source === "scan" && (
+            <View style={styles.scanTag}>
+              <Text style={styles.scanTagText}>📷</Text>
+            </View>
+          )}
+          <IconButton icon="pencil" variant="secondary" size="sm" onPress={() => handleEdit(key)} />
+          <IconButton icon="trash" variant="danger" size="sm" onPress={() => handleDelete(key)} />
+        </View>
+
+        <Text style={{ fontSize: FONT_SIZE.xs, color: colors.textMuted, marginTop: 2 }} numberOfLines={1}>
+          {items.length > 1 ? `${items.map((i) => i.name).join(", ")} · ` : ""}
+          {`${fmt(macros.calories)} kcal · P ${fmt(macros.protein)}g · C ${fmt(macros.carbs)}g · F ${fmt(macros.fats)}g`}
+        </Text>
+      </Card>
+    );
+  };
+
   return (
-    <ModalSheet visible={visible} onClose={() => setVisible(false)} title="Saved Foods">
+    <ModalSheet visible={visible} onClose={() => setVisible(false)} title="Saved Foods" showCloseButton scrollable={false}>
       <TextField
         icon="search"
         placeholder="Search saved foods"
         value={query}
         onChangeText={setQuery}
-        style={{ marginBottom: SPACING.md }}
+        style={{ marginBottom: SPACING.sm }}
       />
 
-      {entries.length === 0 && (
+      {entries.length === 0 ? (
         <Text style={{ fontSize: FONT_SIZE.sm, color: colors.textMuted, textAlign: "center", marginTop: SPACING.lg }}>
           {Object.keys(gptCache).length === 0 ? "No saved foods yet." : "No foods match your search."}
         </Text>
+      ) : (
+        <FlatList
+          data={entries}
+          keyExtractor={(e) => e.key}
+          renderItem={renderItem}
+          style={{ maxHeight: windowHeight * 0.5 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        />
       )}
-
-      {entries.map(({ key, data }) => {
-        const items = data.items || [];
-        const macros = sumMacros(items);
-        return (
-          <Card key={key} style={{ marginBottom: SPACING.md }}>
-            <View style={styles.foodActionsRow}>
-              <Text style={{ flex: 1, fontWeight: FONT_WEIGHT.semibold, fontSize: FONT_SIZE.md, color: colors.textDark }} numberOfLines={1}>
-                {titleCase(key)}
-              </Text>
-              {data.source === "manual" && (
-                <View style={styles.manualTag}>
-                  <Text style={styles.manualTagText}>✎</Text>
-                </View>
-              )}
-              {data.source === "scan" && (
-                <View style={styles.scanTag}>
-                  <Text style={styles.scanTagText}>📷</Text>
-                </View>
-              )}
-            </View>
-
-            {items.length > 1 && (
-              <Text style={{ fontSize: FONT_SIZE.sm, color: colors.textMuted, marginTop: SPACING.xs }} numberOfLines={1}>
-                {items.map((i) => i.name).join(", ")}
-              </Text>
-            )}
-
-            <Text style={{ fontSize: FONT_SIZE.sm, color: colors.textLight, marginTop: SPACING.xs, marginBottom: SPACING.sm }}>
-              {`Cal: ${fmt(macros.calories)} kcal | P: ${fmt(macros.protein)}g | C: ${fmt(macros.carbs)}g | F: ${fmt(macros.fats)}g`}
-            </Text>
-
-            <View style={styles.foodActionsRow}>
-              <View style={styles.foodActionsLeft}>
-                <IconButton icon="pencil" variant="secondary" size="sm" onPress={() => handleEdit(key)} />
-                <IconButton icon="trash" variant="danger" size="sm" onPress={() => handleDelete(key)} />
-              </View>
-            </View>
-          </Card>
-        );
-      })}
     </ModalSheet>
   );
 };

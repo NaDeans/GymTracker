@@ -6,6 +6,7 @@ import {
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, SHADOW } from "shared/constants/styles";
 import { useTheme } from "shared/hooks/useTheme";
 import { KeyboardScrollProvider } from "shared/context/KeyboardScrollContext";
+import { IconButton } from "shared/components/IconButton";
 
 export const ModalSheet = ({
   visible,
@@ -15,6 +16,7 @@ export const ModalSheet = ({
   footer,
   scrollable = true,
   dismissOnBackdropPress = true,
+  showCloseButton = false,
 }) => {
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
@@ -78,7 +80,12 @@ export const ModalSheet = ({
         onPress={handleBackdropPress}
       >
         <Pressable style={[styles.container, { maxHeight }]} onPress={() => {}}>
-          {title ? <Text style={styles.title}>{title}</Text> : null}
+          {(title || showCloseButton) ? (
+            <View style={styles.titleRow}>
+              {title ? <Text style={[styles.title, { flex: 1 }]} numberOfLines={1}>{title}</Text> : <View style={{ flex: 1 }} />}
+              {showCloseButton && <IconButton icon="close" variant="ghost" size="sm" onPress={onClose} />}
+            </View>
+          ) : null}
           {body}
           {footer ? <View style={styles.footer}>{footer}</View> : null}
         </Pressable>
@@ -103,11 +110,15 @@ const createThemedStyles = (colors) => ({
     marginHorizontal: SPACING.xl,
     ...SHADOW.lg,
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: SPACING.sm,
+  },
   title: {
     fontWeight: FONT_WEIGHT.bold,
     fontSize: FONT_SIZE.lg,
     color: colors.textDark,
-    marginBottom: SPACING.sm,
   },
   footer: {
     marginTop: SPACING.sm,

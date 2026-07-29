@@ -25,12 +25,13 @@ export const macroBarColor = (ratio, colors) => {
   return lerpColor(colors.warning, colors.danger, (distance - 0.5) / 0.5);
 };
 
-// Averages calories/protein/carbs/fats over the `days` calendar days ending
-// at (and including) `endDmy`, counting only days that have any log — a
-// partial day still counts as one full day, same convention as
-// dayHasLog/isGoalMet elsewhere. Returns null if no day in the window has a log.
+// Averages calories/protein/carbs/fats over the `days` calendar days before
+// `endDmy` (today is excluded — this is a look-back average, not today's own
+// number), counting only days that have any log — a partial day still counts
+// as one full day, same convention as dayHasLog/isGoalMet elsewhere. Returns
+// null if no day in the window has a log.
 export const calcTrailingAverages = (dailyLog, endDmy, days = 7) => {
-  let cursor = endDmy;
+  let cursor = shiftDmy(endDmy, -1);
   const sums = { calories: 0, protein: 0, carbs: 0, fats: 0 };
   let daysCounted = 0;
 
