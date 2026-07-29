@@ -3,11 +3,12 @@ import { fmt, safeNumber } from "shared/utils/numberUtils";
 import { createThemedStyles } from "../macroTrackerStyles";
 import { Card } from "shared/components/Card";
 import { Button } from "shared/components/Button";
+import { IconButton } from "shared/components/IconButton";
 import { Stepper } from "shared/components/Stepper";
 import { SPACING } from "shared/constants/styles";
 import { useTheme } from "shared/hooks/useTheme";
 
-const DailyLogItem = ({ item, count, gramValue, setGramValue, updateGrams, addItem, removeItem, clearItem }) => {
+const DailyLogItem = ({ item, count, gramValue, setGramValue, updateGrams, addItem, removeItem, clearItem, onEdit }) => {
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
   const raw = item.raw || item;
@@ -27,7 +28,10 @@ const DailyLogItem = ({ item, count, gramValue, setGramValue, updateGrams, addIt
 
   return (
     <Card padding={SPACING.md} style={styles.itemBlock}>
-      <Text style={styles.itemName}>{item.name}</Text>
+      <View style={styles.itemHeaderRow}>
+        <Text style={styles.itemName}>{item.name}</Text>
+        <IconButton icon="pencil" variant="ghost" size="sm" onPress={onEdit} />
+      </View>
 
       <View style={styles.gramsRow}>
         <Stepper
@@ -76,11 +80,16 @@ export const DailyControls = ({
   submit,
   loading,
   setFoodDbVisible,
+  setCacheManagerVisible,
+  onEditEntry,
 }) => (
-  <View style={{ marginTop: SPACING.xl, gap: SPACING.xs }}>
+  <View style={{ marginTop: SPACING.lg, gap: SPACING.xs }}>
     <Button variant="primary" size="sm" fullWidth loading={loading} onPress={() => submit()}>Submit</Button>
 
-    <Button variant="secondary" size="sm" fullWidth onPress={() => setFoodDbVisible(true)}>Custom Foods</Button>
+    <View style={{ flexDirection: "row", gap: SPACING.xs }}>
+      <Button variant="secondary" size="sm" style={{ flex: 1 }} onPress={() => setFoodDbVisible(true)}>Custom Foods</Button>
+      <Button variant="secondary" size="sm" icon="bookmarks" style={{ flex: 1 }} onPress={() => setCacheManagerVisible(true)}>Saved Foods</Button>
+    </View>
 
     {(historyByDate[selectedDate] || []).map((entry, idx) =>
       entry.items.map((item) => {
@@ -97,6 +106,7 @@ export const DailyControls = ({
             addItem={addItem}
             removeItem={removeItem}
             clearItem={clearItem}
+            onEdit={() => onEditEntry(entry, idx)}
           />
         );
       })

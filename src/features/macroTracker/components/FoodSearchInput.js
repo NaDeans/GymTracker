@@ -56,6 +56,7 @@ export const FoodSearchInput = ({
         onChangeText={setInput}
         onSubmitEditing={() => submit()}
         multiline={true}
+        keyboardOffset={220}
         style={{ marginBottom: SPACING.sm }}
       />
       <View style={styles.searchButtonRow}>

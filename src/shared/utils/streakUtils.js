@@ -1,13 +1,4 @@
-import { todayString, dmyToIso } from "shared/utils/dateUtils";
-
-const shiftDmy = (dmy, deltaDays) => {
-  const dateObj = new Date(dmyToIso(dmy));
-  dateObj.setDate(dateObj.getDate() + deltaDays);
-  const d = String(dateObj.getDate()).padStart(2, "0");
-  const m = String(dateObj.getMonth() + 1).padStart(2, "0");
-  const y = String(dateObj.getFullYear()).slice(-2);
-  return `${d}/${m}/${y}`;
-};
+import { todayString, shiftDmy } from "shared/utils/dateUtils";
 
 export const dayHasLog = (dailyLog, dmy) => {
   const day = dailyLog[dmy];

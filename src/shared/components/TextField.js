@@ -24,6 +24,7 @@ export const TextField = ({
   rightIcon,
   onRightIconPress,
   rightIconActive = false,
+  keyboardOffset,
   style,
   inputStyle,
 }) => {
@@ -66,7 +67,7 @@ export const TextField = ({
           editable={!disabled}
           onSubmitEditing={onSubmitEditing}
           onEndEditing={onEndEditing}
-          onFocus={(e) => { setFocused(true); scrollToInput?.(e); }}
+          onFocus={(e) => { setFocused(true); scrollToInput?.(e, keyboardOffset); }}
           onBlur={() => setFocused(false)}
         />
         {suffix ? <Text style={styles.affix}>{suffix}</Text> : null}

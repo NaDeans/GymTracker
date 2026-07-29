@@ -35,10 +35,9 @@ export const createThemedStyles = (colors) => StyleSheet.create({
   macroProgressFill: { height: "100%", borderRadius: BORDER_RADIUS.pill },
   macroSafeZone: { height: "100%", position: "absolute", backgroundColor: hexToRgba(colors.success, 0.2), borderRadius: BORDER_RADIUS.pill },
   wheelContainer: { justifyContent: "center", alignItems: "center", width: 160, height: 160 },
-  percOverlay: { position: "absolute", justifyContent: "center", alignItems: "flex-start" },
-  percText: { fontWeight: FONT_WEIGHT.bold, fontSize: FONT_SIZE.sm, color: colors.textPrimary },
-  legendRow: { flexDirection: "row", alignItems: "center", marginVertical: SPACING.xs, gap: SPACING.xs },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  wheelCenterOverlay: { position: "absolute", justifyContent: "center", alignItems: "center" },
+  wheelCenterValue: { fontWeight: FONT_WEIGHT.bold, fontSize: FONT_SIZE.lg, color: colors.textPrimary },
+  wheelCenterLabel: { fontSize: FONT_SIZE.xs, color: colors.textMuted, marginTop: 2 },
 
   /* ================= SEARCH ================= */
   inputContainer: { width: "100%", marginBottom: SPACING.sm },
@@ -56,6 +55,7 @@ export const createThemedStyles = (colors) => StyleSheet.create({
   /* ================= HISTORY / DAILY LOG ================= */
   historyBlock: {},
   itemBlock: {},
+  itemHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   itemName: { fontWeight: FONT_WEIGHT.bold, fontSize: FONT_SIZE.lg, marginBottom: SPACING.xs, color: colors.textDark },
   gramsRow: { flexDirection: "row", alignItems: "center", marginBottom: SPACING.xs },
   macros: { fontSize: FONT_SIZE.sm, color: colors.textMedium, marginBottom: SPACING.xs },

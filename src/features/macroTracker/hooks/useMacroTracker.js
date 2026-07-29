@@ -368,6 +368,48 @@ export const useMacroTracker = () => {
     itemsWithRaw.forEach((item) => addItem(item));
   };
 
+  // Applies an edit made via EditCachedFoodModal back onto an already-logged
+  // day entry: keeps today's serving size/count but refreshes the name and
+  // per-serving macros for every item, matched by id.
+  const updateLoggedFoodEntry = (entryIndex, editedFood) => {
+    const itemsWithRaw = editedFood.items.map((i) => ({
+      ...i,
+      raw: { calories: i.calories, protein: i.protein, carbs: i.carbs, fats: i.fats, amount_g: i.amount_g },
+    }));
+
+    setHistoryByDate((prev) => {
+      const dayHistory = prev[selectedDate] || [];
+      if (!dayHistory[entryIndex]) return prev;
+      const updated = [...dayHistory];
+      updated[entryIndex] = { ...updated[entryIndex], key: editedFood.key, items: itemsWithRaw };
+      return { ...prev, [selectedDate]: updated };
+    });
+
+    setDailyLog((prev) => {
+      const day = prev[selectedDate];
+      if (!day) return prev;
+      const newItems = { ...day.items };
+      itemsWithRaw.forEach((newItem) => {
+        const existing = newItems[newItem.id];
+        if (!existing) return;
+        const currentGrams = safeNumber(existing.item.amount_g) || safeNumber(newItem.amount_g) || 1;
+        const baseG = safeNumber(newItem.amount_g) || 1;
+        newItems[newItem.id] = {
+          ...existing,
+          item: {
+            ...newItem,
+            amount_g: currentGrams,
+            calories: (safeNumber(newItem.calories) * currentGrams) / baseG,
+            protein: (safeNumber(newItem.protein) * currentGrams) / baseG,
+            carbs: (safeNumber(newItem.carbs) * currentGrams) / baseG,
+            fats: (safeNumber(newItem.fats) * currentGrams) / baseG,
+          },
+        };
+      });
+      return { ...prev, [selectedDate]: { items: newItems, totals: calcTotals(newItems) } };
+    });
+  };
+
   const closeManualEntry = () => {
     setManualEntryVisible(false);
     setManualEntryInitialValues(null);
@@ -412,5 +454,6 @@ export const useMacroTracker = () => {
     manualEntryInitialValues, closeManualEntry,
     saveManualEntry,
     addEditedFoodToLog,
+    updateLoggedFoodEntry,
   };
 };

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { View, ScrollView, Text, RefreshControl, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
 import { useMacroTracker } from "./hooks/useMacroTracker";
 import { captureAndCompressLabelImage } from "./utils/imageUtils";
@@ -14,6 +14,7 @@ import { DailyControls } from "./components/DailyControls";
 import { GoalModal } from "./components/GoalModal";
 import { CustomFoodsModal } from "./components/CustomFoodsModal";
 import { EditCachedFoodModal } from "./components/EditCachedFoodModal";
+import { CacheManagerModal } from "./components/CacheManagerModal";
 import { ManualEntryModal } from "./components/ManualEntryModal";
 
 export default function MacroTrackerScreen() {
@@ -48,7 +49,21 @@ export default function MacroTrackerScreen() {
     manualEntryInitialValues, closeManualEntry,
     saveManualEntry,
     addEditedFoodToLog,
+    updateLoggedFoodEntry,
   } = useMacroTracker();
+
+  const [cacheManagerVisible, setCacheManagerVisible] = useState(false);
+
+  const handleEditLogEntry = (entry, idx) => {
+    setEditingFood({
+      key: entry.key || entry.items[0]?.name?.toLowerCase() || "",
+      originalKey: entry.key,
+      foodId: entry.foodId,
+      items: entry.items,
+      logEntryIndex: idx,
+    });
+    setEditModalVisible(true);
+  };
 
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
@@ -93,6 +108,8 @@ export default function MacroTrackerScreen() {
           setEditingMacro={setEditingMacro}
           setGoalInput={setGoalInput}
           setGoalModalVisible={setGoalModalVisible}
+          dailyLog={dailyLog}
+          selectedDate={selectedDate}
         />
 
         <FoodSearchInput
@@ -128,6 +145,8 @@ export default function MacroTrackerScreen() {
           submit={submit}
           loading={loading}
           setFoodDbVisible={setFoodDbVisible}
+          setCacheManagerVisible={setCacheManagerVisible}
+          onEditEntry={handleEditLogEntry}
         />
       </KeyboardScrollProvider>
       </ScrollView>
@@ -163,6 +182,16 @@ export default function MacroTrackerScreen() {
         setGptCache={setGptCache}
         setSuggestions={setSuggestions}
         onAddToLog={addEditedFoodToLog}
+        onSaveLogEntry={updateLoggedFoodEntry}
+      />
+
+      <CacheManagerModal
+        visible={cacheManagerVisible}
+        setVisible={setCacheManagerVisible}
+        gptCache={gptCache}
+        setGptCache={setGptCache}
+        setEditingFood={setEditingFood}
+        setEditModalVisible={setEditModalVisible}
       />
 
       <ManualEntryModal

@@ -1,12 +1,15 @@
+import { useMemo } from "react";
 import { View, Text } from "react-native";
 import { Donut } from "./Donut";
 import { fmt } from "shared/utils/numberUtils";
+import { macroBarColor, calcTrailingAverages } from "../utils/macroUtils";
 import { createThemedStyles } from "../macroTrackerStyles";
 import { Card } from "shared/components/Card";
 import { SPACING } from "shared/constants/styles";
 import { useTheme } from "shared/hooks/useTheme";
 
 const MACRO_LABEL = { calories: "Calories", protein: "Protein", carbs: "Carbs", fats: "Fats" };
+const TRAILING_DAYS = 7;
 
 // The progress bar's full width represents 0 -> goal * BAR_MAX_RATIO, so the
 // goal itself lands at 1/BAR_MAX_RATIO along the track (2/3 with 1.5), leaving
@@ -15,45 +18,39 @@ const BAR_MAX_RATIO = 1.5;
 const GOAL_ZONE_RATIO_MIN = 0.9;
 const GOAL_ZONE_RATIO_MAX = 1.1;
 
-const hexToRgb = (hex) => {
-  const h = hex.replace("#", "");
-  const bigint = parseInt(h, 16);
-  return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
-};
-
-const lerpColor = (hexA, hexB, t) => {
-  const a = hexToRgb(hexA);
-  const b = hexToRgb(hexB);
-  const r = Math.round(a.r + (b.r - a.r) * t);
-  const g = Math.round(a.g + (b.g - a.g) * t);
-  const bl = Math.round(a.b + (b.b - a.b) * t);
-  return `rgb(${r}, ${g}, ${bl})`;
-};
-
-// Proximity gradient: green at the goal, shifting through orange to red the
-// further away `ratio` (value / goal) gets, in either direction.
-const macroBarColor = (ratio, colors) => {
-  const distance = Math.min(1, Math.abs(ratio - 1));
-  if (distance <= 0.5) {
-    return lerpColor(colors.success, colors.warning, distance / 0.5);
-  }
-  return lerpColor(colors.warning, colors.danger, (distance - 0.5) / 0.5);
-};
-
-export const MacroTotals = ({ totalMacros, goals, setEditingMacro, setGoalInput, setGoalModalVisible }) => {
+export const MacroTotals = ({ totalMacros, goals, setEditingMacro, setGoalInput, setGoalModalVisible, dailyLog, selectedDate }) => {
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
-  const totalSum = totalMacros.protein + totalMacros.carbs + totalMacros.fats;
   const goalZoneLeft = (GOAL_ZONE_RATIO_MIN / BAR_MAX_RATIO) * 100;
   const goalZoneWidth = ((GOAL_ZONE_RATIO_MAX - GOAL_ZONE_RATIO_MIN) / BAR_MAX_RATIO) * 100;
 
-  const perc = totalSum
-    ? {
-        protein: Math.round((100 * totalMacros.protein) / totalSum),
-        carbs: Math.round((100 * totalMacros.carbs) / totalSum),
-        fats: Math.round((100 * totalMacros.fats) / totalSum),
-      }
-    : { protein: 0, carbs: 0, fats: 0 };
+  const trailing = useMemo(
+    () => calcTrailingAverages(dailyLog, selectedDate, TRAILING_DAYS),
+    [dailyLog, selectedDate]
+  );
+
+  // Outer ring: what you've actually averaged this week. Inner ring: the
+  // shape implied by your goals — constant unless goals change. Same fixed
+  // macro colors in both, so a drifted wedge boundary is visible at a glance.
+  const rings = useMemo(() => {
+    const goalWedges = [
+      { value: goals.protein || 0, color: colors.chart.protein },
+      { value: goals.carbs || 0, color: colors.chart.carbs },
+      { value: goals.fats || 0, color: colors.chart.fats },
+    ];
+    const avgWedges = trailing
+      ? [
+          { value: trailing.protein, color: colors.chart.protein },
+          { value: trailing.carbs, color: colors.chart.carbs },
+          { value: trailing.fats, color: colors.chart.fats },
+        ]
+      : [];
+
+    return [
+      { wedges: avgWedges, opacity: 1 },
+      { wedges: goalWedges, opacity: 0.4 },
+    ];
+  }, [trailing, goals, colors]);
 
   const openGoalModal = (macro) => {
     setEditingMacro(macro);
@@ -97,35 +94,12 @@ export const MacroTotals = ({ totalMacros, goals, setEditingMacro, setGoalInput,
       </View>
 
       <View style={styles.wheelContainer}>
-        {totalSum > 0 && (
-          <>
-            <Donut
-              macros={totalMacros}
-              size={140}
-              strokeWidth={18}
-              colors={{
-                protein: colors.chart.protein,
-                carbs: colors.chart.carbs,
-                fats: colors.chart.fats,
-                background: colors.chart.track,
-              }}
-            />
-            <View style={styles.percOverlay}>
-              <View style={styles.legendRow}>
-                <View style={[styles.legendDot, { backgroundColor: colors.chart.protein }]} />
-                <Text style={styles.percText}>P {perc.protein}%</Text>
-              </View>
-              <View style={styles.legendRow}>
-                <View style={[styles.legendDot, { backgroundColor: colors.chart.carbs }]} />
-                <Text style={styles.percText}>C {perc.carbs}%</Text>
-              </View>
-              <View style={styles.legendRow}>
-                <View style={[styles.legendDot, { backgroundColor: colors.chart.fats }]} />
-                <Text style={styles.percText}>F {perc.fats}%</Text>
-              </View>
-            </View>
-          </>
-        )}
+        <Donut rings={rings} />
+        <View style={styles.wheelCenterOverlay}>
+          <Text style={styles.wheelCenterValue}>{trailing ? Math.round(trailing.calories) : "–"}</Text>
+          <Text style={styles.wheelCenterLabel}>kcal/day</Text>
+          <Text style={styles.wheelCenterLabel}>{trailing?.daysCounted ?? 0}/{TRAILING_DAYS} days</Text>
+        </View>
       </View>
     </View>
   );

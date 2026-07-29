@@ -15,12 +15,15 @@ import { createContext, useCallback, useContext } from "react";
 const KeyboardScrollContext = createContext(null);
 
 export function KeyboardScrollProvider({ scrollRef, extraOffset = 24, children }) {
+  // `offsetOverride` lets a caller reserve more room below itself than the
+  // default 24px — e.g. a search field with a suggestions dropdown that
+  // renders underneath it, which would otherwise end up hidden by the keyboard.
   const scrollToInput = useCallback(
-    (event) => {
+    (event, offsetOverride) => {
       const nodeHandle = event?.nativeEvent?.target;
       const responder = scrollRef?.current?.getScrollResponder?.();
       if (nodeHandle == null || !responder?.scrollResponderScrollNativeHandleToKeyboard) return;
-      responder.scrollResponderScrollNativeHandleToKeyboard(nodeHandle, extraOffset, true);
+      responder.scrollResponderScrollNativeHandleToKeyboard(nodeHandle, offsetOverride ?? extraOffset, true);
     },
     [scrollRef, extraOffset]
   );

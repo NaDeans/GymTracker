@@ -28,9 +28,11 @@ const normalizeItems = (items) =>
     fats: safeNumber(item.fats),
   }));
 
-export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditingFood, gptCache, setGptCache, setSuggestions, onAddToLog }) => {
+export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditingFood, gptCache, setGptCache, setSuggestions, onAddToLog, onSaveLogEntry }) => {
   const { colors } = useTheme();
   if (!editingFood) return null;
+
+  const isLogEdit = editingFood.logEntryIndex !== undefined;
 
   const handleDelete = () => {
     setGptCache((prev) => {
@@ -50,27 +52,30 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
     if (!newKey) { Alert.alert("Error", "Search term cannot be empty"); return false; }
 
     const normalized = normalizeItems(editingFood.items);
-    const existingEntry = gptCache[oldKey];
-    if (!existingEntry) { setVisible(false); return normalized; }
+    const existingEntry = oldKey ? gptCache[oldKey] : undefined;
 
-    // If the first food item's name changed and the search key hasn't been manually updated,
-    // automatically update the search key to match the new food name
-    const originalFirstItemName = existingEntry.items?.[0]?.name?.toLowerCase() || oldKey;
-    const editedFirstItemName = editingFood.items?.[0]?.name?.toLowerCase() || editingFood.key.toLowerCase();
-    const keyWasNotManuallyChanged = editingFood.key.toLowerCase() === oldKey;
+    if (existingEntry) {
+      // If the first food item's name changed and the search key hasn't been manually updated,
+      // automatically update the search key to match the new food name
+      const originalFirstItemName = existingEntry.items?.[0]?.name?.toLowerCase() || oldKey;
+      const editedFirstItemName = editingFood.items?.[0]?.name?.toLowerCase() || editingFood.key.toLowerCase();
+      const keyWasNotManuallyChanged = editingFood.key.toLowerCase() === oldKey;
 
-    if (keyWasNotManuallyChanged && editedFirstItemName !== originalFirstItemName) {
-      newKey = editedFirstItemName;
+      if (keyWasNotManuallyChanged && editedFirstItemName !== originalFirstItemName) {
+        newKey = editedFirstItemName;
+      }
+
+      if (oldKey !== newKey && gptCache[newKey]) { Alert.alert("Error", "A food with that name already exists."); return false; }
+
+      setGptCache((prev) => {
+        const updated = { ...prev };
+        if (oldKey !== newKey) delete updated[oldKey];
+        updated[newKey] = { ...existingEntry, searchKey: newKey, items: normalized };
+        return updated;
+      });
     }
 
-    if (oldKey !== newKey && gptCache[newKey]) { Alert.alert("Error", "A food with that name already exists."); return false; }
-
-    setGptCache((prev) => {
-      const updated = { ...prev };
-      if (oldKey !== newKey) delete updated[oldKey];
-      updated[newKey] = { ...existingEntry, searchKey: newKey, items: normalized };
-      return updated;
-    });
+    if (isLogEdit) onSaveLogEntry(editingFood.logEntryIndex, { ...editingFood, key: newKey, items: normalized });
 
     setSuggestions([]);
     setVisible(false);
@@ -87,14 +92,14 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
     <ModalSheet
       visible={visible}
       onClose={() => setVisible(false)}
-      title="Edit Cached Food"
+      title={isLogEdit ? "Edit Food" : "Edit Cached Food"}
       footer={
         <View style={{ gap: SPACING.sm }}>
           <View style={{ flexDirection: "row", gap: SPACING.sm }}>
             <Button variant="danger" onPress={handleDelete} style={{ flex: 1 }}>Delete</Button>
             <Button variant="primary" onPress={handleSave} style={{ flex: 1 }}>Save</Button>
           </View>
-          <Button variant="success" onPress={handleAddToLog} fullWidth>Add to Log</Button>
+          {!isLogEdit && <Button variant="success" onPress={handleAddToLog} fullWidth>Add to Log</Button>}
         </View>
       }
     >
