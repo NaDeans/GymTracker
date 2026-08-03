@@ -8,7 +8,7 @@ import { calcCurrentStreak, dayHasLog } from "shared/utils/streakUtils";
 import { calcTotals, entryExistsForDay, isGoalMet } from "../utils/macroUtils";
 import { loadMacroTrackerData, saveMacroTrackerData } from "../utils/storageUtils";
 import { fetchNutritionFromGPT, fetchNutritionFromImage } from "../services/gptService";
-import { formatDayForExport } from "../utils/exportUtils";
+import { formatDayForExport, formatRangeForExport } from "../utils/exportUtils";
 
 export const useMacroTracker = () => {
   // UI
@@ -201,6 +201,15 @@ export const useMacroTracker = () => {
       await Share.share({ message });
     } catch (err) {
       console.error("Export day error:", err);
+    }
+  };
+
+  const exportRange = async (days = 14) => {
+    try {
+      const message = formatRangeForExport(selectedDate, days, historyByDate, dailyLog, goals);
+      await Share.share({ message });
+    } catch (err) {
+      console.error("Export range error:", err);
     }
   };
 
@@ -447,7 +456,7 @@ export const useMacroTracker = () => {
     goals, setGoals,
     editingMacro, setEditingMacro,
     goalInput, setGoalInput,
-    addItem, removeItem, clearItem, updateGrams, resetDay, exportDay,
+    addItem, removeItem, clearItem, updateGrams, resetDay, exportDay, exportRange,
     addCustomFood, submit, submitFromImage,
     manualEntryVisible, setManualEntryVisible,
     manualEntryName, setManualEntryName,

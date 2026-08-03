@@ -42,7 +42,7 @@ export default function MacroTrackerScreen() {
     goals, setGoals,
     editingMacro, setEditingMacro,
     goalInput, setGoalInput,
-    addItem, removeItem, clearItem, updateGrams, resetDay, exportDay,
+    addItem, removeItem, clearItem, updateGrams, resetDay, exportDay, exportRange,
     addCustomFood, submit, submitFromImage,
     manualEntryVisible, setManualEntryVisible,
     manualEntryName, setManualEntryName,
@@ -142,6 +142,7 @@ export default function MacroTrackerScreen() {
           updateGrams={updateGrams}
           resetDay={resetDay}
           exportDay={exportDay}
+          exportRange={exportRange}
           submit={submit}
           loading={loading}
           setFoodDbVisible={setFoodDbVisible}
