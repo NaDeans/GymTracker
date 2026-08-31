@@ -5,6 +5,7 @@ import { captureAndCompressLabelImage } from "./utils/imageUtils";
 import { createThemedStyles } from "./macroTrackerStyles";
 import { Badge } from "shared/components/Badge";
 import { useTheme } from "shared/hooks/useTheme";
+import { formatFoodName } from "shared/utils/textUtils";
 import { KeyboardScrollProvider } from "shared/context/KeyboardScrollContext";
 
 import DatePicker from "./components/DatePicker";
@@ -56,7 +57,7 @@ export default function MacroTrackerScreen() {
 
   const handleEditLogEntry = (entry, idx) => {
     setEditingFood({
-      key: entry.key || entry.items[0]?.name?.toLowerCase() || "",
+      key: formatFoodName(entry.key || entry.items[0]?.name || ""),
       originalKey: entry.key,
       foodId: entry.foodId,
       items: entry.items,

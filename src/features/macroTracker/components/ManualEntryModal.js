@@ -3,6 +3,7 @@ import { View, Text, Alert, Keyboard } from "react-native";
 import { ModalSheet } from "shared/components/ModalSheet";
 import { TextField } from "shared/components/TextField";
 import { Button } from "shared/components/Button";
+import { formatFoodName } from "shared/utils/textUtils";
 import { SPACING, FONT_SIZE } from "shared/constants/styles";
 import { useTheme } from "shared/hooks/useTheme";
 
@@ -26,7 +27,9 @@ export const ManualEntryModal = ({ visible, setVisible, initialName, initialValu
   }, [visible, initialName, initialValues]);
 
   const handleSave = () => {
-    if (!form.name.trim()) {
+    // Saving is what tidies the name — including one typed over a scanned label.
+    const name = formatFoodName(form.name);
+    if (!name) {
       Alert.alert("Name required", "Enter a name for this food.");
       return;
     }
@@ -40,7 +43,7 @@ export const ManualEntryModal = ({ visible, setVisible, initialName, initialValu
     }
     Keyboard.dismiss();
     onSave({
-      name: form.name.trim(),
+      name,
       amount_g: Number(form.amount_g) || 100,
       calories,
       protein,

@@ -4,6 +4,7 @@ import { ANTHROPIC_API_KEY } from "@env";
 
 import { todayString } from "shared/utils/dateUtils";
 import { safeNumber } from "shared/utils/numberUtils";
+import { formatFoodName, foodKey } from "shared/utils/textUtils";
 import { calcCurrentStreak, dayHasLog } from "shared/utils/streakUtils";
 import { calcTotals, entryExistsForDay, isGoalMet } from "../utils/macroUtils";
 import { loadMacroTrackerData, saveMacroTrackerData } from "../utils/storageUtils";
@@ -69,7 +70,11 @@ export const useMacroTracker = () => {
   useEffect(() => {
     if (suppressSuggestions) { setSuppressSuggestions(false); return; }
     if (!input.trim()) { setSuggestions([]); return; }
-    const matches = Object.keys(gptCache).filter((k) => k.toLowerCase().includes(input.toLowerCase()));
+    // Match on the corrected form of what's being typed, so a typo still finds
+    // the saved food ("chiken" → "chicken breast").
+    const query = foodKey(input);
+    if (!query) { setSuggestions([]); return; }
+    const matches = Object.keys(gptCache).filter((k) => k.includes(query));
     setSuggestions(matches.slice(0, 5));
   }, [input, gptCache]);
 
@@ -217,6 +222,7 @@ export const useMacroTracker = () => {
     const item = {
       ...food,
       id: Date.now().toString(),
+      name: formatFoodName(food.name),
       amount_g: safeNumber(food.amount_g),
       calories: safeNumber(food.calories),
       protein: safeNumber(food.protein),
@@ -237,7 +243,9 @@ export const useMacroTracker = () => {
     Keyboard.dismiss();
     setLoading(true);
     try {
-      const key = rawInput.trim().toLowerCase();
+      // Everything is stored under the tidied, spell-corrected form of what was
+      // typed or dictated, so "chiken breast" and "Chicken Breast" are one entry.
+      const key = foodKey(rawInput);
 
       if (gptCache[key]) {
         const data = gptCache[key];
@@ -275,7 +283,7 @@ export const useMacroTracker = () => {
           "Couldn't find nutrition data for that. Enter macros manually?",
           [
             { text: "Cancel", style: "cancel" },
-            { text: "Enter manually", onPress: () => { setManualEntryName(rawInput.trim()); setManualEntryVisible(true); } },
+            { text: "Enter manually", onPress: () => { setManualEntryName(formatFoodName(rawInput)); setManualEntryVisible(true); } },
           ]
         );
       } else {
@@ -293,7 +301,7 @@ export const useMacroTracker = () => {
       const items = await fetchNutritionFromImage(base64Image, ANTHROPIC_API_KEY);
       const item = items[0];
       setManualEntryInitialValues({
-        name: item.name,
+        name: formatFoodName(item.name),
         amount_g: String(item.amount_g ?? ""),
         calories: String(item.calories),
         protein: String(item.protein),
@@ -301,7 +309,7 @@ export const useMacroTracker = () => {
         fats: String(item.fats),
         assumption: item.assumption,
       });
-      setManualEntryName(item.name);
+      setManualEntryName(formatFoodName(item.name));
       setManualEntryVisible(true);
     } catch (err) {
       console.error("GPT image error:", err);
@@ -323,9 +331,12 @@ export const useMacroTracker = () => {
   };
 
   const saveManualEntry = ({ name, amount_g, calories, protein, carbs, fats }) => {
-    const key = name.toLowerCase();
+    // Whatever was typed here — including a name edited over a scanned label —
+    // is tidied before it reaches the log, the cache or storage.
+    const cleanName = formatFoodName(name);
+    const key = foodKey(cleanName);
     const uniqueFoodId = Date.now().toString() + Math.random().toString(36).slice(2);
-    const item = { id: uniqueFoodId, name, amount_g, calories, protein, carbs, fats, assumption: null };
+    const item = { id: uniqueFoodId, name: cleanName, amount_g, calories, protein, carbs, fats, assumption: null };
     const itemWithRaw = { ...item, raw: { calories, protein, carbs, fats, amount_g } };
     const source = manualEntryInitialValues ? "scan" : "manual";
 
@@ -361,7 +372,7 @@ export const useMacroTracker = () => {
       raw: { calories: i.calories, protein: i.protein, carbs: i.carbs, fats: i.fats, amount_g: i.amount_g },
     }));
     const foodId = food.foodId;
-    const key = food.key.trim().toLowerCase();
+    const key = foodKey(food.key);
 
     setHistoryByDate((prev) => {
       const dayHistory = prev[selectedDate] || [];

@@ -86,3 +86,23 @@ import MacroTrackerScreen from "features/macroTracker/MacroTrackerScreen";
 ### Styling
 
 The color palette lives in `src/shared/constants/colors.js` (`COLORS`, also exported as `themes.light`). Layout tokens are in `src/shared/constants/styles.js` (`SPACING`, `FONT_SIZE`, `FONT_WEIGHT`, `BORDER_RADIUS`, `SHADOW`, `CONTROL_HEIGHT`). Components get colors via `useTheme()` and per-feature `createThemedStyles(colors)` factories (e.g. `src/features/macroTracker/macroTrackerStyles.js`) — never import `COLORS` directly in new UI.
+
+### Food Name Formatting
+
+Every food name the user produces — a typed or dictated search, a scanned label's
+name, a manual entry, an edited cached food, a custom food — is passed through
+`formatFoodName` from `src/shared/utils/textUtils.js` before it is stored or
+displayed. `foodKey(name)` (the formatted name, lowercased) is the canonical
+cache/history key, so "chiken breast" and "Chicken Breast" resolve to one entry.
+
+The formatter only fixes casing, spacing and unambiguous misspellings — it never
+reorders words, drops them, or changes quantities — and it is idempotent, because
+stored keys are re-formatted every time they're rendered. Casing rules, brand and
+acronym exceptions and the misspelling list live in that one file; extend those
+tables rather than adding formatting logic at a call site.
+
+`loadMacroTrackerData` runs the formatter over everything already in AsyncStorage
+on each load, so foods saved before a rule existed get cleaned up too.
+
+Run `node scripts/format-name-check.mjs` after touching the formatter — it checks
+the cases, idempotency, and that no input's words or numbers change.

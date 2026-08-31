@@ -1,5 +1,6 @@
 import { View, Text, Alert } from "react-native";
 import { safeNumber } from "shared/utils/numberUtils";
+import { formatFoodName } from "shared/utils/textUtils";
 import { customFoodFields } from "../utils/macroUtils";
 import { createThemedStyles } from "../macroTrackerStyles";
 import { ModalSheet } from "shared/components/ModalSheet";
@@ -31,6 +32,7 @@ export const CustomFoodsModal = ({
     const newItem = {
       ...newFood,
       id: editingFoodId || Date.now().toString(),
+      name: formatFoodName(newFood.name),
       amount_g: safeNumber(newFood.amount_g),
       calories: safeNumber(newFood.calories),
       protein: safeNumber(newFood.protein),
