@@ -7,6 +7,7 @@ import { safeNumber } from "shared/utils/numberUtils";
 import { calcCurrentStreak, dayHasLog } from "shared/utils/streakUtils";
 import { calcTotals, entryExistsForDay, isGoalMet } from "../utils/macroUtils";
 import { loadMacroTrackerData, saveMacroTrackerData } from "../utils/storageUtils";
+import { countFoodUsage, rankFoodSuggestions } from "../utils/searchUtils";
 import { fetchNutritionFromGPT, fetchNutritionFromImage } from "../services/gptService";
 import { formatDayForExport, formatRangeForExport } from "../utils/exportUtils";
 
@@ -66,12 +67,15 @@ export const useMacroTracker = () => {
     saveMacroTrackerData({ customFoods, dailyLog, historyByDate, goals, gptCache });
   }, [customFoods, dailyLog, historyByDate, goals, gptCache]);
 
+  // How often each cached food has been logged, used to break ties between
+  // suggestions that match the search term equally well.
+  const foodUsageCounts = useMemo(() => countFoodUsage(historyByDate), [historyByDate]);
+
   useEffect(() => {
     if (suppressSuggestions) { setSuppressSuggestions(false); return; }
     if (!input.trim()) { setSuggestions([]); return; }
-    const matches = Object.keys(gptCache).filter((k) => k.toLowerCase().includes(input.toLowerCase()));
-    setSuggestions(matches.slice(0, 5));
-  }, [input, gptCache]);
+    setSuggestions(rankFoodSuggestions(Object.keys(gptCache), input, foodUsageCounts, 5));
+  }, [input, gptCache, foodUsageCounts]);
 
   useEffect(() => {
     const dayItems = dailyLog[selectedDate]?.items || {};
