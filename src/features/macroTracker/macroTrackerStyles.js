@@ -69,6 +69,19 @@ export const createThemedStyles = (colors) => StyleSheet.create({
   leftButtons: { flexDirection: "row", gap: SPACING.xs },
   logActionButton: { minWidth: 84 },
 
+  /* ================= SUPPLEMENTS ================= */
+  supplementsCard: { marginTop: SPACING.lg },
+  supplementsHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  supplementsTitle: { fontWeight: FONT_WEIGHT.bold, fontSize: FONT_SIZE.lg, color: colors.textDark },
+  supplementsCount: { fontSize: FONT_SIZE.xs, color: colors.textMuted, marginTop: 2 },
+  supplementRow: { flexDirection: "row", alignItems: "center", paddingVertical: SPACING.sm, gap: SPACING.md },
+  supplementRowDivider: { borderTopWidth: 1, borderTopColor: colors.border },
+  supplementName: { flex: 1, fontSize: FONT_SIZE.md, color: colors.textDark },
+  supplementNameTaken: { color: colors.textMuted, textDecorationLine: "line-through" },
+  supplementsEmpty: { fontSize: FONT_SIZE.sm, color: colors.textMuted, marginTop: SPACING.sm, marginBottom: SPACING.md },
+  supplementEditRow: { flexDirection: "row", alignItems: "center", gap: SPACING.sm, marginBottom: SPACING.sm },
+  supplementAddRow: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
+
   /* ================= FOOD DATABASE ================= */
   sectionTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, marginTop: SPACING.lg, marginBottom: SPACING.sm, color: colors.textPrimary },
   foodActionsRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },

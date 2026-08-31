@@ -41,6 +41,11 @@ export const useMacroTracker = () => {
   const [dailyLog, setDailyLog] = useState({});
   const [gramInputs, setGramInputs] = useState({});
 
+  // Supplements
+  const [supplements, setSupplements] = useState([]);
+  const [supplementLog, setSupplementLog] = useState({});
+  const [supplementsModalVisible, setSupplementsModalVisible] = useState(false);
+
   // Goals
   const [goals, setGoals] = useState({ calories: 2400, protein: 150, carbs: 330, fats: 70 });
   const [editingMacro, setEditingMacro] = useState("");
@@ -57,14 +62,16 @@ export const useMacroTracker = () => {
       setHistoryByDate(data.historyByDate);
       setGoals(data.goals);
       setGptCache(data.gptCache);
+      setSupplements(data.supplements);
+      setSupplementLog(data.supplementLog);
       hasLoaded.current = true;
     });
   }, []);
 
   useEffect(() => {
     if (!hasLoaded.current) return;
-    saveMacroTrackerData({ customFoods, dailyLog, historyByDate, goals, gptCache });
-  }, [customFoods, dailyLog, historyByDate, goals, gptCache]);
+    saveMacroTrackerData({ customFoods, dailyLog, historyByDate, goals, gptCache, supplements, supplementLog });
+  }, [customFoods, dailyLog, historyByDate, goals, gptCache, supplements, supplementLog]);
 
   useEffect(() => {
     if (suppressSuggestions) { setSuppressSuggestions(false); return; }
@@ -90,6 +97,8 @@ export const useMacroTracker = () => {
       setDailyLog(data.dailyLog);
       setHistoryByDate(data.historyByDate);
       setGptCache(data.gptCache);
+      setSupplements(data.supplements);
+      setSupplementLog(data.supplementLog);
     } catch (err) {
       console.error("Refresh error:", err);
     }
@@ -180,7 +189,7 @@ export const useMacroTracker = () => {
   const resetDay = () => {
     Alert.alert(
       "Reset Day?",
-      "Are you sure you want to clear all foods and macros for this day? This cannot be undone.",
+      "Are you sure you want to clear all foods, macros and supplements for this day? This cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -189,6 +198,62 @@ export const useMacroTracker = () => {
           onPress: () => {
             setDailyLog((prev) => { const u = { ...prev }; delete u[selectedDate]; return u; });
             setHistoryByDate((prev) => { const u = { ...prev }; delete u[selectedDate]; return u; });
+            setSupplementLog((prev) => { const u = { ...prev }; delete u[selectedDate]; return u; });
+          },
+        },
+      ]
+    );
+  };
+
+  // Ticks/unticks one supplement for the selected day. The log stores only the
+  // ids taken that day; names are resolved from `supplements` when displaying
+  // or exporting, so a rename shows up everywhere.
+  const toggleSupplement = (id) => {
+    setSupplementLog((prev) => {
+      const takenToday = prev[selectedDate] || [];
+      const next = takenToday.includes(id)
+        ? takenToday.filter((x) => x !== id)
+        : [...takenToday, id];
+      if (next.length === 0) { const u = { ...prev }; delete u[selectedDate]; return u; }
+      return { ...prev, [selectedDate]: next };
+    });
+  };
+
+  const addSupplement = (name) => {
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+    if (supplements.some((s) => s.name.toLowerCase() === trimmed.toLowerCase())) {
+      Alert.alert("Already added", `"${trimmed}" is already in your supplements.`);
+      return false;
+    }
+    setSupplements((prev) => [...prev, { id: Date.now().toString(), name: trimmed }]);
+    return true;
+  };
+
+  const renameSupplement = (id, name) => {
+    setSupplements((prev) => prev.map((s) => (s.id === id ? { ...s, name } : s)));
+  };
+
+  const removeSupplement = (id) => {
+    const supplement = supplements.find((s) => s.id === id);
+    Alert.alert(
+      "Delete Supplement?",
+      `Remove "${supplement?.name || "this supplement"}"? It will also be removed from the days you ticked it off.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            setSupplements((prev) => prev.filter((s) => s.id !== id));
+            setSupplementLog((prev) => {
+              const cleaned = {};
+              Object.entries(prev).forEach(([date, ids]) => {
+                const kept = ids.filter((x) => x !== id);
+                if (kept.length > 0) cleaned[date] = kept;
+              });
+              return cleaned;
+            });
           },
         },
       ]
@@ -197,7 +262,7 @@ export const useMacroTracker = () => {
 
   const exportDay = async () => {
     try {
-      const message = formatDayForExport(selectedDate, historyByDate, dailyLog, goals);
+      const message = formatDayForExport(selectedDate, historyByDate, dailyLog, goals, supplements, supplementLog);
       await Share.share({ message });
     } catch (err) {
       console.error("Export day error:", err);
@@ -206,7 +271,7 @@ export const useMacroTracker = () => {
 
   const exportRange = async (days = 14) => {
     try {
-      const message = formatRangeForExport(selectedDate, days, historyByDate, dailyLog, goals);
+      const message = formatRangeForExport(selectedDate, days, historyByDate, dailyLog, goals, supplements, supplementLog);
       await Share.share({ message });
     } catch (err) {
       console.error("Export range error:", err);
@@ -453,6 +518,10 @@ export const useMacroTracker = () => {
     totalMacros: dayData.totals,
     currentStreak,
     selectedDayGoalMet,
+    supplements, supplementLog,
+    supplementsTakenToday: supplementLog[selectedDate] || [],
+    supplementsModalVisible, setSupplementsModalVisible,
+    toggleSupplement, addSupplement, renameSupplement, removeSupplement,
     goals, setGoals,
     editingMacro, setEditingMacro,
     goalInput, setGoalInput,
