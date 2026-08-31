@@ -22,7 +22,10 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.nathandeans.GymTracker"
+      "package": "com.nathandeans.GymTracker",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,6 +37,14 @@
         {
           "photosPermission": "Allow GymTracker to access your photos to scan a nutrition label.",
           "cameraPermission": "Allow GymTracker to access your camera to scan a nutrition label."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow GymTracker to use the microphone to search for foods by voice.",
+          "speechRecognitionPermission": "Allow GymTracker to use speech recognition to search for foods by voice.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
         }
       ]
     ],
