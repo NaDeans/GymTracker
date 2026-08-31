@@ -25,13 +25,14 @@ This is loaded via `react-native-dotenv` and imported as `import { ANTHROPIC_API
 
 ## Architecture
 
-React Native / Expo app with two tab screens. All state is local React hooks; persistence is `AsyncStorage` only — there is no backend or database. Code is organized by feature under `src/features/`, with shared components/hooks/utils under `src/shared/`.
+React Native / Expo app with three tab screens. All state is local React hooks; persistence is `AsyncStorage` only — there is no backend or database. Code is organized by feature under `src/features/`, with shared components/hooks/utils under `src/shared/`.
 
 ### Navigation
 
-`App.js` → `src/navigation/AppNavigator.js` → React Navigation bottom tab with two screens:
+`App.js` → `src/navigation/AppNavigator.js` → React Navigation bottom tab with three screens:
 - **Macros** → `src/features/macroTracker/MacroTrackerScreen.js`
 - **Calculator** → `src/features/calculator/CalculatorScreen.js`
+- **Recipes** → `src/features/recipes/RecipesScreen.js`
 
 `App.js` also runs `purgeRemovedFeatureData()` (`src/shared/utils/legacyCleanup.js`) on mount, which clears the `REP_COUNTER_DATA` / `DAY_NOTES` keys left on devices by the removed rep-counter feature.
 
@@ -52,6 +53,16 @@ React Native / Expo app with two tab screens. All state is local React hooks; pe
 Food lookup flow: user types → check `gptCache` → if miss, call the Claude API (`claude-haiku-4-5`, structured outputs, via raw `fetch` — the `@anthropic-ai/sdk` package is deliberately NOT used because it imports `node:fs`, which Metro cannot bundle for native) from `services/gptService.js` → normalize via `utils/gptUtils.js` → store in cache and add to `historyByDate`. (File/state names keep the legacy "gpt" prefix.) There is also a scan-label flow: photo → `utils/imageUtils.js` (resize/compress via expo-image-manipulator) → `fetchNutritionFromImage`.
 
 `dailyLog` and `historyByDate` serve different purposes: `dailyLog` tracks item counts and running totals for display; `historyByDate` preserves the original GPT entries (used by `DailyControls` to render each meal entry with +/- controls).
+
+### Recipes
+
+Free-form recipe notes — deliberately unstructured, since the point is a place to write "microwave the oats 2:30, stir, 30s more". `useRecipes` (`src/features/recipes/hooks/useRecipes.js`) owns a single array stored at `RECIPES`:
+
+```
+[{ id, title, body, createdAt, updatedAt }]
+```
+
+`body` is one free-text blob; nothing in it is parsed. The list sorts by `updatedAt` descending and filters on a substring match over title + body. Tapping a card opens `RecipeEditor`, a full-screen modal with a title field and a full-height multiline input. There is no cancel: `closeEditor()` commits the draft on exit (a new recipe left entirely blank is discarded instead of saved), so text can't be lost by tapping the wrong control — deleting is the way to undo.
 
 ### Module Aliases
 
