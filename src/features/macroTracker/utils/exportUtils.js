@@ -16,16 +16,25 @@ const buildDayLines = (date, historyByDate, dailyLog) => {
   const seen = new Set();
   const foodLines = [];
   entries.forEach((entry) => {
+    const entryLines = [];
     entry.items.forEach((historyItem) => {
       const logged = dayItems[historyItem.id];
       if (!logged || seen.has(historyItem.id)) return;
       seen.add(historyItem.id);
       const { item, count } = logged;
       const countSuffix = count > 1 ? ` ×${count}` : "";
-      foodLines.push(
+      entryLines.push(
         `- ${item.name} (${fmt(item.amount_g)}g)${countSuffix}: ${fmt(item.calories * count)} kcal, P ${fmt(item.protein * count)}g, C ${fmt(item.carbs * count)}g, F ${fmt(item.fats * count)}g`
       );
     });
+
+    if (entryLines.length === 0) return;
+    // Foods logged together as a meal stay grouped under the meal's name.
+    if (entry.mealName) {
+      foodLines.push(`- ${entry.mealName} (meal):`, ...entryLines.map((line) => `  ${line}`));
+    } else {
+      foodLines.push(...entryLines);
+    }
   });
 
   return { foodLines, totals, hasLog: foodLines.length > 0 };

@@ -33,6 +33,10 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
   if (!editingFood) return null;
 
   const isLogEdit = editingFood.logEntryIndex !== undefined;
+  // Meal entries logged from the Meals tab have no saved-foods row behind them,
+  // so there is nothing for Delete to remove.
+  const isCached = !!gptCache[editingFood.originalKey];
+  const isMealEntry = editingFood.mealName !== undefined;
 
   const handleDelete = () => {
     setGptCache((prev) => {
@@ -48,6 +52,12 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
   const handleSave = () => {
     const oldKey = editingFood.originalKey;
     let newKey = editingFood.key.trim().toLowerCase();
+
+    if (isMealEntry) {
+      const mealName = editingFood.mealName.trim();
+      if (!mealName) { Alert.alert("Error", "Meal name cannot be empty"); return false; }
+      newKey = mealName.toLowerCase();
+    }
 
     if (!newKey) { Alert.alert("Error", "Search term cannot be empty"); return false; }
 
@@ -75,7 +85,14 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
       });
     }
 
-    if (isLogEdit) onSaveLogEntry(editingFood.logEntryIndex, { ...editingFood, key: newKey, items: normalized });
+    if (isLogEdit) {
+      onSaveLogEntry(editingFood.logEntryIndex, {
+        ...editingFood,
+        key: newKey,
+        items: normalized,
+        ...(isMealEntry && { mealName: editingFood.mealName.trim() }),
+      });
+    }
 
     setSuggestions([]);
     setVisible(false);
@@ -96,19 +113,28 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
       footer={
         <View style={{ gap: SPACING.sm }}>
           <View style={{ flexDirection: "row", gap: SPACING.sm }}>
-            <Button variant="danger" onPress={handleDelete} style={{ flex: 1 }}>Delete</Button>
+            {isCached && <Button variant="danger" onPress={handleDelete} style={{ flex: 1 }}>Delete</Button>}
             <Button variant="primary" onPress={handleSave} style={{ flex: 1 }}>Save</Button>
           </View>
           {!isLogEdit && <Button variant="success" onPress={handleAddToLog} fullWidth>Add to Log</Button>}
         </View>
       }
     >
-      <TextField
-        label="Search Term"
-        value={editingFood.key}
-        onChangeText={(v) => setEditingFood((prev) => ({ ...prev, key: v }))}
-        style={{ marginBottom: SPACING.md }}
-      />
+      {isMealEntry ? (
+        <TextField
+          label="Meal Name"
+          value={editingFood.mealName}
+          onChangeText={(v) => setEditingFood((prev) => ({ ...prev, mealName: v }))}
+          style={{ marginBottom: SPACING.md }}
+        />
+      ) : (
+        <TextField
+          label="Search Term"
+          value={editingFood.key}
+          onChangeText={(v) => setEditingFood((prev) => ({ ...prev, key: v }))}
+          style={{ marginBottom: SPACING.md }}
+        />
+      )}
 
       {editingFood.items.map((item, index) => (
         <Card key={index} style={{ marginBottom: SPACING.md }}>

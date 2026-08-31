@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { View, Text, Alert, FlatList, useWindowDimensions } from "react-native";
-import { fmt, safeNumber } from "shared/utils/numberUtils";
+import { fmt } from "shared/utils/numberUtils";
+import { sumItemMacros } from "../utils/macroUtils";
 import { createThemedStyles } from "../macroTrackerStyles";
 import { ModalSheet } from "shared/components/ModalSheet";
 import { TextField } from "shared/components/TextField";
@@ -10,17 +11,6 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT } from "shared/constants/styles";
 import { useTheme } from "shared/hooks/useTheme";
 
 const titleCase = (s) => s.replace(/\b\w/g, (c) => c.toUpperCase());
-
-const sumMacros = (items) =>
-  items.reduce(
-    (acc, i) => ({
-      calories: acc.calories + safeNumber(i.calories),
-      protein: acc.protein + safeNumber(i.protein),
-      carbs: acc.carbs + safeNumber(i.carbs),
-      fats: acc.fats + safeNumber(i.fats),
-    }),
-    { calories: 0, protein: 0, carbs: 0, fats: 0 }
-  );
 
 export const CacheManagerModal = ({ visible, setVisible, gptCache, setGptCache, setEditingFood, setEditModalVisible }) => {
   const { colors } = useTheme();
@@ -58,7 +48,7 @@ export const CacheManagerModal = ({ visible, setVisible, gptCache, setGptCache, 
 
   const renderItem = ({ item: { key, data } }) => {
     const items = data.items || [];
-    const macros = sumMacros(items);
+    const macros = sumItemMacros(items);
     return (
       <Card padding={SPACING.sm} style={{ marginBottom: SPACING.sm }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.xs }}>

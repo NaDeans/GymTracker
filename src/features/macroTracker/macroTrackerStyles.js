@@ -64,15 +64,24 @@ export const createThemedStyles = (colors) => StyleSheet.create({
   addedText: { marginTop: SPACING.xs, fontSize: FONT_SIZE.xs, color: colors.success },
   assumption: { fontStyle: "italic", fontSize: FONT_SIZE.xs, color: colors.textMuted },
 
+  /* ================= MEALS ================= */
+  mealGroupHeader: { flexDirection: "row", alignItems: "center", gap: SPACING.xs, marginTop: SPACING.sm, paddingHorizontal: SPACING.xs },
+  mealGroupTitle: { flex: 1, fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.primary },
+  selectionHint: { fontSize: FONT_SIZE.xs, color: colors.textMuted, textAlign: "center", marginBottom: SPACING.xs },
+  itemBlockSelected: { borderWidth: 2, borderColor: colors.primary },
+  mealCardHeader: { flexDirection: "row", alignItems: "center", gap: SPACING.xs, marginBottom: SPACING.xs },
+  mealCardTitle: { flex: 1, fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textDark },
+  mealCardMacros: { fontSize: FONT_SIZE.sm, color: colors.textMedium },
+  mealCardFoods: { fontSize: FONT_SIZE.xs, color: colors.textMuted, marginTop: 2 },
+  mealsEmptyText: { fontSize: FONT_SIZE.sm, color: colors.textMuted, textAlign: "center", marginVertical: SPACING.lg },
+  mealEditorTotals: { fontSize: FONT_SIZE.sm, color: colors.textMedium, marginBottom: SPACING.md },
+  mealEditorItemTitle: { flex: 1, fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textDark },
+
   /* ================= BUTTON ROW ================= */
   buttonRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: SPACING.xs, gap: SPACING.xs },
   leftButtons: { flexDirection: "row", gap: SPACING.xs },
   logActionButton: { minWidth: 84 },
 
-  /* ================= FOOD DATABASE ================= */
-  sectionTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, marginTop: SPACING.lg, marginBottom: SPACING.sm, color: colors.textPrimary },
-  foodActionsRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  foodActionsLeft: { flexDirection: "row", gap: SPACING.sm },
 });
 
 export const styles = createThemedStyles(COLORS);

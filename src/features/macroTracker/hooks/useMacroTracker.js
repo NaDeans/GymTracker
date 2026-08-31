@@ -6,6 +6,14 @@ import { todayString } from "shared/utils/dateUtils";
 import { safeNumber } from "shared/utils/numberUtils";
 import { calcCurrentStreak, dayHasLog } from "shared/utils/streakUtils";
 import { calcTotals, entryExistsForDay, isGoalMet } from "../utils/macroUtils";
+import {
+  createEmptyMeal,
+  createEmptyMealItem,
+  logItemsToMealItems,
+  mealToDraft,
+  mealToLogItems,
+  normalizeMeal,
+} from "../utils/mealUtils";
 import { loadMacroTrackerData, saveMacroTrackerData } from "../utils/storageUtils";
 import { fetchNutritionFromGPT, fetchNutritionFromImage } from "../services/gptService";
 import { formatDayForExport, formatRangeForExport } from "../utils/exportUtils";
@@ -13,15 +21,20 @@ import { formatDayForExport, formatRangeForExport } from "../utils/exportUtils";
 export const useMacroTracker = () => {
   // UI
   const [refreshing, setRefreshing] = useState(false);
-  const [foodDbVisible, setFoodDbVisible] = useState(false);
+  const [mealsVisible, setMealsVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [goalModalVisible, setGoalModalVisible] = useState(false);
 
-  // Food form / editing
-  const [customFoods, setCustomFoods] = useState([]);
+  // Food editing
   const [editingFood, setEditingFood] = useState(null);
-  const [newFood, setNewFood] = useState({ name: "", amount_g: "", calories: "", protein: "", carbs: "", fats: "" });
-  const [editingFoodId, setEditingFoodId] = useState(null);
+
+  // Meals
+  const [meals, setMeals] = useState([]);
+  const [mealEditorVisible, setMealEditorVisible] = useState(false);
+  const [editingMeal, setEditingMeal] = useState(null);
+  const [editorReturnsToMeals, setEditorReturnsToMeals] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState([]);
 
   // Search / suggestions
   const [input, setInput] = useState("");
@@ -52,7 +65,7 @@ export const useMacroTracker = () => {
 
   useEffect(() => {
     loadMacroTrackerData().then((data) => {
-      setCustomFoods(data.customFoods);
+      setMeals(data.meals);
       setDailyLog(data.dailyLog);
       setHistoryByDate(data.historyByDate);
       setGoals(data.goals);
@@ -63,8 +76,8 @@ export const useMacroTracker = () => {
 
   useEffect(() => {
     if (!hasLoaded.current) return;
-    saveMacroTrackerData({ customFoods, dailyLog, historyByDate, goals, gptCache });
-  }, [customFoods, dailyLog, historyByDate, goals, gptCache]);
+    saveMacroTrackerData({ meals, dailyLog, historyByDate, goals, gptCache });
+  }, [meals, dailyLog, historyByDate, goals, gptCache]);
 
   useEffect(() => {
     if (suppressSuggestions) { setSuppressSuggestions(false); return; }
@@ -86,7 +99,7 @@ export const useMacroTracker = () => {
       setInput("");
       setSuggestions([]);
       const data = await loadMacroTrackerData();
-      setCustomFoods(data.customFoods);
+      setMeals(data.meals);
       setDailyLog(data.dailyLog);
       setHistoryByDate(data.historyByDate);
       setGptCache(data.gptCache);
@@ -213,22 +226,138 @@ export const useMacroTracker = () => {
     }
   };
 
-  const addCustomFood = (food) => {
-    const item = {
-      ...food,
-      id: Date.now().toString(),
-      amount_g: safeNumber(food.amount_g),
-      calories: safeNumber(food.calories),
-      protein: safeNumber(food.protein),
-      carbs: safeNumber(food.carbs),
-      fats: safeNumber(food.fats),
-      assumption: null,
-    };
-    setHistoryByDate((prev) => {
-      const newItem = { ...item, raw: { calories: item.calories, protein: item.protein, carbs: item.carbs, fats: item.fats, amount_g: item.amount_g } };
-      return { ...prev, [selectedDate]: [{ items: [newItem] }, ...(prev[selectedDate] || [])] };
+  /* ================= MEALS ================= */
+
+  // Logs every food of a meal as one grouped day entry. Adding the same meal
+  // twice makes two blocks rather than bumping counts, because each add mints
+  // fresh item ids.
+  const addMealToLog = (meal) => {
+    const items = mealToLogItems(meal);
+    if (items.length === 0) {
+      Alert.alert("Empty meal", "This meal has no foods in it yet.");
+      return;
+    }
+
+    setHistoryByDate((prev) => ({
+      ...prev,
+      [selectedDate]: [
+        { foodId: `meal-${items[0].id}`, key: meal.name.toLowerCase(), mealId: meal.id, mealName: meal.name, items },
+        ...(prev[selectedDate] || []),
+      ],
+    }));
+
+    items.forEach((item) => addItem(item));
+    setMealsVisible(false);
+  };
+
+  // The editor is opened either from the meals list or straight from a log
+  // selection; only the first case should drop the user back on the list.
+  const openMealEditor = (meal) => {
+    setEditingMeal(meal ? mealToDraft(meal) : createEmptyMeal());
+    setEditorReturnsToMeals(mealsVisible);
+    setMealsVisible(false);
+    setMealEditorVisible(true);
+  };
+
+  const closeMealEditor = () => {
+    setMealEditorVisible(false);
+    setEditingMeal(null);
+    if (editorReturnsToMeals) setMealsVisible(true);
+    setEditorReturnsToMeals(false);
+  };
+
+  const updateMealEditorName = (name) => {
+    setEditingMeal((prev) => (prev ? { ...prev, name } : prev));
+  };
+
+  const addMealEditorItem = () => {
+    setEditingMeal((prev) => (prev ? { ...prev, items: [...prev.items, createEmptyMealItem()] } : prev));
+  };
+
+  const removeMealEditorItem = (index) => {
+    setEditingMeal((prev) => (prev ? { ...prev, items: prev.items.filter((_, i) => i !== index) } : prev));
+  };
+
+  const updateMealEditorItem = (index, field, value) => {
+    setEditingMeal((prev) => {
+      if (!prev) return prev;
+      const items = [...prev.items];
+      items[index] = { ...items[index], [field]: value };
+      return { ...prev, items };
     });
-    setFoodDbVisible(false);
+  };
+
+  const saveMeal = () => {
+    if (!editingMeal) return;
+    if (!editingMeal.name.trim()) {
+      Alert.alert("Missing Name", "Please give this meal a name.");
+      return;
+    }
+    if (editingMeal.items.length === 0) {
+      Alert.alert("No Foods", "Add at least one food to this meal.");
+      return;
+    }
+    if (editingMeal.items.some((item) => !item.name.trim())) {
+      Alert.alert("Missing Name", "Every food in the meal needs a name.");
+      return;
+    }
+
+    const meal = normalizeMeal(editingMeal);
+    setMeals((prev) => {
+      const idx = prev.findIndex((m) => m.id === meal.id);
+      if (idx === -1) return [...prev, meal];
+      const updated = [...prev];
+      updated[idx] = meal;
+      return updated;
+    });
+    closeMealEditor();
+  };
+
+  const deleteMeal = (meal) => {
+    Alert.alert(
+      "Delete Meal?",
+      `Remove "${meal.name}" from your meals? This can't be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => setMeals((prev) => prev.filter((m) => m.id !== meal.id)),
+        },
+      ]
+    );
+  };
+
+  /* ---- Building a meal out of foods already in the day's log ---- */
+
+  const startMealSelection = () => {
+    setSelectionMode(true);
+    setSelectedItemIds([]);
+  };
+
+  const cancelMealSelection = () => {
+    setSelectionMode(false);
+    setSelectedItemIds([]);
+  };
+
+  const toggleItemSelection = (id) => {
+    setSelectedItemIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const createMealFromSelection = () => {
+    const items = logItemsToMealItems(
+      selectedItemIds,
+      historyByDate[selectedDate] || [],
+      dailyLog[selectedDate]?.items || {}
+    );
+    if (items.length === 0) {
+      Alert.alert("Nothing selected", "Pick at least one food from the log to save as a meal.");
+      return;
+    }
+    setEditingMeal(mealToDraft({ id: null, name: "", items }));
+    setMealEditorVisible(true);
+    setSelectionMode(false);
+    setSelectedItemIds([]);
   };
 
   const submit = async (inputOverride) => {
@@ -390,7 +519,12 @@ export const useMacroTracker = () => {
       const dayHistory = prev[selectedDate] || [];
       if (!dayHistory[entryIndex]) return prev;
       const updated = [...dayHistory];
-      updated[entryIndex] = { ...updated[entryIndex], key: editedFood.key, items: itemsWithRaw };
+      updated[entryIndex] = {
+        ...updated[entryIndex],
+        key: editedFood.key,
+        items: itemsWithRaw,
+        ...(editedFood.mealName !== undefined && { mealName: editedFood.mealName }),
+      };
       return { ...prev, [selectedDate]: updated };
     });
 
@@ -434,13 +568,10 @@ export const useMacroTracker = () => {
 
   return {
     refreshing, onRefresh,
-    foodDbVisible, setFoodDbVisible,
+    mealsVisible, setMealsVisible,
     editModalVisible, setEditModalVisible,
     goalModalVisible, setGoalModalVisible,
-    customFoods, setCustomFoods,
     editingFood, setEditingFood,
-    newFood, setNewFood,
-    editingFoodId, setEditingFoodId,
     input, setInput,
     loading,
     gptCache, setGptCache,
@@ -457,7 +588,13 @@ export const useMacroTracker = () => {
     editingMacro, setEditingMacro,
     goalInput, setGoalInput,
     addItem, removeItem, clearItem, updateGrams, resetDay, exportDay, exportRange,
-    addCustomFood, submit, submitFromImage,
+    submit, submitFromImage,
+    meals,
+    mealEditorVisible, editingMeal,
+    openMealEditor, closeMealEditor, saveMeal, deleteMeal, addMealToLog,
+    updateMealEditorName, addMealEditorItem, removeMealEditorItem, updateMealEditorItem,
+    selectionMode, selectedItemIds,
+    startMealSelection, cancelMealSelection, toggleItemSelection, createMealFromSelection,
     manualEntryVisible, setManualEntryVisible,
     manualEntryName, setManualEntryName,
     manualEntryInitialValues, closeManualEntry,
