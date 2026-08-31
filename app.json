@@ -42,8 +42,8 @@
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "Allow GymTracker to use the microphone to search for foods by voice.",
-          "speechRecognitionPermission": "Allow GymTracker to use speech recognition to search for foods by voice.",
+          "microphonePermission": "Allow MacroTracker to use the microphone to search for foods by voice.",
+          "speechRecognitionPermission": "Allow MacroTracker to use speech recognition to search for foods by voice.",
           "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
         }
       ]
