@@ -1,5 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { migrateFoodData } from "./foodCacheUtils";
+
 const DEFAULT_GOALS = { calories: 2400, protein: 150, carbs: 330, fats: 70 };
 
 export const loadMacroTrackerData = async () => {
@@ -13,12 +15,19 @@ export const loadMacroTrackerData = async () => {
         AsyncStorage.getItem("GPT_CACHE"),
       ]);
 
+    // Splits any legacy multi-food entries into one food per entry, keyed by the
+    // food's own name. Idempotent, so it is safe to run on every load.
+    const { gptCache, historyByDate } = migrateFoodData(
+      savedCache ? JSON.parse(savedCache) : {},
+      savedHistoryByDate ? JSON.parse(savedHistoryByDate) : {}
+    );
+
     return {
       customFoods: savedCustomFoods ? JSON.parse(savedCustomFoods) : [],
       dailyLog: savedDailyLog ? JSON.parse(savedDailyLog) : {},
-      historyByDate: savedHistoryByDate ? JSON.parse(savedHistoryByDate) : {},
+      historyByDate,
       goals: savedGoals ? JSON.parse(savedGoals) : DEFAULT_GOALS,
-      gptCache: savedCache ? JSON.parse(savedCache) : {},
+      gptCache,
     };
   } catch (err) {
     console.error("Error loading macro tracker data:", err);

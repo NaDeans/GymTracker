@@ -6,8 +6,10 @@ import { todayString } from "shared/utils/dateUtils";
 import { safeNumber } from "shared/utils/numberUtils";
 import { calcCurrentStreak, dayHasLog } from "shared/utils/streakUtils";
 import { calcTotals, entryExistsForDay, isGoalMet } from "../utils/macroUtils";
+import { foodKey, newFoodId, resolveFromCache, withAlias } from "../utils/foodCacheUtils";
 import { loadMacroTrackerData, saveMacroTrackerData } from "../utils/storageUtils";
 import { fetchNutritionFromGPT, fetchNutritionFromImage } from "../services/gptService";
+import { formatName } from "../utils/gptUtils";
 import { formatDayForExport, formatRangeForExport } from "../utils/exportUtils";
 
 export const useMacroTracker = () => {
@@ -231,42 +233,57 @@ export const useMacroTracker = () => {
     setFoodDbVisible(false);
   };
 
+  // Turns freshly fetched items into saved foods — one entry per food, keyed by
+  // that food's own name. A name already in the cache reuses the saved entry
+  // (with whatever the user edited into it) rather than duplicating it, and the
+  // raw search string is recorded on every entry it produced so retyping it
+  // later resolves from the cache.
+  const cacheItemsAsFoods = (items, term) => {
+    const updated = { ...gptCache };
+    const entries = items.map((item, i) => {
+      const key = foodKey(item.name) || term;
+      const entry = withAlias(updated[key] || { searchKey: key, foodId: newFoodId(), items: [item] }, term, i, items.length);
+      updated[key] = entry;
+      return entry;
+    });
+    setGptCache(updated);
+    return entries;
+  };
+
+  // Adds one day-log entry per saved food, skipping any already logged today.
+  const logSavedFoods = (entries) => {
+    const dayHistory = historyByDate[selectedDate] || [];
+    const seen = new Set();
+    const fresh = entries.filter(
+      (entry) => !entryExistsForDay(dayHistory, entry.foodId) && !seen.has(entry.foodId) && seen.add(entry.foodId)
+    );
+
+    if (fresh.length === 0) {
+      Alert.alert("Already added", entries.length > 1 ? "Those foods are already in this day's log." : "This food is already in this day's log.");
+      return;
+    }
+
+    const newEntries = fresh.map((entry) => ({
+      foodId: entry.foodId,
+      key: entry.searchKey,
+      items: entry.items.map((i) => ({ ...i, raw: { calories: i.calories, protein: i.protein, carbs: i.carbs, fats: i.fats, amount_g: i.amount_g } })),
+    }));
+
+    setHistoryByDate((prev) => ({ ...prev, [selectedDate]: [...newEntries, ...(prev[selectedDate] || [])] }));
+  };
+
   const submit = async (inputOverride) => {
     const rawInput = inputOverride ?? input;
     if (!rawInput.trim()) return;
     Keyboard.dismiss();
     setLoading(true);
     try {
-      const key = rawInput.trim().toLowerCase();
+      const term = foodKey(rawInput);
+      const cached = resolveFromCache(term, gptCache);
 
-      if (gptCache[key]) {
-        const data = gptCache[key];
-        setHistoryByDate((prev) => {
-          const dayHistory = prev[selectedDate] || [];
-          if (entryExistsForDay(dayHistory, data.foodId)) {
-            Alert.alert("Already added", "This food is already in today's log.");
-            return prev;
-          }
-          const newItems = data.items.map((i) => ({ ...i, raw: { calories: i.calories, protein: i.protein, carbs: i.carbs, fats: i.fats, amount_g: i.amount_g } }));
-          return { ...prev, [selectedDate]: [{ foodId: data.foodId, key, items: newItems }, ...dayHistory] };
-        });
-      } else {
-        const items = await fetchNutritionFromGPT(rawInput, ANTHROPIC_API_KEY);
-        const uniqueFoodId = Date.now().toString() + Math.random().toString(36).slice(2);
-
-        // Update state — the save effect persists this to AsyncStorage automatically
-        setGptCache((prev) => ({ ...prev, [key]: { searchKey: key, foodId: uniqueFoodId, items } }));
-
-        setHistoryByDate((prev) => {
-          const dayHistory = prev[selectedDate] || [];
-          if (entryExistsForDay(dayHistory, uniqueFoodId)) {
-            Alert.alert("Already added", "This food is already in today's log.");
-            return prev;
-          }
-          const newItems = items.map((i) => ({ ...i, raw: { calories: i.calories, protein: i.protein, carbs: i.carbs, fats: i.fats, amount_g: i.amount_g } }));
-          return { ...prev, [selectedDate]: [{ foodId: uniqueFoodId, key, items: newItems }, ...dayHistory] };
-        });
-      }
+      // Update state — the save effect persists this to AsyncStorage automatically
+      const entries = cached || cacheItemsAsFoods(await fetchNutritionFromGPT(rawInput, ANTHROPIC_API_KEY), term);
+      logSavedFoods(entries);
     } catch (err) {
       console.error("GPT error:", err);
       if (err.message === "No nutrition items returned") {
@@ -322,9 +339,10 @@ export const useMacroTracker = () => {
     }
   };
 
-  const saveManualEntry = ({ name, amount_g, calories, protein, carbs, fats }) => {
-    const key = name.toLowerCase();
-    const uniqueFoodId = Date.now().toString() + Math.random().toString(36).slice(2);
+  const saveManualEntry = ({ name: rawName, amount_g, calories, protein, carbs, fats }) => {
+    const name = formatName(rawName);
+    const key = foodKey(name);
+    const uniqueFoodId = newFoodId();
     const item = { id: uniqueFoodId, name, amount_g, calories, protein, carbs, fats, assumption: null };
     const itemWithRaw = { ...item, raw: { calories, protein, carbs, fats, amount_g } };
     const source = manualEntryInitialValues ? "scan" : "manual";
@@ -361,7 +379,7 @@ export const useMacroTracker = () => {
       raw: { calories: i.calories, protein: i.protein, carbs: i.carbs, fats: i.fats, amount_g: i.amount_g },
     }));
     const foodId = food.foodId;
-    const key = food.key.trim().toLowerCase();
+    const key = foodKey(food.items[0]?.name) || foodKey(food.key);
 
     setHistoryByDate((prev) => {
       const dayHistory = prev[selectedDate] || [];

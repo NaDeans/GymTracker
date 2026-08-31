@@ -1,8 +1,12 @@
-const formatName = (name) => {
+// The name doubles as the saved food's search key, so it is tidied but never
+// flattened. Anything already carrying capitals is deliberate — the model is
+// asked for Title Case, and it knows "Half an Avocado" and "McDonald's" better
+// than a word-by-word rule does — so only an all-lowercase name gets capped.
+export const formatName = (name) => {
   if (!name || typeof name !== "string") return "";
-  return name
-    .trim()
-    .toLowerCase()
+  const clean = name.replace(/\s+/g, " ").replace(/[.,;]+$/, "").trim();
+  if (/[A-Z]/.test(clean)) return clean;
+  return clean
     .split(" ")
     .filter(Boolean)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))

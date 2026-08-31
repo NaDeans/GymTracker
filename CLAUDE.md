@@ -45,10 +45,12 @@ React Native / Expo app with three tab screens. All state is local React hooks; 
 | `customFoods` | `CUSTOM_FOODS` | User-defined foods with known macros |
 | `dailyLog` | `DAILY_LOG` | `{ [dateStr]: { items: { [id]: { item, count } }, totals } }` |
 | `historyByDate` | `HISTORY_BY_DATE` | `{ [dateStr]: [{ foodId, key, items }] }` — GPT/custom food entries per day |
-| `gptCache` | `GPT_CACHE` | `{ [searchKey]: { searchKey, foodId, items } }` — cached GPT responses |
+| `gptCache` | `GPT_CACHE` | `{ [searchKey]: { searchKey, foodId, items: [item], source?, aliases? } }` — saved foods, one food each |
 | `goals` | `GOALS` | `{ calories, protein, carbs, fats }` targets |
 
-Food lookup flow: user types → check `gptCache` → if miss, call the Claude API (`claude-haiku-4-5`, structured outputs, via raw `fetch` — the `@anthropic-ai/sdk` package is deliberately NOT used because it imports `node:fs`, which Metro cannot bundle for native) from `services/gptService.js` → normalize via `utils/gptUtils.js` → store in cache and add to `historyByDate`. (File/state names keep the legacy "gpt" prefix.) There is also a scan-label flow: photo → `utils/imageUtils.js` (resize/compress via expo-image-manipulator) → `fetchNutritionFromImage`.
+Food lookup flow: user types → check `gptCache` → if miss, call the Claude API (`claude-haiku-4-5`, structured outputs, via raw `fetch` — the `@anthropic-ai/sdk` package is deliberately NOT used because it imports `node:fs`, which Metro cannot bundle for native) from `services/gptService.js` → normalize via `utils/gptUtils.js` → store in cache and add to `historyByDate`. (File/state names keep the legacy "gpt" prefix.)
+
+**One food per saved food.** A saved food holds exactly one item, and its key is that item's own name (`foodKey(item.name)` — see `utils/foodCacheUtils.js`), so there is no separate search term that can drift from the display name. A search naming several foods is split into one saved food per item; the model is asked to name each item so it stands alone, leading with the portion when the user stated one ("200g Chicken Breast"). The raw search string is recorded on every entry it produced (`aliases: { [term]: { i, n } }`) so retyping it resolves from the cache, and `resolveFromCache` also matches a comma/"and"-separated list of saved names. `migrateFoodData` rebuilds pre-split data on load and is idempotent. There is also a scan-label flow: photo → `utils/imageUtils.js` (resize/compress via expo-image-manipulator) → `fetchNutritionFromImage`.
 
 `dailyLog` and `historyByDate` serve different purposes: `dailyLog` tracks item counts and running totals for display; `historyByDate` preserves the original GPT entries (used by `DailyControls` to render each meal entry with +/- controls).
 
