@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "GymTracker",
-    "slug": "GymTracker",
+    "name": "MacroTracker",
+    "slug": "MacroTracker",
     "version": "1.0.0",
     "sdkVersion": "54.0.0",
     "orientation": "portrait",
@@ -32,8 +32,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow GymTracker to access your photos to scan a nutrition label.",
-          "cameraPermission": "Allow GymTracker to access your camera to scan a nutrition label."
+          "photosPermission": "Allow MacroTracker to access your photos to scan a nutrition label.",
+          "cameraPermission": "Allow MacroTracker to access your camera to scan a nutrition label."
         }
       ]
     ],

@@ -8,12 +8,10 @@ import { ThemeProvider } from "shared/context/ThemeContext";
 import { useTheme } from "shared/hooks/useTheme";
 
 import MacroTrackerScreen from "features/macroTracker/MacroTrackerScreen";
-import RepCounterScreen from "features/repCounter/RepCounterScreen";
 import CalculatorScreen from "features/calculator/CalculatorScreen";
 
 const TAB_ICONS = {
   Macros: { active: "restaurant", inactive: "restaurant-outline" },
-  Reps: { active: "barbell", inactive: "barbell-outline" },
   Calculator: { active: "calculator", inactive: "calculator-outline" },
 };
 
@@ -53,7 +51,6 @@ function NavigatorContent() {
         })}
       >
         <Tab.Screen name="Macros" component={MacroTrackerScreen} />
-        <Tab.Screen name="Reps" component={RepCounterScreen} />
         <Tab.Screen name="Calculator" component={CalculatorScreen} />
       </Tab.Navigator>
     </NavigationContainer>

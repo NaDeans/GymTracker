@@ -36,7 +36,7 @@ const buildDayLines = (date, historyByDate, dailyLog) => {
 export const formatDayForExport = (selectedDate, historyByDate, dailyLog, goals) => {
   const { foodLines, totals } = buildDayLines(selectedDate, historyByDate, dailyLog);
 
-  const lines = [`GymTracker — ${selectedDate}`, ""];
+  const lines = [`MacroTracker — ${selectedDate}`, ""];
 
   if (foodLines.length === 0) {
     lines.push("No foods logged for this day.");
@@ -67,7 +67,7 @@ export const formatRangeForExport = (endDmy, days, historyByDate, dailyLog, goal
     cursor = shiftDmy(cursor, -1);
   }
 
-  const lines = [`GymTracker — Last ${days} Days (${dates[0]} to ${dates[dates.length - 1]})`, ""];
+  const lines = [`MacroTracker — Last ${days} Days (${dates[0]} to ${dates[dates.length - 1]})`, ""];
 
   const periodSums = { calories: 0, protein: 0, carbs: 0, fats: 0 };
   let daysLogged = 0;

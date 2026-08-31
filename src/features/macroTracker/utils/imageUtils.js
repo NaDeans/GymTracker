@@ -12,8 +12,8 @@ const requestPermission = async (source) => {
     Alert.alert(
       source === "camera" ? "Camera access needed" : "Photo access needed",
       canAskAgain
-        ? "GymTracker needs permission to continue."
-        : "GymTracker needs permission to continue. Enable it in Settings."
+        ? "MacroTracker needs permission to continue."
+        : "MacroTracker needs permission to continue. Enable it in Settings."
     );
     return false;
   }

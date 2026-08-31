@@ -25,14 +25,15 @@ This is loaded via `react-native-dotenv` and imported as `import { ANTHROPIC_API
 
 ## Architecture
 
-React Native / Expo app with three tab screens. All state is local React hooks; persistence is `AsyncStorage` only — there is no backend or database. Code is organized by feature under `src/features/`, with shared components/hooks/utils under `src/shared/`.
+React Native / Expo app with two tab screens. All state is local React hooks; persistence is `AsyncStorage` only — there is no backend or database. Code is organized by feature under `src/features/`, with shared components/hooks/utils under `src/shared/`.
 
 ### Navigation
 
-`App.js` → `src/navigation/AppNavigator.js` → React Navigation bottom tab with three screens:
+`App.js` → `src/navigation/AppNavigator.js` → React Navigation bottom tab with two screens:
 - **Macros** → `src/features/macroTracker/MacroTrackerScreen.js`
-- **Reps** → `src/features/repCounter/RepCounterScreen.js`
 - **Calculator** → `src/features/calculator/CalculatorScreen.js`
+
+`App.js` also runs `purgeRemovedFeatureData()` (`src/shared/utils/legacyCleanup.js`) on mount, which clears the `REP_COUNTER_DATA` / `DAY_NOTES` keys left on devices by the removed rep-counter feature.
 
 `AppNavigator` wraps everything in `ThemeProvider` (`src/shared/context/ThemeContext.js`), which supplies the app's single light color palette via `useTheme()`.
 
@@ -52,22 +53,6 @@ Food lookup flow: user types → check `gptCache` → if miss, call the Claude A
 
 `dailyLog` and `historyByDate` serve different purposes: `dailyLog` tracks item counts and running totals for display; `historyByDate` preserves the original GPT entries (used by `DailyControls` to render each meal entry with +/- controls).
 
-### Rep Counter
-
-`useRepCounter` (`src/features/repCounter/hooks/useRepCounter.js`) owns all data in a single `data` state object stored at `REP_COUNTER_DATA`:
-
-```
-data: {
-  [groupName]: {
-    [exerciseName]: [
-      { date: "YYYY-MM-DD", sets: [{ reps, weight }], notes: "" }
-    ]
-  }
-}
-```
-
-Screen renders as a drill-down: Categories → Exercises → Set log. Navigated by `selectedGroup` / `selectedExercise` state (null = list view). Day notes are stored separately at `DAY_NOTES`.
-
 ### Module Aliases
 
 `jsconfig.json` sets `baseUrl: "src"`, so all imports resolve from `src/`. Examples:
@@ -81,7 +66,7 @@ import MacroTrackerScreen from "features/macroTracker/MacroTrackerScreen";
 ### Date Formats
 
 - `DD/MM/YY` — display format and primary key for macro tracker state (`todayString()`, `selectedDate`)
-- `YYYY-MM-DD` — ISO format used internally in rep counter and for calendar library; convert with `dmyToIso` / `isoToDmy` from `src/shared/utils/dateUtils.js`
+- `YYYY-MM-DD` — ISO format required by the calendar library; convert with `dmyToIso` / `isoToDmy` from `src/shared/utils/dateUtils.js`
 
 ### Styling
 

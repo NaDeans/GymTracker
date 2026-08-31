@@ -1,4 +1,4 @@
-// Stress-test harness for GymTracker food search (Claude Haiku 4.5).
+// Stress-test harness for MacroTracker food search (Claude Haiku 4.5).
 // Extracts the LIVE system prompt + output schema from gptService.js so prompt edits are picked
 // up automatically, replicates the exact API call + normalization, runs a case file, evaluates,
 // writes results JSON.
