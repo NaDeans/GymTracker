@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { View, Text, Alert, FlatList, useWindowDimensions } from "react-native";
 import { fmt, safeNumber } from "shared/utils/numberUtils";
+import { formatFoodName } from "shared/utils/textUtils";
 import { createThemedStyles } from "../macroTrackerStyles";
 import { ModalSheet } from "shared/components/ModalSheet";
 import { TextField } from "shared/components/TextField";
@@ -8,8 +9,6 @@ import { Card } from "shared/components/Card";
 import { IconButton } from "shared/components/IconButton";
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from "shared/constants/styles";
 import { useTheme } from "shared/hooks/useTheme";
-
-const titleCase = (s) => s.replace(/\b\w/g, (c) => c.toUpperCase());
 
 const sumMacros = (items) =>
   items.reduce(
@@ -37,14 +36,14 @@ export const CacheManagerModal = ({ visible, setVisible, gptCache, setGptCache, 
   const handleEdit = (key) => {
     const entry = gptCache[key];
     if (!entry?.items?.length) return;
-    setEditingFood({ key, originalKey: key, foodId: entry.foodId, items: entry.items });
+    setEditingFood({ key: formatFoodName(key), originalKey: key, foodId: entry.foodId, items: entry.items });
     setEditModalVisible(true);
   };
 
   const handleDelete = (key) => {
     Alert.alert(
       "Delete Food?",
-      `Remove "${titleCase(key)}" from your saved foods? This can't be undone.`,
+      `Remove "${formatFoodName(key)}" from your saved foods? This can't be undone.`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -63,7 +62,7 @@ export const CacheManagerModal = ({ visible, setVisible, gptCache, setGptCache, 
       <Card padding={SPACING.sm} style={{ marginBottom: SPACING.sm }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.xs }}>
           <Text style={{ flex: 1, fontWeight: FONT_WEIGHT.semibold, fontSize: FONT_SIZE.sm, color: colors.textDark }} numberOfLines={1}>
-            {titleCase(key)}
+            {formatFoodName(key)}
           </Text>
           {data.source === "manual" && (
             <View style={styles.manualTag}>

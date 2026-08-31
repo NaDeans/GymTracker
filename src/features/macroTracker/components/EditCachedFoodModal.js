@@ -1,5 +1,6 @@
 import { View, Text, Alert } from "react-native";
 import { safeNumber } from "shared/utils/numberUtils";
+import { formatFoodName, foodKey } from "shared/utils/textUtils";
 import { ModalSheet } from "shared/components/ModalSheet";
 import { TextField } from "shared/components/TextField";
 import { Button } from "shared/components/Button";
@@ -17,10 +18,11 @@ const FIELD_LABELS = {
 };
 
 // Fields are edited as raw strings (so partial input like "2." survives typing);
-// numbers are coerced only when saving.
+// numbers are coerced and the name is tidied only when saving.
 const normalizeItems = (items) =>
   items.map((item) => ({
     ...item,
+    name: formatFoodName(item.name),
     amount_g: safeNumber(item.amount_g),
     calories: safeNumber(item.calories),
     protein: safeNumber(item.protein),
@@ -47,7 +49,7 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
   // Returns the normalized items on success, or false if validation failed.
   const handleSave = () => {
     const oldKey = editingFood.originalKey;
-    let newKey = editingFood.key.trim().toLowerCase();
+    let newKey = foodKey(editingFood.key);
 
     if (!newKey) { Alert.alert("Error", "Search term cannot be empty"); return false; }
 
@@ -57,9 +59,9 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
     if (existingEntry) {
       // If the first food item's name changed and the search key hasn't been manually updated,
       // automatically update the search key to match the new food name
-      const originalFirstItemName = existingEntry.items?.[0]?.name?.toLowerCase() || oldKey;
-      const editedFirstItemName = editingFood.items?.[0]?.name?.toLowerCase() || editingFood.key.toLowerCase();
-      const keyWasNotManuallyChanged = editingFood.key.toLowerCase() === oldKey;
+      const originalFirstItemName = foodKey(existingEntry.items?.[0]?.name) || oldKey;
+      const editedFirstItemName = foodKey(editingFood.items?.[0]?.name) || newKey;
+      const keyWasNotManuallyChanged = newKey === oldKey;
 
       if (keyWasNotManuallyChanged && editedFirstItemName !== originalFirstItemName) {
         newKey = editedFirstItemName;

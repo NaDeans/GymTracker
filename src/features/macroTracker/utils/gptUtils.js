@@ -1,13 +1,4 @@
-const formatName = (name) => {
-  if (!name || typeof name !== "string") return "";
-  return name
-    .trim()
-    .toLowerCase()
-    .split(" ")
-    .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
+import { formatFoodName } from "shared/utils/textUtils";
 
 export const safeParseJSON = (text) => {
   let parsed;
@@ -35,7 +26,7 @@ export const normalizeAndValidateItem = (i) => {
 
   return {
     id: Date.now().toString() + Math.random(),
-    name: formatName(i.name),
+    name: formatFoodName(i.name),
     amount_g,
     calories,
     protein,

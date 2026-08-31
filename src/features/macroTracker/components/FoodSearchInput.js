@@ -6,6 +6,7 @@ import { IconButton } from "shared/components/IconButton";
 import { Card } from "shared/components/Card";
 import { useTheme } from "shared/hooks/useTheme";
 import { useVoiceSearch } from "shared/hooks/useVoiceSearch";
+import { formatFoodName } from "shared/utils/textUtils";
 import { SPACING } from "shared/constants/styles";
 
 export const FoodSearchInput = ({
@@ -37,7 +38,7 @@ export const FoodSearchInput = ({
   const handleEditSuggestion = (s) => {
     const entry = gptCache[s];
     if (!entry?.items?.length) return;
-    setEditingFood({ key: s, originalKey: s, foodId: entry.foodId, items: entry.items });
+    setEditingFood({ key: formatFoodName(s), originalKey: s, foodId: entry.foodId, items: entry.items });
     setEditModalVisible(true);
   };
 
@@ -74,7 +75,7 @@ export const FoodSearchInput = ({
           {suggestions.map((s, i) => (
             <View key={s} style={[styles.suggestionRow, i > 0 && styles.suggestionDivider]}>
               <Pressable style={styles.suggestionTouchable} onPress={() => handleSelectSuggestion(s)}>
-                <Text style={styles.suggestionText}>{s}</Text>
+                <Text style={styles.suggestionText}>{formatFoodName(s)}</Text>
               </Pressable>
               {gptCache[s]?.source === "manual" && (
                 <View style={styles.manualTag}>
