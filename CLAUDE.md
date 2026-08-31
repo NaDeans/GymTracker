@@ -47,8 +47,12 @@ React Native / Expo app with three tab screens. All state is local React hooks; 
 | `historyByDate` | `HISTORY_BY_DATE` | `{ [dateStr]: [{ foodId, key, items }] }` — GPT/custom food entries per day |
 | `gptCache` | `GPT_CACHE` | `{ [searchKey]: { searchKey, foodId, items } }` — cached GPT responses |
 | `goals` | `GOALS` | `{ calories, protein, carbs, fats }` targets |
+| `supplements` | `SUPPLEMENTS` | `[{ id, name }]` — the user's editable supplement list |
+| `supplementLog` | `SUPPLEMENT_LOG` | `{ [dateStr]: [supplementId] }` — which supplements were ticked that day |
 
 Food lookup flow: user types → check `gptCache` → if miss, call the Claude API (`claude-haiku-4-5`, structured outputs, via raw `fetch` — the `@anthropic-ai/sdk` package is deliberately NOT used because it imports `node:fs`, which Metro cannot bundle for native) from `services/gptService.js` → normalize via `utils/gptUtils.js` → store in cache and add to `historyByDate`. (File/state names keep the legacy "gpt" prefix.) There is also a scan-label flow: photo → `utils/imageUtils.js` (resize/compress via expo-image-manipulator) → `fetchNutritionFromImage`.
+
+Supplements are a separate tick-list: `SupplementsSection` renders one checkbox per supplement for the selected date, `SupplementsModal` adds/renames/deletes them. Only ids are logged per day — names resolve from `supplements` at display/export time, so a rename applies retroactively and deleting a supplement purges it from every logged day. Both exports include a `Supplements taken:` line (omitted entirely when no supplements are configured).
 
 `dailyLog` and `historyByDate` serve different purposes: `dailyLog` tracks item counts and running totals for display; `historyByDate` preserves the original GPT entries (used by `DailyControls` to render each meal entry with +/- controls).
 

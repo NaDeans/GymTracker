@@ -89,6 +89,7 @@ export const DailyControls = ({
   setFoodDbVisible,
   setCacheManagerVisible,
   onEditEntry,
+  supplementsSection,
 }) => (
   <View style={{ marginTop: SPACING.lg, gap: SPACING.xs }}>
     <Button variant="primary" size="sm" fullWidth loading={loading} onPress={() => submit()}>Submit</Button>
@@ -119,6 +120,8 @@ export const DailyControls = ({
         );
       })
     )}
+
+    {supplementsSection}
 
     <View style={{ flexDirection: "row", gap: SPACING.xs, marginTop: SPACING.lg }}>
       <Button variant="outline" size="sm" style={{ flex: 2 }} onPress={exportDay}>Export Day</Button>

@@ -16,6 +16,8 @@ import { CustomFoodsModal } from "./components/CustomFoodsModal";
 import { EditCachedFoodModal } from "./components/EditCachedFoodModal";
 import { CacheManagerModal } from "./components/CacheManagerModal";
 import { ManualEntryModal } from "./components/ManualEntryModal";
+import { SupplementsSection } from "./components/SupplementsSection";
+import { SupplementsModal } from "./components/SupplementsModal";
 
 export default function MacroTrackerScreen() {
   const {
@@ -39,6 +41,10 @@ export default function MacroTrackerScreen() {
     totalMacros,
     currentStreak,
     selectedDayGoalMet,
+    supplements,
+    supplementsTakenToday,
+    supplementsModalVisible, setSupplementsModalVisible,
+    toggleSupplement, addSupplement, renameSupplement, removeSupplement,
     goals, setGoals,
     editingMacro, setEditingMacro,
     goalInput, setGoalInput,
@@ -148,6 +154,14 @@ export default function MacroTrackerScreen() {
           setFoodDbVisible={setFoodDbVisible}
           setCacheManagerVisible={setCacheManagerVisible}
           onEditEntry={handleEditLogEntry}
+          supplementsSection={
+            <SupplementsSection
+              supplements={supplements}
+              takenIds={supplementsTakenToday}
+              toggleSupplement={toggleSupplement}
+              onManage={() => setSupplementsModalVisible(true)}
+            />
+          }
         />
       </KeyboardScrollProvider>
       </ScrollView>
@@ -193,6 +207,15 @@ export default function MacroTrackerScreen() {
         setGptCache={setGptCache}
         setEditingFood={setEditingFood}
         setEditModalVisible={setEditModalVisible}
+      />
+
+      <SupplementsModal
+        visible={supplementsModalVisible}
+        setVisible={setSupplementsModalVisible}
+        supplements={supplements}
+        addSupplement={addSupplement}
+        renameSupplement={renameSupplement}
+        removeSupplement={removeSupplement}
       />
 
       <ManualEntryModal
