@@ -29,10 +29,11 @@ React Native / Expo app with three tab screens. All state is local React hooks; 
 
 ### Navigation
 
-`App.js` → `src/navigation/AppNavigator.js` → React Navigation bottom tab with three screens:
+`App.js` → `src/navigation/AppNavigator.js` → React Navigation bottom tab with four screens:
 - **Macros** → `src/features/macroTracker/MacroTrackerScreen.js`
 - **Reps** → `src/features/repCounter/RepCounterScreen.js`
 - **Calculator** → `src/features/calculator/CalculatorScreen.js`
+- **Recipes** → `src/features/recipes/RecipesScreen.js`
 
 `AppNavigator` wraps everything in `ThemeProvider` (`src/shared/context/ThemeContext.js`), which supplies the app's single light color palette via `useTheme()`.
 
@@ -67,6 +68,16 @@ data: {
 ```
 
 Screen renders as a drill-down: Categories → Exercises → Set log. Navigated by `selectedGroup` / `selectedExercise` state (null = list view). Day notes are stored separately at `DAY_NOTES`.
+
+### Recipes
+
+Free-form recipe notes — deliberately unstructured, since the point is a place to write "microwave the oats 2:30, stir, 30s more". `useRecipes` (`src/features/recipes/hooks/useRecipes.js`) owns a single array stored at `RECIPES`:
+
+```
+[{ id, title, body, createdAt, updatedAt }]
+```
+
+`body` is one free-text blob; nothing in it is parsed. The list sorts by `updatedAt` descending and filters on a substring match over title + body. Tapping a card opens `RecipeEditor`, a full-screen modal with a title field and a full-height multiline input. There is no cancel: `closeEditor()` commits the draft on exit (a new recipe left entirely blank is discarded instead of saved), so text can't be lost by tapping the wrong control — deleting is the way to undo.
 
 ### Module Aliases
 
