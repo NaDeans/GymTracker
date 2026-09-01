@@ -13,7 +13,8 @@ import { MacroTotals } from "./components/MacroTotals";
 import { FoodSearchInput } from "./components/FoodSearchInput";
 import { DailyControls } from "./components/DailyControls";
 import { GoalModal } from "./components/GoalModal";
-import { CustomFoodsModal } from "./components/CustomFoodsModal";
+import { MealsModal } from "./components/MealsModal";
+import { MealEditorModal } from "./components/MealEditorModal";
 import { EditCachedFoodModal } from "./components/EditCachedFoodModal";
 import { CacheManagerModal } from "./components/CacheManagerModal";
 import { ManualEntryModal } from "./components/ManualEntryModal";
@@ -23,13 +24,10 @@ import { SupplementsModal } from "./components/SupplementsModal";
 export default function MacroTrackerScreen() {
   const {
     refreshing, onRefresh,
-    foodDbVisible, setFoodDbVisible,
+    mealsVisible, setMealsVisible,
     editModalVisible, setEditModalVisible,
     goalModalVisible, setGoalModalVisible,
-    customFoods, setCustomFoods,
     editingFood, setEditingFood,
-    newFood, setNewFood,
-    editingFoodId, setEditingFoodId,
     input, setInput,
     loading,
     gptCache, setGptCache,
@@ -50,7 +48,13 @@ export default function MacroTrackerScreen() {
     editingMacro, setEditingMacro,
     goalInput, setGoalInput,
     addItem, removeItem, clearItem, updateGrams, resetDay, exportDay, exportRange,
-    addCustomFood, submit, submitFromImage,
+    submit, submitFromImage,
+    meals,
+    mealEditorVisible, editingMeal,
+    openMealEditor, closeMealEditor, saveMeal, deleteMeal, addMealToLog,
+    updateMealEditorName, addMealEditorItem, removeMealEditorItem, updateMealEditorItem,
+    selectionMode, selectedItemIds,
+    startMealSelection, cancelMealSelection, toggleItemSelection, createMealFromSelection,
     manualEntryVisible, setManualEntryVisible,
     manualEntryName, setManualEntryName,
     manualEntryInitialValues, closeManualEntry,
@@ -68,6 +72,7 @@ export default function MacroTrackerScreen() {
       foodId: entry.foodId,
       items: entry.items,
       logEntryIndex: idx,
+      ...(entry.mealName !== undefined && { mealName: entry.mealName }),
     });
     setEditModalVisible(true);
   };
@@ -152,9 +157,15 @@ export default function MacroTrackerScreen() {
           exportRange={exportRange}
           submit={submit}
           loading={loading}
-          setFoodDbVisible={setFoodDbVisible}
+          setMealsVisible={setMealsVisible}
           setCacheManagerVisible={setCacheManagerVisible}
           onEditEntry={handleEditLogEntry}
+          selectionMode={selectionMode}
+          selectedItemIds={selectedItemIds}
+          startMealSelection={startMealSelection}
+          cancelMealSelection={cancelMealSelection}
+          toggleItemSelection={toggleItemSelection}
+          createMealFromSelection={createMealFromSelection}
           supplementsSection={
             <SupplementsSection
               supplements={supplements}
@@ -177,16 +188,25 @@ export default function MacroTrackerScreen() {
         setGoals={setGoals}
       />
 
-      <CustomFoodsModal
-        visible={foodDbVisible}
-        setVisible={setFoodDbVisible}
-        customFoods={customFoods}
-        setCustomFoods={setCustomFoods}
-        addCustomFood={addCustomFood}
-        newFood={newFood}
-        setNewFood={setNewFood}
-        editingFoodId={editingFoodId}
-        setEditingFoodId={setEditingFoodId}
+      <MealsModal
+        visible={mealsVisible}
+        setVisible={setMealsVisible}
+        meals={meals}
+        onAddToLog={addMealToLog}
+        onEdit={openMealEditor}
+        onDelete={deleteMeal}
+        onNew={() => openMealEditor(null)}
+      />
+
+      <MealEditorModal
+        visible={mealEditorVisible}
+        meal={editingMeal}
+        onChangeName={updateMealEditorName}
+        onChangeItem={updateMealEditorItem}
+        onAddItem={addMealEditorItem}
+        onRemoveItem={removeMealEditorItem}
+        onSave={saveMeal}
+        onClose={closeMealEditor}
       />
 
       <EditCachedFoodModal

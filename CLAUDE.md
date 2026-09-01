@@ -44,9 +44,9 @@ React Native / Expo app with three tab screens. All state is local React hooks; 
 
 | State | AsyncStorage key | Description |
 |---|---|---|
-| `customFoods` | `CUSTOM_FOODS` | User-defined foods with known macros |
+| `meals` | `MEALS` | `[{ id, name, items: [{ id, name, amount_g, calories, protein, carbs, fats, assumption }] }]` — saved groups of foods |
 | `dailyLog` | `DAILY_LOG` | `{ [dateStr]: { items: { [id]: { item, count } }, totals } }` |
-| `historyByDate` | `HISTORY_BY_DATE` | `{ [dateStr]: [{ foodId, key, items }] }` — GPT/custom food entries per day |
+| `historyByDate` | `HISTORY_BY_DATE` | `{ [dateStr]: [{ foodId, key, items, mealId?, mealName? }] }` — GPT/manual/meal entries per day |
 | `gptCache` | `GPT_CACHE` | `{ [searchKey]: { searchKey, foodId, items: [item], source?, aliases? } }` — saved foods, one food each |
 | `goals` | `GOALS` | `{ calories, protein, carbs, fats }` targets |
 | `supplements` | `SUPPLEMENTS` | `[{ id, name }]` — the user's editable supplement list |
@@ -58,7 +58,9 @@ Food lookup flow: user types → check `gptCache` → if miss, call the Claude A
 
 Supplements are a separate tick-list: `SupplementsSection` renders one checkbox per supplement for the selected date, `SupplementsModal` adds/renames/deletes them. Only ids are logged per day — names resolve from `supplements` at display/export time, so a rename applies retroactively and deleting a supplement purges it from every logged day. Both exports include a `Supplements taken:` line (omitted entirely when no supplements are configured).
 
-`dailyLog` and `historyByDate` serve different purposes: `dailyLog` tracks item counts and running totals for display; `historyByDate` preserves the original GPT entries (used by `DailyControls` to render each meal entry with +/- controls).
+`dailyLog` and `historyByDate` serve different purposes: `dailyLog` tracks item counts and running totals for display; `historyByDate` preserves the original GPT entries (used by `DailyControls` to render each entry with +/- controls).
+
+**Meals** (`MealsModal` / `MealEditorModal`, helpers in `utils/mealUtils.js`) replace the old custom-foods list — manual entry already covers one-off foods, and `loadMacroTrackerData` migrates any leftover `CUSTOM_FOODS` into one-item meals before deleting that key. A meal is built by ticking foods in the day's log ("Select foods to save as a meal", which snapshots their current grams × count) or from scratch in the editor, where every parameter of the meal and each of its foods is editable. Adding a meal writes one `historyByDate` entry carrying `mealId`/`mealName` — that name is what groups the foods into a block in the log and in exports. Item ids are minted fresh on each add, so logging the same meal twice yields two independent blocks.
 
 ### Recipes
 

@@ -104,6 +104,9 @@ export const migrateFoodData = (gptCache, historyByDate) => {
   Object.entries(historyByDate || {}).forEach(([date, entries]) => {
     history[date] = (entries || []).flatMap((entry) => {
       const items = entry?.items || [];
+      // A logged meal is deliberately several foods under one header — splitting
+      // it would scatter the meal across the day's log, so it passes through.
+      if (entry?.mealName !== undefined) return [entry];
       if (items.length <= 1) {
         return items.length ? [{ ...entry, key: foodKey(items[0].name) || entry.key }] : [];
       }

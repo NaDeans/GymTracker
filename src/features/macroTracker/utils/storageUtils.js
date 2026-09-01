@@ -11,7 +11,10 @@ const withCleanName = (item) => (item ? { ...item, name: formatFoodName(item.nam
 // before a formatting rule existed don't stay misspelled or oddly capitalised.
 // Cheap and idempotent — re-running it on already-clean data is a no-op — so it
 // happens on every load rather than behind a one-shot migration flag.
-const normalizeStoredNames = ({ customFoods, dailyLog, historyByDate, gptCache }) => {
+//
+// A meal's own name is the user's label for it ("Post-Gym", "Nan's Curry"), not
+// a food name, so only the foods inside a meal are formatted.
+const normalizeStoredNames = ({ meals, dailyLog, historyByDate, gptCache }) => {
   const cleanCache = {};
   Object.entries(gptCache).forEach(([key, entry]) => {
     const newKey = foodKey(entry?.searchKey || key);
@@ -42,17 +45,53 @@ const normalizeStoredNames = ({ customFoods, dailyLog, historyByDate, gptCache }
   });
 
   return {
-    customFoods: (customFoods || []).map(withCleanName),
+    meals: (meals || []).map((meal) => ({ ...meal, items: (meal?.items || []).map(withCleanName) })),
     dailyLog: cleanDailyLog,
     historyByDate: cleanHistory,
     gptCache: cleanCache,
   };
 };
 
+// The old "custom foods" list was replaced by meals (manual entry already
+// covers one-off foods). Each stored custom food becomes a one-item meal so
+// nothing the user typed is lost; the old key is removed once converted, which
+// is what keeps this from running twice.
+const migrateCustomFoodsToMeals = async (meals) => {
+  const saved = await AsyncStorage.getItem("CUSTOM_FOODS");
+  if (!saved) return meals;
+
+  let migrated = [];
+  try {
+    migrated = (JSON.parse(saved) || []).map((food) => ({
+      id: `meal-${food.id}`,
+      name: food.name,
+      items: [{
+        id: `${food.id}-0`,
+        name: food.name,
+        amount_g: food.amount_g,
+        calories: food.calories,
+        protein: food.protein,
+        carbs: food.carbs,
+        fats: food.fats,
+        assumption: null,
+      }],
+    }));
+  } catch (err) {
+    console.error("Error migrating custom foods to meals:", err);
+  }
+
+  await AsyncStorage.removeItem("CUSTOM_FOODS");
+  if (migrated.length === 0) return meals;
+
+  const combined = [...meals, ...migrated];
+  await AsyncStorage.setItem("MEALS", JSON.stringify(combined));
+  return combined;
+};
+
 export const loadMacroTrackerData = async () => {
   try {
     const [
-      savedCustomFoods,
+      savedMeals,
       savedDailyLog,
       savedHistoryByDate,
       savedGoals,
@@ -60,7 +99,7 @@ export const loadMacroTrackerData = async () => {
       savedSupplements,
       savedSupplementLog,
     ] = await Promise.all([
-      AsyncStorage.getItem("CUSTOM_FOODS"),
+      AsyncStorage.getItem("MEALS"),
       AsyncStorage.getItem("DAILY_LOG"),
       AsyncStorage.getItem("HISTORY_BY_DATE"),
       AsyncStorage.getItem("GOALS"),
@@ -69,12 +108,16 @@ export const loadMacroTrackerData = async () => {
       AsyncStorage.getItem("SUPPLEMENT_LOG"),
     ]);
 
+    // Convert any leftover custom foods first, so the formatter below sees the
+    // meals they became rather than having to run over both shapes.
+    const meals = await migrateCustomFoodsToMeals(savedMeals ? JSON.parse(savedMeals) : []);
+
     // Two idempotent passes, in this order: first tidy every stored name and
-    // re-key off the corrected spelling, then split any legacy multi-food entry
-    // into one food per entry. Migrating second means it keys off names that are
-    // already clean, so `foodKey(name) === key` holds straight after a load.
+    // re-key off the corrected spelling, then split any legacy multi-food saved
+    // food into one food per entry. Migrating second means it keys off names
+    // that are already clean, so `foodKey(name) === key` holds after a load.
     const cleaned = normalizeStoredNames({
-      customFoods: savedCustomFoods ? JSON.parse(savedCustomFoods) : [],
+      meals,
       dailyLog: savedDailyLog ? JSON.parse(savedDailyLog) : {},
       historyByDate: savedHistoryByDate ? JSON.parse(savedHistoryByDate) : {},
       gptCache: savedCache ? JSON.parse(savedCache) : {},
@@ -83,7 +126,7 @@ export const loadMacroTrackerData = async () => {
     const { gptCache, historyByDate } = migrateFoodData(cleaned.gptCache, cleaned.historyByDate);
 
     return {
-      customFoods: cleaned.customFoods,
+      meals: cleaned.meals,
       dailyLog: cleaned.dailyLog,
       historyByDate,
       gptCache,
@@ -94,7 +137,7 @@ export const loadMacroTrackerData = async () => {
   } catch (err) {
     console.error("Error loading macro tracker data:", err);
     return {
-      customFoods: [],
+      meals: [],
       dailyLog: {},
       historyByDate: {},
       goals: DEFAULT_GOALS,
@@ -106,7 +149,7 @@ export const loadMacroTrackerData = async () => {
 };
 
 export const saveMacroTrackerData = async ({
-  customFoods,
+  meals,
   dailyLog,
   historyByDate,
   goals,
@@ -116,7 +159,7 @@ export const saveMacroTrackerData = async ({
 }) => {
   try {
     await Promise.all([
-      AsyncStorage.setItem("CUSTOM_FOODS", JSON.stringify(customFoods)),
+      AsyncStorage.setItem("MEALS", JSON.stringify(meals)),
       AsyncStorage.setItem("DAILY_LOG", JSON.stringify(dailyLog)),
       AsyncStorage.setItem("HISTORY_BY_DATE", JSON.stringify(historyByDate)),
       AsyncStorage.setItem("GOALS", JSON.stringify(goals)),

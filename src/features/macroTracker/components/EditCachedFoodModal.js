@@ -35,6 +35,10 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
   if (!editingFood) return null;
 
   const isLogEdit = editingFood.logEntryIndex !== undefined;
+  // Meal entries logged from the Meals tab have no saved-foods row behind them,
+  // so there is nothing for Delete to remove.
+  const isCached = !!gptCache[editingFood.originalKey];
+  const isMealEntry = editingFood.mealName !== undefined;
 
   // A log entry edited long after it was saved may hold a stale key (the food
   // was renamed since), so fall back to matching the saved food by its id.
@@ -62,7 +66,15 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
   // Returns the normalized items on success, or false if validation failed.
   const handleSave = () => {
     const normalized = normalizeItems(editingFood.items);
-    const newKey = foodKey(normalized[0]?.name);
+
+    // A meal is keyed by its own name; a saved food has no separate search term,
+    // so its key is simply the food's name.
+    if (isMealEntry && !editingFood.mealName.trim()) {
+      Alert.alert("Error", "Meal name cannot be empty");
+      return false;
+    }
+
+    const newKey = isMealEntry ? foodKey(editingFood.mealName) : foodKey(normalized[0]?.name);
 
     if (!newKey) { Alert.alert("Error", "Name cannot be empty"); return false; }
 
@@ -79,7 +91,14 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
       });
     }
 
-    if (isLogEdit) onSaveLogEntry(editingFood.logEntryIndex, { ...editingFood, key: newKey, items: normalized });
+    if (isLogEdit) {
+      onSaveLogEntry(editingFood.logEntryIndex, {
+        ...editingFood,
+        key: newKey,
+        items: normalized,
+        ...(isMealEntry && { mealName: editingFood.mealName.trim() }),
+      });
+    }
 
     setSuggestions([]);
     setVisible(false);
@@ -100,16 +119,25 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
       footer={
         <View style={{ gap: SPACING.sm }}>
           <View style={{ flexDirection: "row", gap: SPACING.sm }}>
-            <Button variant="danger" onPress={handleDelete} style={{ flex: 1 }}>Delete</Button>
+            {isCached && <Button variant="danger" onPress={handleDelete} style={{ flex: 1 }}>Delete</Button>}
             <Button variant="primary" onPress={handleSave} style={{ flex: 1 }}>Save</Button>
           </View>
           {!isLogEdit && <Button variant="success" onPress={handleAddToLog} fullWidth>Add to Log</Button>}
         </View>
       }
     >
-      <Text style={{ fontSize: FONT_SIZE.xs, color: colors.textMuted, marginBottom: SPACING.md }}>
-        The name is how you search for this food — include the portion if it matters, like "200g Chicken Breast".
-      </Text>
+      {isMealEntry ? (
+        <TextField
+          label="Meal Name"
+          value={editingFood.mealName}
+          onChangeText={(v) => setEditingFood((prev) => ({ ...prev, mealName: v }))}
+          style={{ marginBottom: SPACING.md }}
+        />
+      ) : (
+        <Text style={{ fontSize: FONT_SIZE.xs, color: colors.textMuted, marginBottom: SPACING.md }}>
+          The name is how you search for this food — include the portion if it matters, like "200g Chicken Breast".
+        </Text>
+      )}
 
       {editingFood.items.map((item, index) => (
         <Card key={index} style={{ marginBottom: SPACING.md }}>

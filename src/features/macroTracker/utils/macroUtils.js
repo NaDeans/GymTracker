@@ -1,4 +1,5 @@
 import { shiftDmy } from "shared/utils/dateUtils";
+import { safeNumber } from "shared/utils/numberUtils";
 
 const hexToRgb = (hex) => {
   const h = hex.replace("#", "");
@@ -81,11 +82,27 @@ export const isGoalMet = (totals, goals, hasItems, tolerancePct = 0.10) => {
   });
 };
 
-export const customFoodFields = [
+// Every editable parameter of a single food inside a meal. Order is the order
+// the fields appear in the meal editor.
+export const mealItemFields = [
   { key: "name", label: "Food Name", keyboardType: "default" },
-  { key: "amount_g", label: "Weight (g)", keyboardType: "numeric" },
+  { key: "amount_g", label: "Amount (g)", keyboardType: "numeric" },
   { key: "calories", label: "Calories", keyboardType: "numeric" },
-  { key: "protein", label: "Protein", keyboardType: "numeric" },
-  { key: "carbs", label: "Carbs", keyboardType: "numeric" },
-  { key: "fats", label: "Fats", keyboardType: "numeric" },
+  { key: "protein", label: "Protein (g)", keyboardType: "numeric" },
+  { key: "carbs", label: "Carbs (g)", keyboardType: "numeric" },
+  { key: "fats", label: "Fats (g)", keyboardType: "numeric" },
+  { key: "assumption", label: "Note (optional)", keyboardType: "default" },
 ];
+
+// Adds up the macros of a plain list of food items (a meal's foods, a cached
+// food's items) — unlike calcTotals these have no per-item count.
+export const sumItemMacros = (items = []) =>
+  items.reduce(
+    (acc, i) => ({
+      calories: acc.calories + safeNumber(i.calories),
+      protein: acc.protein + safeNumber(i.protein),
+      carbs: acc.carbs + safeNumber(i.carbs),
+      fats: acc.fats + safeNumber(i.fats),
+    }),
+    { calories: 0, protein: 0, carbs: 0, fats: 0 }
+  );
