@@ -62,6 +62,19 @@ Supplements are a separate tick-list: `SupplementsSection` renders one checkbox 
 
 **Meals** (`MealsModal` / `MealEditorModal`, helpers in `utils/mealUtils.js`) replace the old custom-foods list — manual entry already covers one-off foods, and `loadMacroTrackerData` migrates any leftover `CUSTOM_FOODS` into one-item meals before deleting that key. A meal is built by ticking foods in the day's log ("Select foods to save as a meal", which snapshots their current grams × count) or from scratch in the editor, where every parameter of the meal and each of its foods is editable. Adding a meal writes one `historyByDate` entry carrying `mealId`/`mealName` — that name is what groups the foods into a block in the log and in exports. Item ids are minted fresh on each add, so logging the same meal twice yields two independent blocks.
 
+**Search suggestions** are ranked by `utils/searchUtils.js`, not by cache order.
+Matches are bucketed into relevance tiers (exact → whole-string prefix → word
+prefix → substring → all query words present in any order) and only foods in the
+same tier compete; within a tier the food logged most often wins, then the
+shorter name, then alphabetical. Usage counts are derived from `historyByDate`,
+which already records the key each entry was logged under, so nothing extra is
+persisted. Ranking runs on `foodKey(input)` — the corrected spelling — so a typo
+still finds the saved food.
+
+**Voice search** (`src/shared/hooks/useVoiceSearch.js`, `expo-speech-recognition`)
+dictates into the search field. It is a native module with a config plugin, so it
+only works in a development or production build, never in Expo Go.
+
 ### Recipes
 
 Free-form recipe notes — deliberately unstructured, since the point is a place to write "microwave the oats 2:30, stir, 30s more". `useRecipes` (`src/features/recipes/hooks/useRecipes.js`) owns a single array stored at `RECIPES`:
@@ -94,10 +107,16 @@ The color palette lives in `src/shared/constants/colors.js` (`COLORS`, also expo
 ### Food Name Formatting
 
 Every food name the user produces — a typed or dictated search, a scanned label's
-name, a manual entry, an edited cached food, a custom food — is passed through
-`formatFoodName` from `src/shared/utils/textUtils.js` before it is stored or
-displayed. `foodKey(name)` (the formatted name, lowercased) is the canonical
+name, a manual entry, an edited saved food, a food inside a meal — is passed
+through `formatFoodName` from `src/shared/utils/textUtils.js` before it is stored
+or displayed. `foodKey(name)` (the formatted name, lowercased) is the canonical
 cache/history key, so "chiken breast" and "Chicken Breast" resolve to one entry.
+`foodCacheUtils` re-exports `foodKey` rather than defining its own — there is one
+key function, and its idempotence is what keeps `foodKey(storedName) === key`
+true across reloads.
+
+A meal's own name is the user's label for it, not a food name, so the formatter
+is applied to the foods inside a meal but never to the meal's name.
 
 The formatter only fixes casing, spacing and unambiguous misspellings — it never
 reorders words, drops them, or changes quantities — and it is idempotent, because
@@ -106,7 +125,13 @@ acronym exceptions and the misspelling list live in that one file; extend those
 tables rather than adding formatting logic at a call site.
 
 `loadMacroTrackerData` runs the formatter over everything already in AsyncStorage
-on each load, so foods saved before a rule existed get cleaned up too.
+on each load, so foods saved before a rule existed get cleaned up too. It does
+three idempotent passes, and the order matters: convert any leftover
+`CUSTOM_FOODS` into meals → format every stored name and re-key off the corrected
+spelling → `migrateFoodData` splits legacy multi-food saved foods. Migrating last
+means it keys off names that are already clean. `migrateFoodData` deliberately
+passes logged meals through untouched; splitting one would scatter the meal
+across the day's log.
 
 Run `node scripts/format-name-check.mjs` after touching the formatter — it checks
 the cases, idempotency, and that no input's words or numbers change.
