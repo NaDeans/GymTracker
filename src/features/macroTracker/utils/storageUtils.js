@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { formatFoodName, foodKey } from "shared/utils/textUtils";
+import { migrateFoodData } from "./foodCacheUtils";
 
 const DEFAULT_GOALS = { calories: 2400, protein: 150, carbs: 330, fats: 70 };
 
@@ -68,13 +69,24 @@ export const loadMacroTrackerData = async () => {
       AsyncStorage.getItem("SUPPLEMENT_LOG"),
     ]);
 
+    // Two idempotent passes, in this order: first tidy every stored name and
+    // re-key off the corrected spelling, then split any legacy multi-food entry
+    // into one food per entry. Migrating second means it keys off names that are
+    // already clean, so `foodKey(name) === key` holds straight after a load.
+    const cleaned = normalizeStoredNames({
+      customFoods: savedCustomFoods ? JSON.parse(savedCustomFoods) : [],
+      dailyLog: savedDailyLog ? JSON.parse(savedDailyLog) : {},
+      historyByDate: savedHistoryByDate ? JSON.parse(savedHistoryByDate) : {},
+      gptCache: savedCache ? JSON.parse(savedCache) : {},
+    });
+
+    const { gptCache, historyByDate } = migrateFoodData(cleaned.gptCache, cleaned.historyByDate);
+
     return {
-      ...normalizeStoredNames({
-        customFoods: savedCustomFoods ? JSON.parse(savedCustomFoods) : [],
-        dailyLog: savedDailyLog ? JSON.parse(savedDailyLog) : {},
-        historyByDate: savedHistoryByDate ? JSON.parse(savedHistoryByDate) : {},
-        gptCache: savedCache ? JSON.parse(savedCache) : {},
-      }),
+      customFoods: cleaned.customFoods,
+      dailyLog: cleaned.dailyLog,
+      historyByDate,
+      gptCache,
       goals: savedGoals ? JSON.parse(savedGoals) : DEFAULT_GOALS,
       supplements: savedSupplements ? JSON.parse(savedSupplements) : [],
       supplementLog: savedSupplementLog ? JSON.parse(savedSupplementLog) : {},

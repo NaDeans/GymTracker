@@ -1,3 +1,6 @@
+// The name doubles as the saved food's search key, so every name goes through
+// the one formatter in shared/utils/textUtils — it already handles the cases a
+// word-by-word rule gets wrong ("McDonald's", "BBQ", "with", "200g").
 import { formatFoodName } from "shared/utils/textUtils";
 
 export const safeParseJSON = (text) => {

@@ -10,6 +10,11 @@ import { IconButton } from "shared/components/IconButton";
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from "shared/constants/styles";
 import { useTheme } from "shared/hooks/useTheme";
 
+// One food per saved entry, and its name is the key — so the name is the label.
+// The key is only a fallback for an entry that somehow has no items.
+const displayName = (key, data) => data?.items?.[0]?.name || formatFoodName(key);
+
+
 const sumMacros = (items) =>
   items.reduce(
     (acc, i) => ({
@@ -43,7 +48,7 @@ export const CacheManagerModal = ({ visible, setVisible, gptCache, setGptCache, 
   const handleDelete = (key) => {
     Alert.alert(
       "Delete Food?",
-      `Remove "${formatFoodName(key)}" from your saved foods? This can't be undone.`,
+      `Remove "${displayName(key, gptCache[key])}" from your saved foods? This can't be undone.`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -62,7 +67,7 @@ export const CacheManagerModal = ({ visible, setVisible, gptCache, setGptCache, 
       <Card padding={SPACING.sm} style={{ marginBottom: SPACING.sm }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.xs }}>
           <Text style={{ flex: 1, fontWeight: FONT_WEIGHT.semibold, fontSize: FONT_SIZE.sm, color: colors.textDark }} numberOfLines={1}>
-            {formatFoodName(key)}
+            {displayName(key, data)}
           </Text>
           {data.source === "manual" && (
             <View style={styles.manualTag}>
@@ -79,7 +84,7 @@ export const CacheManagerModal = ({ visible, setVisible, gptCache, setGptCache, 
         </View>
 
         <Text style={{ fontSize: FONT_SIZE.xs, color: colors.textMuted, marginTop: 2 }} numberOfLines={1}>
-          {items.length > 1 ? `${items.map((i) => i.name).join(", ")} · ` : ""}
+          {items[0]?.amount_g ? `${Math.round(safeNumber(items[0].amount_g))}g · ` : ""}
           {`${fmt(macros.calories)} kcal · P ${fmt(macros.protein)}g · C ${fmt(macros.carbs)}g · F ${fmt(macros.fats)}g`}
         </Text>
       </Card>

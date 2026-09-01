@@ -75,7 +75,7 @@ export const FoodSearchInput = ({
           {suggestions.map((s, i) => (
             <View key={s} style={[styles.suggestionRow, i > 0 && styles.suggestionDivider]}>
               <Pressable style={styles.suggestionTouchable} onPress={() => handleSelectSuggestion(s)}>
-                <Text style={styles.suggestionText}>{formatFoodName(s)}</Text>
+                <Text style={styles.suggestionText}>{gptCache[s]?.items?.[0]?.name || formatFoodName(s)}</Text>
               </Pressable>
               {gptCache[s]?.source === "manual" && (
                 <View style={styles.manualTag}>

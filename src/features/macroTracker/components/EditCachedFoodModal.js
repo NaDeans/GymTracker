@@ -36,42 +36,44 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
 
   const isLogEdit = editingFood.logEntryIndex !== undefined;
 
+  // A log entry edited long after it was saved may hold a stale key (the food
+  // was renamed since), so fall back to matching the saved food by its id.
+  const cacheKey =
+    editingFood.originalKey && gptCache[editingFood.originalKey]
+      ? editingFood.originalKey
+      : editingFood.foodId
+        ? Object.keys(gptCache).find((k) => gptCache[k].foodId === editingFood.foodId)
+        : undefined;
+
   const handleDelete = () => {
-    setGptCache((prev) => {
-      const updated = { ...prev };
-      delete updated[editingFood.originalKey];
-      return updated;
-    });
+    if (cacheKey) {
+      setGptCache((prev) => {
+        const updated = { ...prev };
+        delete updated[cacheKey];
+        return updated;
+      });
+    }
     setSuggestions([]);
     setVisible(false);
   };
 
+  // A saved food's name IS its search key, so there is nothing else to edit:
+  // renaming here renames the food everywhere and re-keys the cache entry.
   // Returns the normalized items on success, or false if validation failed.
   const handleSave = () => {
-    const oldKey = editingFood.originalKey;
-    let newKey = foodKey(editingFood.key);
-
-    if (!newKey) { Alert.alert("Error", "Search term cannot be empty"); return false; }
-
     const normalized = normalizeItems(editingFood.items);
-    const existingEntry = oldKey ? gptCache[oldKey] : undefined;
+    const newKey = foodKey(normalized[0]?.name);
+
+    if (!newKey) { Alert.alert("Error", "Name cannot be empty"); return false; }
+
+    const existingEntry = cacheKey ? gptCache[cacheKey] : undefined;
 
     if (existingEntry) {
-      // If the first food item's name changed and the search key hasn't been manually updated,
-      // automatically update the search key to match the new food name
-      const originalFirstItemName = foodKey(existingEntry.items?.[0]?.name) || oldKey;
-      const editedFirstItemName = foodKey(editingFood.items?.[0]?.name) || newKey;
-      const keyWasNotManuallyChanged = newKey === oldKey;
-
-      if (keyWasNotManuallyChanged && editedFirstItemName !== originalFirstItemName) {
-        newKey = editedFirstItemName;
-      }
-
-      if (oldKey !== newKey && gptCache[newKey]) { Alert.alert("Error", "A food with that name already exists."); return false; }
+      if (cacheKey !== newKey && gptCache[newKey]) { Alert.alert("Error", `"${normalized[0].name}" is already one of your saved foods.`); return false; }
 
       setGptCache((prev) => {
         const updated = { ...prev };
-        if (oldKey !== newKey) delete updated[oldKey];
+        if (cacheKey !== newKey) delete updated[cacheKey];
         updated[newKey] = { ...existingEntry, searchKey: newKey, items: normalized };
         return updated;
       });
@@ -87,14 +89,14 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
   const handleAddToLog = () => {
     const normalized = handleSave();
     if (!normalized) return;
-    onAddToLog({ ...editingFood, items: normalized });
+    onAddToLog({ ...editingFood, key: foodKey(normalized[0]?.name), items: normalized });
   };
 
   return (
     <ModalSheet
       visible={visible}
       onClose={() => setVisible(false)}
-      title={isLogEdit ? "Edit Food" : "Edit Cached Food"}
+      title={isLogEdit ? "Edit Food" : "Edit Saved Food"}
       footer={
         <View style={{ gap: SPACING.sm }}>
           <View style={{ flexDirection: "row", gap: SPACING.sm }}>
@@ -105,18 +107,17 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
         </View>
       }
     >
-      <TextField
-        label="Search Term"
-        value={editingFood.key}
-        onChangeText={(v) => setEditingFood((prev) => ({ ...prev, key: v }))}
-        style={{ marginBottom: SPACING.md }}
-      />
+      <Text style={{ fontSize: FONT_SIZE.xs, color: colors.textMuted, marginBottom: SPACING.md }}>
+        The name is how you search for this food — include the portion if it matters, like "200g Chicken Breast".
+      </Text>
 
       {editingFood.items.map((item, index) => (
         <Card key={index} style={{ marginBottom: SPACING.md }}>
-          <Text style={{ fontWeight: FONT_WEIGHT.semibold, fontSize: FONT_SIZE.sm, color: colors.textDark, marginBottom: SPACING.sm }}>
-            Item {index + 1}
-          </Text>
+          {editingFood.items.length > 1 && (
+            <Text style={{ fontWeight: FONT_WEIGHT.semibold, fontSize: FONT_SIZE.sm, color: colors.textDark, marginBottom: SPACING.sm }}>
+              Item {index + 1}
+            </Text>
+          )}
           {["name", "amount_g", "calories", "protein", "carbs", "fats"].map((field) => (
             <TextField
               key={field}
