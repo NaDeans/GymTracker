@@ -15,8 +15,7 @@ export const FoodSearchInput = ({
   suggestions,
   setSuggestions,
   setSuppressSuggestions,
-  setEditingFood,
-  setEditModalVisible,
+  onEditSavedFood,
   gptCache,
   submit,
   onManualEntry,
@@ -37,10 +36,8 @@ export const FoodSearchInput = ({
   };
 
   const handleEditSuggestion = (s) => {
-    const entry = gptCache[s];
-    if (!entry?.items?.length) return;
-    setEditingFood({ key: formatFoodName(s), originalKey: s, foodId: entry.foodId, items: entry.items });
-    setEditModalVisible(true);
+    if (!gptCache[s]?.items?.length) return;
+    onEditSavedFood(s);
   };
 
   const handleScanLabel = () => {

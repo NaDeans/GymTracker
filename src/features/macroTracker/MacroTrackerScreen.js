@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { View, ScrollView, Text, RefreshControl, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
-import { useMacroTracker } from "./hooks/useMacroTracker";
+import { useMacroScreen } from "./context/MacroTrackerContext";
+import { useFoodEditor } from "./hooks/useFoodEditor";
 import { captureAndCompressLabelImage } from "./utils/imageUtils";
 import { createThemedStyles } from "./macroTrackerStyles";
 import { Badge } from "shared/components/Badge";
@@ -16,7 +17,6 @@ import { GoalModal } from "./components/GoalModal";
 import { MealsModal } from "./components/MealsModal";
 import { MealEditorModal } from "./components/MealEditorModal";
 import { EditCachedFoodModal } from "./components/EditCachedFoodModal";
-import { CacheManagerModal } from "./components/CacheManagerModal";
 import { ManualEntryModal } from "./components/ManualEntryModal";
 import { MealPrepModal } from "./components/MealPrepModal";
 import { SupplementsSection } from "./components/SupplementsSection";
@@ -26,9 +26,7 @@ export default function MacroTrackerScreen() {
   const {
     refreshing, onRefresh,
     mealsVisible, setMealsVisible,
-    editModalVisible, setEditModalVisible,
     goalModalVisible, setGoalModalVisible,
-    editingFood, setEditingFood,
     input, setInput,
     loading, scanLoading,
     gptCache, setGptCache,
@@ -63,27 +61,18 @@ export default function MacroTrackerScreen() {
     saveManualEntry,
     addEditedFoodToLog,
     updateLoggedFoodEntry,
-  } = useMacroTracker();
+  } = useMacroScreen();
 
-  const [cacheManagerVisible, setCacheManagerVisible] = useState(false);
   const [mealPrepVisible, setMealPrepVisible] = useState(false);
   const [openMealPrepId, setOpenMealPrepId] = useState(null);
+
+  // The edit modal is screen-local so it can't also pop open on the Saved
+  // Foods tab; the food data it edits still comes from the shared store.
+  const editor = useFoodEditor();
 
   const openMealPreps = (prepId = null) => {
     setOpenMealPrepId(prepId);
     setMealPrepVisible(true);
-  };
-
-  const handleEditLogEntry = (entry, idx) => {
-    setEditingFood({
-      key: formatFoodName(entry.key || entry.items[0]?.name || ""),
-      originalKey: entry.key,
-      foodId: entry.foodId,
-      items: entry.items,
-      logEntryIndex: idx,
-      ...(entry.mealName !== undefined && { mealName: entry.mealName }),
-    });
-    setEditModalVisible(true);
   };
 
   const { colors } = useTheme();
@@ -139,8 +128,7 @@ export default function MacroTrackerScreen() {
           suggestions={suggestions}
           setSuggestions={setSuggestions}
           setSuppressSuggestions={setSuppressSuggestions}
-          setEditingFood={setEditingFood}
-          setEditModalVisible={setEditModalVisible}
+          onEditSavedFood={(key) => editor.openSavedFood(key, gptCache[key])}
           gptCache={gptCache}
           submit={submit}
           loading={loading}
@@ -169,7 +157,7 @@ export default function MacroTrackerScreen() {
           loading={loading}
           setMealsVisible={setMealsVisible}
           setMealPrepVisible={() => openMealPreps()}
-          onEditEntry={handleEditLogEntry}
+          onEditEntry={editor.openLogEntry}
           onEditPrep={(prepId) => openMealPreps(prepId)}
           selectionMode={selectionMode}
           selectedItemIds={selectedItemIds}
@@ -221,24 +209,15 @@ export default function MacroTrackerScreen() {
       />
 
       <EditCachedFoodModal
-        visible={editModalVisible}
-        setVisible={setEditModalVisible}
-        editingFood={editingFood}
-        setEditingFood={setEditingFood}
+        visible={editor.visible}
+        setVisible={editor.setVisible}
+        editingFood={editor.editingFood}
+        setEditingFood={editor.setEditingFood}
         gptCache={gptCache}
         setGptCache={setGptCache}
         setSuggestions={setSuggestions}
         onAddToLog={addEditedFoodToLog}
         onSaveLogEntry={updateLoggedFoodEntry}
-      />
-
-      <CacheManagerModal
-        visible={cacheManagerVisible}
-        setVisible={setCacheManagerVisible}
-        gptCache={gptCache}
-        setGptCache={setGptCache}
-        setEditingFood={setEditingFood}
-        setEditModalVisible={setEditModalVisible}
       />
 
       <SupplementsModal

@@ -26,11 +26,7 @@ export const useMacroTracker = () => {
   // UI
   const [refreshing, setRefreshing] = useState(false);
   const [mealsVisible, setMealsVisible] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
   const [goalModalVisible, setGoalModalVisible] = useState(false);
-
-  // Food editing
-  const [editingFood, setEditingFood] = useState(null);
 
   // Meals
   const [meals, setMeals] = useState([]);
@@ -693,8 +689,7 @@ export const useMacroTracker = () => {
 
   // Accepts the edited food from the modal (which has already normalized the
   // number fields) rather than reading this hook's not-yet-updated state.
-  const addEditedFoodToLog = (foodOverride) => {
-    const food = foodOverride || editingFood;
+  const addEditedFoodToLog = (food) => {
     if (!food) return;
     const itemsWithRaw = food.items.map((i) => ({
       ...i,
@@ -782,9 +777,7 @@ export const useMacroTracker = () => {
   return {
     refreshing, onRefresh,
     mealsVisible, setMealsVisible,
-    editModalVisible, setEditModalVisible,
     goalModalVisible, setGoalModalVisible,
-    editingFood, setEditingFood,
     input, setInput,
     loading, scanLoading,
     gptCache, setGptCache,
