@@ -25,26 +25,43 @@ This is loaded via `react-native-dotenv` and imported as `import { ANTHROPIC_API
 
 ## Architecture
 
-React Native / Expo app with three tab screens. All state is local React hooks; persistence is `AsyncStorage` only — there is no backend or database. Code is organized by feature under `src/features/`, with shared components/hooks/utils under `src/shared/`.
+React Native / Expo app with four tab screens. All state is local React hooks; persistence is `AsyncStorage` only — there is no backend or database. Code is organized by feature under `src/features/`, with shared components/hooks/utils under `src/shared/`.
+
+**Three things are named like recipes and are not the same thing.** Keep them straight:
+- **Meals** (`MEALS`) — a named group of foods that logs as one block, built by ticking foods in the day's log.
+- **Meal preps** (`MEAL_PREPS`) — a bulk cook whose macros divide by a serving count.
+- **Recipes** (`RECIPES`) — free-form cooking notes on their own tab; nothing in them is parsed.
 
 ### Navigation
 
-`App.js` → `src/navigation/AppNavigator.js` → React Navigation bottom tab with three screens:
+`App.js` → `src/navigation/AppNavigator.js` → React Navigation bottom tab with four screens:
 - **Macros** → `src/features/macroTracker/MacroTrackerScreen.js`
-- **Calculator** → `src/features/calculator/CalculatorScreen.js`
+- **Saved** → `src/features/macroTracker/SavedFoodsScreen.js`
 - **Recipes** → `src/features/recipes/RecipesScreen.js`
+- **Calculator** → `src/features/calculator/CalculatorScreen.js`
 
-`App.js` also runs `purgeRemovedFeatureData()` (`src/shared/utils/legacyCleanup.js`) on mount, which clears the `REP_COUNTER_DATA` / `DAY_NOTES` keys left on devices by the removed rep-counter feature.
+Route names double as tab labels and are kept short — four have to fit a 64px bar at `FONT_SIZE.xs`. `TAB_ICONS` must gain an entry for any new tab.
 
-`AppNavigator` wraps everything in `ThemeProvider` (`src/shared/context/ThemeContext.js`), which supplies the app's single light color palette via `useTheme()`.
+`App.js` awaits `purgeRemovedFeatureData()` (`src/shared/utils/legacyCleanup.js`) and `migrateMealPrepsOffRecipesKey()` (`src/shared/utils/migrations.js`) before rendering the navigator. The gate matters for the second one: a pre-release build stored meal preps under `RECIPES`, and `useRecipes` does no shape checking, so it would load them as blank notes and save note-shaped data back over them.
+
+`AppNavigator` wraps everything in `ThemeProvider` (`src/shared/context/ThemeContext.js`), which supplies the app's single light color palette via `useTheme()`, and then in `MacroTrackerProvider`.
 
 ### Macro Tracker
 
-`useMacroTracker` (`src/features/macroTracker/hooks/useMacroTracker.js`) owns all macro state; the screen passes handlers down as props. Key state objects:
+`useMacroTracker` (`src/features/macroTracker/hooks/useMacroTracker.js`) owns all macro state. It is called **once**, by `MacroTrackerProvider` (`src/features/macroTracker/context/MacroTrackerContext.js`), above the navigator — two screens read it, and `saveMacroTrackerData` overwrites every key as one blob, so two hook instances would clobber each other last-writer-wins.
+
+The provider exposes two contexts on purpose. The hook returns a fresh ~50-key object every render and holds high-churn state (`input`, `gramInputs`, `loading`), so one context would re-render every tab on each keystroke:
+- `useMacroScreen()` — the raw hook, consumed only by `MacroTrackerScreen` (which re-renders per keystroke regardless).
+- `useMacroData()` — a memoised low-churn slice for other screens. Its handlers are wrapped in a ref so they keep a stable identity without capturing a stale `selectedDate`.
+
+Modal *visibility* is screen state, not app state: `useFoodEditor` (`hooks/useFoodEditor.js`) is held per screen so `EditCachedFoodModal` can't open on two tabs at once, while the food it edits still comes from the shared store.
+
+Key state objects:
 
 | State | AsyncStorage key | Description |
 |---|---|---|
 | `meals` | `MEALS` | `[{ id, name, items: [{ id, name, amount_g, calories, protein, carbs, fats, assumption }] }]` — saved groups of foods |
+| `mealPreps` | `MEAL_PREPS` | `[{ id, name, servings, ingredients: [...], createdAt, updatedAt }]` — bulk cooks, ingredients at full batch amounts |
 | `dailyLog` | `DAILY_LOG` | `{ [dateStr]: { items: { [id]: { item, count } }, totals } }` |
 | `historyByDate` | `HISTORY_BY_DATE` | `{ [dateStr]: [{ foodId, key, items, mealId?, mealName? }] }` — GPT/manual/meal entries per day |
 | `gptCache` | `GPT_CACHE` | `{ [searchKey]: { searchKey, foodId, items: [item], source?, aliases? } }` — saved foods, one food each |
@@ -74,6 +91,12 @@ still finds the saved food.
 **Voice search** (`src/shared/hooks/useVoiceSearch.js`, `expo-speech-recognition`)
 dictates into the search field. It is a native module with a config plugin, so it
 only works in a development or production build, never in Expo Go.
+
+**Meal preps** (`MealPrepModal`, helpers in `utils/mealPrepUtils.js`) are a bulk cook divided into servings. Macros divide by the serving count rather than being tracked by weight — cooking changes water, not calories — so the gram figure that falls out is a raw-ingredient sum and must be labelled "raw", never "serving weight".
+
+A logged serving is a **single synthetic item** whose `raw` is the per-serving macros, which is what makes `amount_g / raw.amount_g` the serving count and lets `calcTotals`, `updateGrams`, `clearItem` and the exports carry fractional servings unchanged. Servings and count are independent axes: totals are `perServing × servings × count`, so two helpings of one serve and one helping of two serves weigh the same but read differently. The item carries an immutable snapshot, so editing a prep never rewrites days already logged.
+
+Logged preps keep the legacy `recipe_` id prefix and a snapshot that may sit under either `item.mealPrep` or the older `item.recipe` — always read it through `mealPrepSnapshot(item)`. Those ids are keys into `dailyLog` and `historyByDate`, so renaming them would mean rewriting every day already logged.
 
 ### Recipes
 
