@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fmt } from "shared/utils/numberUtils";
 import {
@@ -24,9 +24,16 @@ export const useCalculator = () => {
   const [ormWeight, setOrmWeight] = useState("");
   const [ormReps, setOrmReps] = useState("");
 
+  // Guards the save effect: without it, the first render saves the empty
+  // initial state over the stored data before the load below resolves.
+  const hasLoaded = useRef(false);
+
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
-      if (!stored) return;
+      if (!stored) {
+        hasLoaded.current = true;
+        return;
+      }
       const parsed = JSON.parse(stored);
       setWeightKg(parsed.weightKg || "");
       setWeightLb(parsed.weightLb || "");
@@ -39,10 +46,17 @@ export const useCalculator = () => {
       setVolumeCups(parsed.volumeCups || "");
       setOrmWeight(parsed.ormWeight || "");
       setOrmReps(parsed.ormReps || "");
+      hasLoaded.current = true;
+    }).catch((err) => {
+      // Unreadable stored value: start fresh rather than leaving the save
+      // effect permanently disabled.
+      console.error("Error loading calculator values:", err);
+      hasLoaded.current = true;
     });
   }, []);
 
   useEffect(() => {
+    if (!hasLoaded.current) return;
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({
       weightKg, weightLb,
       energyKcal, energyKj,

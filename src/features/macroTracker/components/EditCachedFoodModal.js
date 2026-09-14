@@ -1,5 +1,6 @@
 import { View, Text, Alert } from "react-native";
 import { safeNumber } from "shared/utils/numberUtils";
+import { titleCase } from "../utils/macroUtils";
 import { ModalSheet } from "shared/components/ModalSheet";
 import { TextField } from "shared/components/TextField";
 import { Button } from "shared/components/Button";
@@ -34,14 +35,31 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
 
   const isLogEdit = editingFood.logEntryIndex !== undefined;
 
+  // Only ever deletes the saved (cached) food. When the modal was opened on a
+  // logged entry there's a Clear button on the log card for that, and deleting
+  // the cache entry from here silently removed a *different* thing than the
+  // one on screen — so the button is hidden in that mode instead.
   const handleDelete = () => {
-    setGptCache((prev) => {
-      const updated = { ...prev };
-      delete updated[editingFood.originalKey];
-      return updated;
-    });
-    setSuggestions([]);
-    setVisible(false);
+    Alert.alert(
+      "Delete Saved Food?",
+      `Remove "${titleCase(editingFood.originalKey)}" from your saved foods? This can't be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            setGptCache((prev) => {
+              const updated = { ...prev };
+              delete updated[editingFood.originalKey];
+              return updated;
+            });
+            setSuggestions([]);
+            setVisible(false);
+          },
+        },
+      ]
+    );
   };
 
   // Returns the normalized items on success, or false if validation failed.
@@ -96,7 +114,9 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
       footer={
         <View style={{ gap: SPACING.sm }}>
           <View style={{ flexDirection: "row", gap: SPACING.sm }}>
-            <Button variant="danger" onPress={handleDelete} style={{ flex: 1 }}>Delete</Button>
+            {!isLogEdit && editingFood.originalKey && (
+              <Button variant="danger" onPress={handleDelete} style={{ flex: 1 }}>Delete</Button>
+            )}
             <Button variant="primary" onPress={handleSave} style={{ flex: 1 }}>Save</Button>
           </View>
           {!isLogEdit && <Button variant="success" onPress={handleAddToLog} fullWidth>Add to Log</Button>}
@@ -120,7 +140,7 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
               key={field}
               label={FIELD_LABELS[field]}
               value={field === "name" ? item.name : item[field]?.toString() || ""}
-              keyboardType={field === "name" ? "default" : "numeric"}
+              keyboardType={field === "name" ? "default" : "decimal-pad"}
               onChangeText={(v) => {
                 const items = [...editingFood.items];
                 items[index] = { ...items[index], [field]: v };

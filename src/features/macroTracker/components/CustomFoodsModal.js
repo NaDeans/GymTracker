@@ -22,6 +22,29 @@ export const CustomFoodsModal = ({
 }) => {
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
+  const handleDelete = (food) => {
+    Alert.alert(
+      "Delete Food?",
+      `Remove "${food.name}" from your custom foods? This can't be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            setCustomFoods((f) => f.filter((x) => x.id !== food.id));
+            // Leaving the form in edit mode for a food that no longer exists
+            // would silently re-create it on save.
+            if (editingFoodId === food.id) {
+              setEditingFoodId(null);
+              setNewFood({ name: "", amount_g: "", calories: "", protein: "", carbs: "", fats: "" });
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleSave = () => {
     if (!newFood.name.trim()) {
       Alert.alert("Missing Name", "Please enter a name for this food.");
@@ -53,8 +76,10 @@ export const CustomFoodsModal = ({
       {customFoods.map((food) => (
         <Card key={food.id} style={{ marginBottom: SPACING.md }}>
           <Text style={{ fontWeight: FONT_WEIGHT.semibold, fontSize: FONT_SIZE.md, color: colors.textDark, marginBottom: SPACING.sm }}>{food.name}</Text>
+          {/* Leads with the gram amount: without it there's no telling whether
+              these macros are per 100 g or per serving. */}
           <Text style={{ fontSize: FONT_SIZE.sm, color: colors.textLight, marginBottom: SPACING.sm }}>
-            {`Cal: ${food.calories} kcal | P: ${food.protein}g | C: ${food.carbs}g | F: ${food.fats}g`}
+            {`${food.amount_g || 0}g · ${food.calories} kcal | P: ${food.protein}g | C: ${food.carbs}g | F: ${food.fats}g`}
           </Text>
           <View style={styles.foodActionsRow}>
             <View style={styles.foodActionsLeft}>
@@ -77,7 +102,7 @@ export const CustomFoodsModal = ({
                 Edit
               </Button>
             </View>
-            <Button variant="danger" size="sm" onPress={() => setCustomFoods((f) => f.filter((x) => x.id !== food.id))}>Delete</Button>
+            <Button variant="danger" size="sm" onPress={() => handleDelete(food)}>Delete</Button>
           </View>
         </Card>
       ))}
@@ -87,7 +112,7 @@ export const CustomFoodsModal = ({
       {customFoodFields.map((f) => (
         <TextField
           key={f.key}
-          placeholder={f.label}
+          label={f.label}
           keyboardType={f.keyboardType}
           value={newFood[f.key]}
           onChangeText={(v) => setNewFood((prev) => ({ ...prev, [f.key]: v }))}

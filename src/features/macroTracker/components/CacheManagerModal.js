@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { View, Text, Alert, FlatList, useWindowDimensions } from "react-native";
 import { fmt, safeNumber } from "shared/utils/numberUtils";
+import { titleCase } from "../utils/macroUtils";
 import { createThemedStyles } from "../macroTrackerStyles";
 import { ModalSheet } from "shared/components/ModalSheet";
 import { TextField } from "shared/components/TextField";
@@ -8,8 +9,6 @@ import { Card } from "shared/components/Card";
 import { IconButton } from "shared/components/IconButton";
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from "shared/constants/styles";
 import { useTheme } from "shared/hooks/useTheme";
-
-const titleCase = (s) => s.replace(/\b\w/g, (c) => c.toUpperCase());
 
 const sumMacros = (items) =>
   items.reduce(

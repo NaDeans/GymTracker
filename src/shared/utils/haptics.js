@@ -13,18 +13,6 @@ export const triggerImpact = (style = "light") => {
   } catch {}
 };
 
-export const triggerNotification = (type = "success") => {
-  if (Platform.OS === "web") return;
-  const map = {
-    success: Haptics.NotificationFeedbackType.Success,
-    warning: Haptics.NotificationFeedbackType.Warning,
-    error: Haptics.NotificationFeedbackType.Error,
-  };
-  try {
-    Haptics.notificationAsync(map[type] || Haptics.NotificationFeedbackType.Success);
-  } catch {}
-};
-
 export const triggerSelection = () => {
   if (Platform.OS === "web") return;
   try {

@@ -4,13 +4,14 @@ const DEFAULT_GOALS = { calories: 2400, protein: 150, carbs: 330, fats: 70 };
 
 export const loadMacroTrackerData = async () => {
   try {
-    const [savedCustomFoods, savedDailyLog, savedHistoryByDate, savedGoals, savedCache] =
+    const [savedCustomFoods, savedDailyLog, savedHistoryByDate, savedGoals, savedCache, savedRecipes] =
       await Promise.all([
         AsyncStorage.getItem("CUSTOM_FOODS"),
         AsyncStorage.getItem("DAILY_LOG"),
         AsyncStorage.getItem("HISTORY_BY_DATE"),
         AsyncStorage.getItem("GOALS"),
         AsyncStorage.getItem("GPT_CACHE"),
+        AsyncStorage.getItem("RECIPES"),
       ]);
 
     return {
@@ -19,14 +20,15 @@ export const loadMacroTrackerData = async () => {
       historyByDate: savedHistoryByDate ? JSON.parse(savedHistoryByDate) : {},
       goals: savedGoals ? JSON.parse(savedGoals) : DEFAULT_GOALS,
       gptCache: savedCache ? JSON.parse(savedCache) : {},
+      recipes: savedRecipes ? JSON.parse(savedRecipes) : [],
     };
   } catch (err) {
     console.error("Error loading macro tracker data:", err);
-    return { customFoods: [], dailyLog: {}, historyByDate: {}, goals: DEFAULT_GOALS, gptCache: {} };
+    return { customFoods: [], dailyLog: {}, historyByDate: {}, goals: DEFAULT_GOALS, gptCache: {}, recipes: [] };
   }
 };
 
-export const saveMacroTrackerData = async ({ customFoods, dailyLog, historyByDate, goals, gptCache }) => {
+export const saveMacroTrackerData = async ({ customFoods, dailyLog, historyByDate, goals, gptCache, recipes }) => {
   try {
     await Promise.all([
       AsyncStorage.setItem("CUSTOM_FOODS", JSON.stringify(customFoods)),
@@ -34,6 +36,7 @@ export const saveMacroTrackerData = async ({ customFoods, dailyLog, historyByDat
       AsyncStorage.setItem("HISTORY_BY_DATE", JSON.stringify(historyByDate)),
       AsyncStorage.setItem("GOALS", JSON.stringify(goals)),
       AsyncStorage.setItem("GPT_CACHE", JSON.stringify(gptCache)),
+      AsyncStorage.setItem("RECIPES", JSON.stringify(recipes)),
     ]);
   } catch (err) {
     console.error("Error saving macro tracker data:", err);

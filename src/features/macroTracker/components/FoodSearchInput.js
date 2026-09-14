@@ -1,4 +1,5 @@
 import { View, Text, Pressable, Keyboard, Alert } from "react-native";
+import { titleCase } from "../utils/macroUtils";
 import { createThemedStyles } from "../macroTrackerStyles";
 import { TextField } from "shared/components/TextField";
 import { Button } from "shared/components/Button";
@@ -20,6 +21,7 @@ export const FoodSearchInput = ({
   onManualEntry,
   onScanLabel,
   loading,
+  scanLoading,
 }) => {
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
@@ -55,13 +57,13 @@ export const FoodSearchInput = ({
         value={input}
         onChangeText={setInput}
         onSubmitEditing={() => submit()}
-        multiline={true}
+        returnKeyType="search"
         keyboardOffset={220}
         style={{ marginBottom: SPACING.sm }}
       />
       <View style={styles.searchButtonRow}>
-        <Button variant="secondary" size="md" icon="add" onPress={onManualEntry} style={{ flex: 1 }}>Manual</Button>
-        <Button variant="secondary" size="md" icon="camera" loading={loading} disabled={loading} onPress={handleScanLabel} style={{ flex: 1 }}>Scan Label</Button>
+        <Button variant="secondary" size="md" icon="add" disabled={loading || scanLoading} onPress={onManualEntry} style={{ flex: 1 }}>Manual</Button>
+        <Button variant="secondary" size="md" icon="camera" loading={scanLoading} disabled={scanLoading} onPress={handleScanLabel} style={{ flex: 1 }}>Scan Label</Button>
       </View>
 
       {suggestions.length > 0 && (
@@ -69,7 +71,7 @@ export const FoodSearchInput = ({
           {suggestions.map((s, i) => (
             <View key={s} style={[styles.suggestionRow, i > 0 && styles.suggestionDivider]}>
               <Pressable style={styles.suggestionTouchable} onPress={() => handleSelectSuggestion(s)}>
-                <Text style={styles.suggestionText}>{s}</Text>
+                <Text style={styles.suggestionText}>{titleCase(s)}</Text>
               </Pressable>
               {gptCache[s]?.source === "manual" && (
                 <View style={styles.manualTag}>

@@ -1,16 +1,5 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Commands
-
-```bash
-npm start          # Start Expo dev server (scan QR with Expo Go)
-npm run android    # Start on Android emulator/device
-npm run ios        # Start on iOS simulator/device
-npm run web        # Start in browser
-```
-
 No test suite or linter is configured.
 
 ## Environment Setup
@@ -25,43 +14,29 @@ This is loaded via `react-native-dotenv` and imported as `import { ANTHROPIC_API
 
 ## Architecture
 
-React Native / Expo app with two tab screens. All state is local React hooks; persistence is `AsyncStorage` only — there is no backend or database. Code is organized by feature under `src/features/`, with shared components/hooks/utils under `src/shared/`.
+Persistence is `AsyncStorage` only — there is no backend or database.
 
-### Navigation
+`App.js` runs `purgeRemovedFeatureData()` (`src/shared/utils/legacyCleanup.js`) on mount, which clears the `REP_COUNTER_DATA` / `DAY_NOTES` keys left on devices by the removed rep-counter feature.
 
-`App.js` → `src/navigation/AppNavigator.js` → React Navigation bottom tab with two screens:
-- **Macros** → `src/features/macroTracker/MacroTrackerScreen.js`
-- **Calculator** → `src/features/calculator/CalculatorScreen.js`
-
-`App.js` also runs `purgeRemovedFeatureData()` (`src/shared/utils/legacyCleanup.js`) on mount, which clears the `REP_COUNTER_DATA` / `DAY_NOTES` keys left on devices by the removed rep-counter feature.
-
-`AppNavigator` wraps everything in `ThemeProvider` (`src/shared/context/ThemeContext.js`), which supplies the app's single light color palette via `useTheme()`.
+`ThemeProvider` (`src/shared/context/ThemeContext.js`) supplies the app's single light color palette via `useTheme()` — there is no dark theme.
 
 ### Macro Tracker
-
-`useMacroTracker` (`src/features/macroTracker/hooks/useMacroTracker.js`) owns all macro state; the screen passes handlers down as props. Key state objects:
-
-| State | AsyncStorage key | Description |
-|---|---|---|
-| `customFoods` | `CUSTOM_FOODS` | User-defined foods with known macros |
-| `dailyLog` | `DAILY_LOG` | `{ [dateStr]: { items: { [id]: { item, count } }, totals } }` |
-| `historyByDate` | `HISTORY_BY_DATE` | `{ [dateStr]: [{ foodId, key, items }] }` — GPT/custom food entries per day |
-| `gptCache` | `GPT_CACHE` | `{ [searchKey]: { searchKey, foodId, items } }` — cached GPT responses |
-| `goals` | `GOALS` | `{ calories, protein, carbs, fats }` targets |
 
 Food lookup flow: user types → check `gptCache` → if miss, call the Claude API (`claude-haiku-4-5`, structured outputs, via raw `fetch` — the `@anthropic-ai/sdk` package is deliberately NOT used because it imports `node:fs`, which Metro cannot bundle for native) from `services/gptService.js` → normalize via `utils/gptUtils.js` → store in cache and add to `historyByDate`. (File/state names keep the legacy "gpt" prefix.) There is also a scan-label flow: photo → `utils/imageUtils.js` (resize/compress via expo-image-manipulator) → `fetchNutritionFromImage`.
 
 `dailyLog` and `historyByDate` serve different purposes: `dailyLog` tracks item counts and running totals for display; `historyByDate` preserves the original GPT entries (used by `DailyControls` to render each meal entry with +/- controls).
 
+`lookupFood(query)` in the hook resolves a search to nutrition items (cache, else API) without logging anything; `submit` wraps it with the logging, alerts and dedupe. The meal-prep builder uses `lookupFood` directly so it never writes to `historyByDate`.
+
+### Meal Preps
+
+A bulk cook saved as a reusable recipe: `recipes` (`RECIPES` key) holds `{ id, name, servings, ingredients }` with the ingredients at FULL batch amounts. Macros are divided by `servings` rather than tracked by weight, so the per-serving gram figure is a raw-ingredient sum — label it "raw", never "serving weight" (`utils/recipeUtils.js`).
+
+Logging a serving writes ONE synthetic item (`buildRecipeLogItem`) whose `raw` is the per-serving macros and which carries an immutable `recipe` snapshot, so `calcTotals`/`updateGrams`/`clearItem`/export all work unchanged, fractional servings fall out of `amount_g / raw.amount_g`, and editing a recipe never rewrites already-logged days. `DailyControls` renders these via `RecipeLogItem` (branching on `item.recipe`) instead of `DailyLogItem`.
+
 ### Module Aliases
 
-`jsconfig.json` sets `baseUrl: "src"`, so all imports resolve from `src/`. Examples:
-
-```js
-import { useTheme } from "shared/hooks/useTheme";
-import { Button } from "shared/components/Button";
-import MacroTrackerScreen from "features/macroTracker/MacroTrackerScreen";
-```
+`jsconfig.json` sets `baseUrl: "src"`, so all imports resolve from `src/` (e.g. `import { useTheme } from "shared/hooks/useTheme"`).
 
 ### Date Formats
 
@@ -70,4 +45,4 @@ import MacroTrackerScreen from "features/macroTracker/MacroTrackerScreen";
 
 ### Styling
 
-The color palette lives in `src/shared/constants/colors.js` (`COLORS`, also exported as `themes.light`). Layout tokens are in `src/shared/constants/styles.js` (`SPACING`, `FONT_SIZE`, `FONT_WEIGHT`, `BORDER_RADIUS`, `SHADOW`, `CONTROL_HEIGHT`). Components get colors via `useTheme()` and per-feature `createThemedStyles(colors)` factories (e.g. `src/features/macroTracker/macroTrackerStyles.js`) — never import `COLORS` directly in new UI.
+Components get colors via `useTheme()` and per-feature `createThemedStyles(colors)` factories (e.g. `src/features/macroTracker/macroTrackerStyles.js`) — never import `COLORS` from `src/shared/constants/colors.js` directly in new UI. Layout tokens (`SPACING`, `FONT_SIZE`, `FONT_WEIGHT`, `BORDER_RADIUS`, `SHADOW`, `CONTROL_HEIGHT`) live in `src/shared/constants/styles.js`.

@@ -1,7 +1,9 @@
 import { ModalSheet } from "shared/components/ModalSheet";
 import { Stepper } from "shared/components/Stepper";
 import { Button } from "shared/components/Button";
-import { Keyboard } from "react-native";
+import { titleCase } from "../utils/macroUtils";
+import { SPACING } from "shared/constants/styles";
+import { View, Keyboard } from "react-native";
 
 export const GoalModal = ({ visible, setVisible, editingMacro, goalInput, setGoalInput, setGoals }) => {
   const step = editingMacro === "calories" ? 50 : 5;
@@ -17,9 +19,14 @@ export const GoalModal = ({ visible, setVisible, editingMacro, goalInput, setGoa
     <ModalSheet
       visible={visible}
       onClose={() => setVisible(false)}
-      title={`Set goal for ${editingMacro}`}
+      title={`Set ${titleCase(editingMacro)} Goal`}
       scrollable={false}
-      footer={<Button variant="primary" fullWidth onPress={handleSave}>Save</Button>}
+      footer={
+        <View style={{ flexDirection: "row", gap: SPACING.sm }}>
+          <Button variant="secondary" style={{ flex: 1 }} onPress={() => setVisible(false)}>Cancel</Button>
+          <Button variant="primary" style={{ flex: 1 }} onPress={handleSave}>Save</Button>
+        </View>
+      }
     >
       <Stepper
         value={goalInput}
@@ -27,7 +34,9 @@ export const GoalModal = ({ visible, setVisible, editingMacro, goalInput, setGoa
         onDraftChange={setGoalInput}
         onCommit={setGoalInput}
         step={step}
-        min={0}
+        // A goal of 0 makes the progress bar divide by its `|| 1` fallback and
+        // makes "goal met" demand a total of exactly zero.
+        min={1}
         suffix={suffix}
       />
     </ModalSheet>

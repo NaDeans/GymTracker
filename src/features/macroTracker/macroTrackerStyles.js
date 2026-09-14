@@ -54,6 +54,17 @@ export const createThemedStyles = (colors) => StyleSheet.create({
   customFoodTag: { backgroundColor: colors.neutralSurface, borderRadius: BORDER_RADIUS.pill, paddingHorizontal: SPACING.sm, paddingVertical: 2 },
   customFoodTagText: { fontSize: FONT_SIZE.xs, color: colors.neutralDark, fontWeight: FONT_WEIGHT.semibold },
 
+  /* ================= MEAL PREPS ================= */
+  recipeTag: { backgroundColor: colors.primarySurface, borderRadius: BORDER_RADIUS.pill, paddingHorizontal: SPACING.sm, paddingVertical: 2 },
+  recipeTagText: { fontSize: FONT_SIZE.xs, color: colors.primary, fontWeight: FONT_WEIGHT.semibold },
+  recipeMeta: { fontSize: FONT_SIZE.xs, color: colors.textMuted, marginTop: 2 },
+  ingredientRow: { flexDirection: "row", alignItems: "center", gap: SPACING.xs, paddingVertical: 3 },
+  ingredientText: { flex: 1, fontSize: FONT_SIZE.xs, color: colors.textMedium },
+  ingredientList: { marginTop: SPACING.xs, paddingTop: SPACING.xs, borderTopWidth: 1, borderTopColor: colors.border },
+  perServingBox: { backgroundColor: colors.surface1, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginTop: SPACING.sm },
+  perServingLabel: { fontSize: FONT_SIZE.xs, color: colors.textMuted, fontWeight: FONT_WEIGHT.semibold, marginBottom: 2 },
+  perServingValue: { fontSize: FONT_SIZE.sm, color: colors.textDark, fontWeight: FONT_WEIGHT.semibold },
+
   /* ================= HISTORY / DAILY LOG ================= */
   historyBlock: {},
   itemBlock: {},

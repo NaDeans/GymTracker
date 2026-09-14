@@ -81,11 +81,15 @@ export const isGoalMet = (totals, goals, hasItems, tolerancePct = 0.10) => {
   });
 };
 
+// Cache keys are stored lowercased (they're search strings); every surface that
+// shows one to the user title-cases it first.
+export const titleCase = (s) => (s || "").replace(/\b\w/g, (c) => c.toUpperCase());
+
 export const customFoodFields = [
   { key: "name", label: "Food Name", keyboardType: "default" },
-  { key: "amount_g", label: "Weight (g)", keyboardType: "numeric" },
-  { key: "calories", label: "Calories", keyboardType: "numeric" },
-  { key: "protein", label: "Protein", keyboardType: "numeric" },
-  { key: "carbs", label: "Carbs", keyboardType: "numeric" },
-  { key: "fats", label: "Fats", keyboardType: "numeric" },
+  { key: "amount_g", label: "Weight (g)", keyboardType: "decimal-pad" },
+  { key: "calories", label: "Calories", keyboardType: "decimal-pad" },
+  { key: "protein", label: "Protein (g)", keyboardType: "decimal-pad" },
+  { key: "carbs", label: "Carbs (g)", keyboardType: "decimal-pad" },
+  { key: "fats", label: "Fats (g)", keyboardType: "decimal-pad" },
 ];

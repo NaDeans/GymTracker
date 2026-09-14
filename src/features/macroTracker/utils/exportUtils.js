@@ -1,5 +1,6 @@
-import { fmt } from "shared/utils/numberUtils";
+import { fmt, safeNumber } from "shared/utils/numberUtils";
 import { shiftDmy } from "shared/utils/dateUtils";
+import { isRecipeItem, servingsFromItem } from "./recipeUtils";
 
 // Builds the food-line list + totals for a single day. Shared by the
 // single-day and multi-day export formatters.
@@ -21,6 +22,21 @@ const buildDayLines = (date, historyByDate, dailyLog) => {
       if (!logged || seen.has(historyItem.id)) return;
       seen.add(historyItem.id);
       const { item, count } = logged;
+
+      // A meal prep is one item standing in for a whole portioned batch, so
+      // report it in servings and list what went into that portion.
+      if (isRecipeItem(item)) {
+        const servings = servingsFromItem(item);
+        const batch = Math.max(1, safeNumber(item.recipe.servings) || 1);
+        foodLines.push(
+          `- ${item.name} (${fmt(servings)} serving${servings === 1 ? "" : "s"} of a ${batch}-meal prep): ${fmt(item.calories * count)} kcal, P ${fmt(item.protein * count)}g, C ${fmt(item.carbs * count)}g, F ${fmt(item.fats * count)}g`
+        );
+        item.recipe.ingredients.forEach((ing) => {
+          foodLines.push(`    · ${ing.name} ${fmt((safeNumber(ing.amount_g) / batch) * servings)}g`);
+        });
+        return;
+      }
+
       const countSuffix = count > 1 ? ` ×${count}` : "";
       foodLines.push(
         `- ${item.name} (${fmt(item.amount_g)}g)${countSuffix}: ${fmt(item.calories * count)} kcal, P ${fmt(item.protein * count)}g, C ${fmt(item.carbs * count)}g, F ${fmt(item.fats * count)}g`

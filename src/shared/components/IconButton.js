@@ -8,7 +8,7 @@ import { useTheme } from "shared/hooks/useTheme";
 const createVariants = (colors) => ({
   primary: { bg: colors.primary, pressedBg: colors.primaryDark, icon: colors.textOnPrimary },
   secondary: { bg: colors.neutralSurface, pressedBg: colors.border, icon: colors.neutralDark },
-  danger: { bg: colors.dangerSurface, pressedBg: colors.redLight, icon: colors.danger },
+  danger: { bg: colors.dangerSurface, pressedBg: colors.dangerSurfacePressed, icon: colors.danger },
   ghost: { bg: "transparent", pressedBg: colors.neutralSurface, icon: colors.neutralDark },
 });
 

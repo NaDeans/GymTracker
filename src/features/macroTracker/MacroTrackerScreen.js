@@ -16,6 +16,7 @@ import { CustomFoodsModal } from "./components/CustomFoodsModal";
 import { EditCachedFoodModal } from "./components/EditCachedFoodModal";
 import { CacheManagerModal } from "./components/CacheManagerModal";
 import { ManualEntryModal } from "./components/ManualEntryModal";
+import { MealPrepModal } from "./components/MealPrepModal";
 
 export default function MacroTrackerScreen() {
   const {
@@ -28,7 +29,7 @@ export default function MacroTrackerScreen() {
     newFood, setNewFood,
     editingFoodId, setEditingFoodId,
     input, setInput,
-    loading,
+    loading, scanLoading,
     gptCache, setGptCache,
     suggestions, setSuggestions,
     setSuppressSuggestions,
@@ -44,6 +45,7 @@ export default function MacroTrackerScreen() {
     goalInput, setGoalInput,
     addItem, removeItem, clearItem, updateGrams, resetDay, exportDay, exportRange,
     addCustomFood, submit, submitFromImage,
+    recipes, saveRecipe, deleteRecipe, logRecipeServing, lookupFood,
     manualEntryVisible, setManualEntryVisible,
     manualEntryName, setManualEntryName,
     manualEntryInitialValues, closeManualEntry,
@@ -53,6 +55,13 @@ export default function MacroTrackerScreen() {
   } = useMacroTracker();
 
   const [cacheManagerVisible, setCacheManagerVisible] = useState(false);
+  const [mealPrepVisible, setMealPrepVisible] = useState(false);
+  const [mealPrepRecipeId, setMealPrepRecipeId] = useState(null);
+
+  const openMealPreps = (recipeId = null) => {
+    setMealPrepRecipeId(recipeId);
+    setMealPrepVisible(true);
+  };
 
   const handleEditLogEntry = (entry, idx) => {
     setEditingFood({
@@ -123,6 +132,7 @@ export default function MacroTrackerScreen() {
           gptCache={gptCache}
           submit={submit}
           loading={loading}
+          scanLoading={scanLoading}
           onManualEntry={() => { closeManualEntry(); setManualEntryName(input.trim()); setManualEntryVisible(true); }}
           onScanLabel={async (source) => {
             const result = await captureAndCompressLabelImage(source);
@@ -147,6 +157,8 @@ export default function MacroTrackerScreen() {
           loading={loading}
           setFoodDbVisible={setFoodDbVisible}
           setCacheManagerVisible={setCacheManagerVisible}
+          onOpenMealPreps={() => openMealPreps()}
+          onEditRecipe={(recipeId) => openMealPreps(recipeId)}
           onEditEntry={handleEditLogEntry}
         />
       </KeyboardScrollProvider>
@@ -201,6 +213,20 @@ export default function MacroTrackerScreen() {
         initialName={manualEntryName}
         initialValues={manualEntryInitialValues}
         onSave={saveManualEntry}
+      />
+
+      <MealPrepModal
+        visible={mealPrepVisible}
+        setVisible={setMealPrepVisible}
+        recipes={recipes}
+        saveRecipe={saveRecipe}
+        deleteRecipe={deleteRecipe}
+        logRecipeServing={logRecipeServing}
+        lookupFood={lookupFood}
+        gptCache={gptCache}
+        customFoods={customFoods}
+        openRecipeId={mealPrepRecipeId}
+        onConsumeOpenRecipeId={() => setMealPrepRecipeId(null)}
       />
     </View>
   );

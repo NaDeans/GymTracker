@@ -8,7 +8,15 @@ import { calcCurrentStreak, dayHasLog } from "shared/utils/streakUtils";
 import { calcTotals, entryExistsForDay, isGoalMet } from "../utils/macroUtils";
 import { loadMacroTrackerData, saveMacroTrackerData } from "../utils/storageUtils";
 import { fetchNutritionFromGPT, fetchNutritionFromImage } from "../services/gptService";
+import { buildRecipeLogItem } from "../utils/recipeUtils";
 import { formatDayForExport, formatRangeForExport } from "../utils/exportUtils";
+
+// Snapshots an item's values as its unscaled base serving, so later gram edits
+// always rescale from the original rather than compounding.
+const withRaw = (i) => ({
+  ...i,
+  raw: { calories: i.calories, protein: i.protein, carbs: i.carbs, fats: i.fats, amount_g: i.amount_g },
+});
 
 export const useMacroTracker = () => {
   // UI
@@ -25,7 +33,9 @@ export const useMacroTracker = () => {
 
   // Search / suggestions
   const [input, setInput] = useState("");
+  // Separate flags: a text search in flight shouldn't spin the Scan button.
   const [loading, setLoading] = useState(false);
+  const [scanLoading, setScanLoading] = useState(false);
   const [gptCache, setGptCache] = useState({});
   const [suggestions, setSuggestions] = useState([]);
   const [suppressSuggestions, setSuppressSuggestions] = useState(false);
@@ -41,6 +51,9 @@ export const useMacroTracker = () => {
   const [dailyLog, setDailyLog] = useState({});
   const [gramInputs, setGramInputs] = useState({});
 
+  // Meal prep recipes
+  const [recipes, setRecipes] = useState([]);
+
   // Goals
   const [goals, setGoals] = useState({ calories: 2400, protein: 150, carbs: 330, fats: 70 });
   const [editingMacro, setEditingMacro] = useState("");
@@ -50,6 +63,13 @@ export const useMacroTracker = () => {
   // initial state over the stored data before the load below resolves.
   const hasLoaded = useRef(false);
 
+  // `submit` awaits the API before checking for a duplicate, by which point its
+  // captured `historyByDate` can be a render or two behind. Reading the check
+  // through a ref keeps it current without putting it inside a state updater,
+  // which has to stay pure.
+  const historyRef = useRef(historyByDate);
+  historyRef.current = historyByDate;
+
   useEffect(() => {
     loadMacroTrackerData().then((data) => {
       setCustomFoods(data.customFoods);
@@ -57,14 +77,15 @@ export const useMacroTracker = () => {
       setHistoryByDate(data.historyByDate);
       setGoals(data.goals);
       setGptCache(data.gptCache);
+      setRecipes(data.recipes);
       hasLoaded.current = true;
     });
   }, []);
 
   useEffect(() => {
     if (!hasLoaded.current) return;
-    saveMacroTrackerData({ customFoods, dailyLog, historyByDate, goals, gptCache });
-  }, [customFoods, dailyLog, historyByDate, goals, gptCache]);
+    saveMacroTrackerData({ customFoods, dailyLog, historyByDate, goals, gptCache, recipes });
+  }, [customFoods, dailyLog, historyByDate, goals, gptCache, recipes]);
 
   useEffect(() => {
     if (suppressSuggestions) { setSuppressSuggestions(false); return; }
@@ -90,6 +111,7 @@ export const useMacroTracker = () => {
       setDailyLog(data.dailyLog);
       setHistoryByDate(data.historyByDate);
       setGptCache(data.gptCache);
+      setRecipes(data.recipes);
     } catch (err) {
       console.error("Refresh error:", err);
     }
@@ -135,8 +157,11 @@ export const useMacroTracker = () => {
       const day = prev[selectedDate];
       if (!day?.items[item.id]) return prev;
       const newItems = { ...day.items };
-      newItems[item.id].count -= 1;
-      if (newItems[item.id].count <= 0) delete newItems[item.id];
+      // Replace rather than decrement in place — the { item, count } object is
+      // shared with the previous state object until it's copied.
+      const nextCount = newItems[item.id].count - 1;
+      if (nextCount <= 0) delete newItems[item.id];
+      else newItems[item.id] = { ...newItems[item.id], count: nextCount };
       return { ...prev, [selectedDate]: { items: newItems, totals: calcTotals(newItems) } };
     });
   };
@@ -214,21 +239,109 @@ export const useMacroTracker = () => {
   };
 
   const addCustomFood = (food) => {
-    const item = {
+    // The day entry is keyed by the custom food's own id, so adding the same
+    // one twice bumps the count instead of stacking a second card. `foodId`
+    // stays absent — that's what marks the entry as custom in DailyControls.
+    const dayHistory = historyByDate[selectedDate] || [];
+    if (dayHistory.some((entry) => entry.customFoodId === food.id)) {
+      Alert.alert("Already added", "This food is already in today's log.");
+      return;
+    }
+
+    const item = withRaw({
       ...food,
-      id: Date.now().toString(),
+      id: `custom_${food.id}`,
       amount_g: safeNumber(food.amount_g),
       calories: safeNumber(food.calories),
       protein: safeNumber(food.protein),
       carbs: safeNumber(food.carbs),
       fats: safeNumber(food.fats),
       assumption: null,
-    };
-    setHistoryByDate((prev) => {
-      const newItem = { ...item, raw: { calories: item.calories, protein: item.protein, carbs: item.carbs, fats: item.fats, amount_g: item.amount_g } };
-      return { ...prev, [selectedDate]: [{ items: [newItem] }, ...(prev[selectedDate] || [])] };
     });
+
+    setHistoryByDate((prev) => ({
+      ...prev,
+      [selectedDate]: [{ customFoodId: food.id, items: [item] }, ...(prev[selectedDate] || [])],
+    }));
+    addItem(item);
     setFoodDbVisible(false);
+  };
+
+  const saveRecipe = (recipe) => {
+    const stamped = { ...recipe, updatedAt: Date.now() };
+    setRecipes((prev) => {
+      const idx = prev.findIndex((r) => r.id === recipe.id);
+      if (idx === -1) return [{ createdAt: Date.now(), ...stamped }, ...prev];
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], ...stamped };
+      return updated;
+    });
+  };
+
+  const deleteRecipe = (recipeId) => {
+    setRecipes((prev) => prev.filter((r) => r.id !== recipeId));
+  };
+
+  // Logs `servings` of a prep as a SINGLE synthetic item whose `raw` is the
+  // per-serving macros — so amount_g / raw.amount_g is the serving count and
+  // the existing gram machinery (updateGrams, calcTotals) handles fractional
+  // servings unchanged. Deliberately bypasses addItem, which would apply a
+  // stale gramInputs draft left over from an earlier log of the same recipe.
+  const logRecipeServing = (recipe, servings) => {
+    const n = safeNumber(servings);
+    if (!recipe || n <= 0) return;
+    const id = `recipe_${recipe.id}`;
+    const fresh = buildRecipeLogItem(recipe, n);
+
+    setDailyLog((prev) => {
+      const day = prev[selectedDate] || { items: {} };
+      const existing = day.items[id];
+      // A prep already logged today keeps the per-serving rate it was logged
+      // at, so editing the recipe mid-day never rewrites what's on the plate.
+      const base = existing?.item?.raw || fresh.raw;
+      const baseG = safeNumber(base.amount_g) || 1;
+      const grams = (existing ? safeNumber(existing.item.amount_g) : 0) + baseG * n;
+      const item = {
+        ...(existing?.item || fresh),
+        amount_g: grams,
+        calories: (safeNumber(base.calories) * grams) / baseG,
+        protein: (safeNumber(base.protein) * grams) / baseG,
+        carbs: (safeNumber(base.carbs) * grams) / baseG,
+        fats: (safeNumber(base.fats) * grams) / baseG,
+        raw: base,
+      };
+      const newItems = { ...day.items, [id]: { item, count: 1 } };
+      return { ...prev, [selectedDate]: { items: newItems, totals: calcTotals(newItems) } };
+    });
+
+    setHistoryByDate((prev) => {
+      const dayHistory = prev[selectedDate] || [];
+      // The card is already on screen; dailyLog carries the updated servings.
+      if (dayHistory.some((entry) => entry.recipeId === recipe.id)) return prev;
+      const entry = { recipeId: recipe.id, key: (recipe.name || "").trim().toLowerCase(), items: [fresh] };
+      return { ...prev, [selectedDate]: [entry, ...dayHistory] };
+    });
+  };
+
+  // Resolves a search string to nutrition items, from the cache when possible
+  // and from the API otherwise, and caches an API result. Deliberately does NOT
+  // touch historyByDate and never shows an Alert — it throws instead — so the
+  // recipe builder can look foods up without logging them. `submit` owns the
+  // logging and all the user-facing error handling.
+  const lookupFood = async (query) => {
+    const key = (query || "").trim().toLowerCase();
+    if (!key) return null;
+
+    if (gptCache[key]) {
+      const data = gptCache[key];
+      return { key, foodId: data.foodId, items: data.items };
+    }
+
+    const items = await fetchNutritionFromGPT(query, ANTHROPIC_API_KEY);
+    const foodId = Date.now().toString() + Math.random().toString(36).slice(2);
+    // Update state — the save effect persists this to AsyncStorage automatically
+    setGptCache((prev) => ({ ...prev, [key]: { searchKey: key, foodId, items } }));
+    return { key, foodId, items };
   };
 
   const submit = async (inputOverride) => {
@@ -237,36 +350,23 @@ export const useMacroTracker = () => {
     Keyboard.dismiss();
     setLoading(true);
     try {
-      const key = rawInput.trim().toLowerCase();
+      const { key, foodId, items } = await lookupFood(rawInput);
 
-      if (gptCache[key]) {
-        const data = gptCache[key];
-        setHistoryByDate((prev) => {
-          const dayHistory = prev[selectedDate] || [];
-          if (entryExistsForDay(dayHistory, data.foodId)) {
-            Alert.alert("Already added", "This food is already in today's log.");
-            return prev;
-          }
-          const newItems = data.items.map((i) => ({ ...i, raw: { calories: i.calories, protein: i.protein, carbs: i.carbs, fats: i.fats, amount_g: i.amount_g } }));
-          return { ...prev, [selectedDate]: [{ foodId: data.foodId, key, items: newItems }, ...dayHistory] };
-        });
-      } else {
-        const items = await fetchNutritionFromGPT(rawInput, ANTHROPIC_API_KEY);
-        const uniqueFoodId = Date.now().toString() + Math.random().toString(36).slice(2);
-
-        // Update state — the save effect persists this to AsyncStorage automatically
-        setGptCache((prev) => ({ ...prev, [key]: { searchKey: key, foodId: uniqueFoodId, items } }));
-
-        setHistoryByDate((prev) => {
-          const dayHistory = prev[selectedDate] || [];
-          if (entryExistsForDay(dayHistory, uniqueFoodId)) {
-            Alert.alert("Already added", "This food is already in today's log.");
-            return prev;
-          }
-          const newItems = items.map((i) => ({ ...i, raw: { calories: i.calories, protein: i.protein, carbs: i.carbs, fats: i.fats, amount_g: i.amount_g } }));
-          return { ...prev, [selectedDate]: [{ foodId: uniqueFoodId, key, items: newItems }, ...dayHistory] };
-        });
+      // Checked out here, not inside the updater: state updaters must be pure,
+      // and React dev mode invokes them twice — which fired this alert twice.
+      if (entryExistsForDay(historyRef.current[selectedDate] || [], foodId)) {
+        Alert.alert("Already added", "This food is already in today's log.");
+        return;
       }
+
+      const itemsWithRaw = items.map((i) => withRaw(i));
+      setHistoryByDate((prev) => ({
+        ...prev,
+        [selectedDate]: [{ foodId, key, items: itemsWithRaw }, ...(prev[selectedDate] || [])],
+      }));
+      // Logging a food counts it straight away — a multi-food search is one
+      // meal, so every item lands at ×1.
+      itemsWithRaw.forEach((item) => addItem(item));
     } catch (err) {
       console.error("GPT error:", err);
       if (err.message === "No nutrition items returned") {
@@ -288,7 +388,7 @@ export const useMacroTracker = () => {
   };
 
   const submitFromImage = async (base64Image) => {
-    setLoading(true);
+    setScanLoading(true);
     try {
       const items = await fetchNutritionFromImage(base64Image, ANTHROPIC_API_KEY);
       const item = items[0];
@@ -318,7 +418,7 @@ export const useMacroTracker = () => {
         Alert.alert("Error", "Something went wrong reading that photo. Check your connection and API key.");
       }
     } finally {
-      setLoading(false);
+      setScanLoading(false);
     }
   };
 
@@ -326,24 +426,19 @@ export const useMacroTracker = () => {
     const key = name.toLowerCase();
     const uniqueFoodId = Date.now().toString() + Math.random().toString(36).slice(2);
     const item = { id: uniqueFoodId, name, amount_g, calories, protein, carbs, fats, assumption: null };
-    const itemWithRaw = { ...item, raw: { calories, protein, carbs, fats, amount_g } };
+    const itemWithRaw = withRaw(item);
     const source = manualEntryInitialValues ? "scan" : "manual";
 
-    let duplicate = false;
-    setHistoryByDate((prev) => {
-      const dayHistory = prev[selectedDate] || [];
-      if (dayHistory.some((entry) => entry.key === key)) {
-        duplicate = true;
-        return prev;
-      }
-      return { ...prev, [selectedDate]: [{ foodId: uniqueFoodId, key, items: [itemWithRaw] }, ...dayHistory] };
-    });
-
-    if (duplicate) {
+    // Checked before the updater runs — see the note in `submit`.
+    if ((historyByDate[selectedDate] || []).some((entry) => entry.key === key)) {
       Alert.alert("Already added", "This food is already in today's log.");
       return;
     }
 
+    setHistoryByDate((prev) => ({
+      ...prev,
+      [selectedDate]: [{ foodId: uniqueFoodId, key, items: [itemWithRaw] }, ...(prev[selectedDate] || [])],
+    }));
     setGptCache((prev) => ({ ...prev, [key]: { searchKey: key, foodId: uniqueFoodId, items: [item], source } }));
     addItem(itemWithRaw);
     setManualEntryVisible(false);
@@ -356,10 +451,7 @@ export const useMacroTracker = () => {
   const addEditedFoodToLog = (foodOverride) => {
     const food = foodOverride || editingFood;
     if (!food) return;
-    const itemsWithRaw = food.items.map((i) => ({
-      ...i,
-      raw: { calories: i.calories, protein: i.protein, carbs: i.carbs, fats: i.fats, amount_g: i.amount_g },
-    }));
+    const itemsWithRaw = food.items.map((i) => withRaw(i));
     const foodId = food.foodId;
     const key = food.key.trim().toLowerCase();
 
@@ -381,10 +473,7 @@ export const useMacroTracker = () => {
   // day entry: keeps today's serving size/count but refreshes the name and
   // per-serving macros for every item, matched by id.
   const updateLoggedFoodEntry = (entryIndex, editedFood) => {
-    const itemsWithRaw = editedFood.items.map((i) => ({
-      ...i,
-      raw: { calories: i.calories, protein: i.protein, carbs: i.carbs, fats: i.fats, amount_g: i.amount_g },
-    }));
+    const itemsWithRaw = editedFood.items.map((i) => withRaw(i));
 
     setHistoryByDate((prev) => {
       const dayHistory = prev[selectedDate] || [];
@@ -442,7 +531,7 @@ export const useMacroTracker = () => {
     newFood, setNewFood,
     editingFoodId, setEditingFoodId,
     input, setInput,
-    loading,
+    loading, scanLoading,
     gptCache, setGptCache,
     suggestions, setSuggestions,
     setSuppressSuggestions,
@@ -458,6 +547,7 @@ export const useMacroTracker = () => {
     goalInput, setGoalInput,
     addItem, removeItem, clearItem, updateGrams, resetDay, exportDay, exportRange,
     addCustomFood, submit, submitFromImage,
+    recipes, saveRecipe, deleteRecipe, logRecipeServing, lookupFood,
     manualEntryVisible, setManualEntryVisible,
     manualEntryName, setManualEntryName,
     manualEntryInitialValues, closeManualEntry,
