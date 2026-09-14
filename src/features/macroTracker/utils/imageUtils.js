@@ -1,6 +1,6 @@
 import { Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import * as ImageManipulator from "expo-image-manipulator";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 
 const requestPermission = async (source) => {
   const { status, canAskAgain } =
@@ -28,12 +28,14 @@ export const captureAndCompressLabelImage = async (source) => {
   const result = await launch({ mediaTypes: ["images"], quality: 1, allowsEditing: false });
   if (result.canceled || !result.assets?.length) return null;
 
-  const manipulated = await ImageManipulator.manipulateAsync(
-    result.assets[0].uri,
-    [{ resize: { width: 1600 } }],
-    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true }
-  );
+  // Contextual API — manipulateAsync is deprecated as of expo-image-manipulator 14.
+  const rendered = await ImageManipulator
+    .manipulate(result.assets[0].uri)
+    .resize({ width: 1600 })
+    .renderAsync();
 
-  if (!manipulated.base64) return null;
-  return { base64: manipulated.base64 };
+  const saved = await rendered.saveAsync({ compress: 0.7, format: SaveFormat.JPEG, base64: true });
+
+  if (!saved.base64) return null;
+  return { base64: saved.base64 };
 };

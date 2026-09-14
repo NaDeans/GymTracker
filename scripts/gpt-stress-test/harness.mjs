@@ -27,6 +27,11 @@ const schemaMatch = svc.match(/const NUTRITION_SCHEMA = (\{[\s\S]*?\n\});/);
 if (!schemaMatch) throw new Error("Could not extract NUTRITION_SCHEMA from gptService.js");
 const NUTRITION_SCHEMA = new Function(`return ${schemaMatch[1]}`)();
 
+// Read the model from the source too, so the harness can't drift from the app.
+const modelMatch = svc.match(/const MODEL = "([^"]+)";/);
+if (!modelMatch) throw new Error("Could not extract MODEL from gptService.js");
+const MODEL = modelMatch[1];
+
 // ---- replicate gptUtils normalization ----
 const formatName = (name) => {
   if (!name || typeof name !== "string") return "";
@@ -45,7 +50,7 @@ const normalizeAndValidateItem = (i) => {
     assumption: i.assumption?.trim() ? i.assumption : null };
 };
 
-// ---- single query, mirrors fetchNutritionFromGPT semantics (Claude Sonnet 5) ----
+// ---- single query, mirrors fetchNutritionFromGPT semantics ----
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function query(input) {
@@ -61,7 +66,7 @@ async function query(input) {
           "content-type": "application/json",
         },
         body: JSON.stringify({
-          model: "claude-haiku-4-5",
+          model: MODEL,
           max_tokens: 16000,
           output_config: {
             format: { type: "json_schema", schema: NUTRITION_SCHEMA },

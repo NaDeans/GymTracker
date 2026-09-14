@@ -22,6 +22,7 @@ export const FoodSearchInput = ({
   onManualEntry,
   onScanLabel,
   loading,
+  scanLoading,
 }) => {
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
@@ -61,13 +62,15 @@ export const FoodSearchInput = ({
         rightIcon={voiceAvailable ? (listening ? "mic" : "mic-outline") : undefined}
         onRightIconPress={toggleVoiceSearch}
         rightIconActive={listening}
-        multiline={true}
+        // Not multiline: on Android the return key inserts a newline instead of
+        // firing onSubmitEditing, so the search never runs from the keyboard.
+        returnKeyType="search"
         keyboardOffset={220}
         style={{ marginBottom: SPACING.sm }}
       />
       <View style={styles.searchButtonRow}>
-        <Button variant="secondary" size="md" icon="add" onPress={onManualEntry} style={{ flex: 1 }}>Manual</Button>
-        <Button variant="secondary" size="md" icon="camera" loading={loading} disabled={loading} onPress={handleScanLabel} style={{ flex: 1 }}>Scan Label</Button>
+        <Button variant="secondary" size="md" icon="add" disabled={loading || scanLoading} onPress={onManualEntry} style={{ flex: 1 }}>Manual</Button>
+        <Button variant="secondary" size="md" icon="camera" loading={scanLoading} disabled={scanLoading} onPress={handleScanLabel} style={{ flex: 1 }}>Scan Label</Button>
       </View>
 
       {suggestions.length > 0 && (

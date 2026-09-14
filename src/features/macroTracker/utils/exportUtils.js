@@ -1,5 +1,6 @@
-import { fmt } from "shared/utils/numberUtils";
+import { fmt, safeNumber } from "shared/utils/numberUtils";
 import { shiftDmy } from "shared/utils/dateUtils";
+import { mealPrepSnapshot, servingsFromItem } from "./mealPrepUtils";
 
 // Builds the food-line list + totals for a single day. Shared by the
 // single-day and multi-day export formatters.
@@ -23,6 +24,22 @@ const buildDayLines = (date, historyByDate, dailyLog) => {
       seen.add(historyItem.id);
       const { item, count } = logged;
       const countSuffix = count > 1 ? ` ×${count}` : "";
+
+      // A meal prep is one item standing in for a portioned batch, so it reads
+      // in servings rather than grams, and lists what went into the portion.
+      const snap = mealPrepSnapshot(item);
+      if (snap) {
+        const servings = servingsFromItem(item);
+        const batch = Math.max(1, safeNumber(snap.servings) || 1);
+        entryLines.push(
+          `- ${item.name} (${fmt(servings)} serving${servings === 1 ? "" : "s"}${countSuffix} of a ${batch}-meal prep): ${fmt(item.calories * count)} kcal, P ${fmt(item.protein * count)}g, C ${fmt(item.carbs * count)}g, F ${fmt(item.fats * count)}g`
+        );
+        snap.ingredients.forEach((ing) => {
+          entryLines.push(`    · ${ing.name} ${fmt((safeNumber(ing.amount_g) / batch) * servings * count)}g`);
+        });
+        return;
+      }
+
       entryLines.push(
         `- ${item.name} (${fmt(item.amount_g)}g)${countSuffix}: ${fmt(item.calories * count)} kcal, P ${fmt(item.protein * count)}g, C ${fmt(item.carbs * count)}g, F ${fmt(item.fats * count)}g`
       );

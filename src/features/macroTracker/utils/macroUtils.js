@@ -86,11 +86,11 @@ export const isGoalMet = (totals, goals, hasItems, tolerancePct = 0.10) => {
 // the fields appear in the meal editor.
 export const mealItemFields = [
   { key: "name", label: "Food Name", keyboardType: "default" },
-  { key: "amount_g", label: "Amount (g)", keyboardType: "numeric" },
-  { key: "calories", label: "Calories", keyboardType: "numeric" },
-  { key: "protein", label: "Protein (g)", keyboardType: "numeric" },
-  { key: "carbs", label: "Carbs (g)", keyboardType: "numeric" },
-  { key: "fats", label: "Fats (g)", keyboardType: "numeric" },
+  { key: "amount_g", label: "Amount (g)", keyboardType: "decimal-pad" },
+  { key: "calories", label: "Calories", keyboardType: "decimal-pad" },
+  { key: "protein", label: "Protein (g)", keyboardType: "decimal-pad" },
+  { key: "carbs", label: "Carbs (g)", keyboardType: "decimal-pad" },
+  { key: "fats", label: "Fats (g)", keyboardType: "decimal-pad" },
   { key: "assumption", label: "Note (optional)", keyboardType: "default" },
 ];
 

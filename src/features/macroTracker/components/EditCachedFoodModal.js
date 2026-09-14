@@ -50,15 +50,28 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
         : undefined;
 
   const handleDelete = () => {
-    if (cacheKey) {
-      setGptCache((prev) => {
-        const updated = { ...prev };
-        delete updated[cacheKey];
-        return updated;
-      });
-    }
-    setSuggestions([]);
-    setVisible(false);
+    Alert.alert(
+      "Delete Saved Food?",
+      `Remove "${editingFood.items[0]?.name || editingFood.key}" from your saved foods? This can't be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            if (cacheKey) {
+              setGptCache((prev) => {
+                const updated = { ...prev };
+                delete updated[cacheKey];
+                return updated;
+              });
+            }
+            setSuggestions?.([]);
+            setVisible(false);
+          },
+        },
+      ]
+    );
   };
 
   // A saved food's name IS its search key, so there is nothing else to edit:
@@ -100,7 +113,7 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
       });
     }
 
-    setSuggestions([]);
+    setSuggestions?.([]);
     setVisible(false);
     return normalized;
   };
@@ -151,7 +164,7 @@ export const EditCachedFoodModal = ({ visible, setVisible, editingFood, setEditi
               key={field}
               label={FIELD_LABELS[field]}
               value={field === "name" ? item.name : item[field]?.toString() || ""}
-              keyboardType={field === "name" ? "default" : "numeric"}
+              keyboardType={field === "name" ? "default" : "decimal-pad"}
               onChangeText={(v) => {
                 const items = [...editingFood.items];
                 items[index] = { ...items[index], [field]: v };

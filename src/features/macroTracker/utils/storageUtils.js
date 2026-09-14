@@ -98,6 +98,7 @@ export const loadMacroTrackerData = async () => {
       savedCache,
       savedSupplements,
       savedSupplementLog,
+      savedMealPreps,
     ] = await Promise.all([
       AsyncStorage.getItem("MEALS"),
       AsyncStorage.getItem("DAILY_LOG"),
@@ -106,6 +107,7 @@ export const loadMacroTrackerData = async () => {
       AsyncStorage.getItem("GPT_CACHE"),
       AsyncStorage.getItem("SUPPLEMENTS"),
       AsyncStorage.getItem("SUPPLEMENT_LOG"),
+      AsyncStorage.getItem("MEAL_PREPS"),
     ]);
 
     // Convert any leftover custom foods first, so the formatter below sees the
@@ -133,6 +135,7 @@ export const loadMacroTrackerData = async () => {
       goals: savedGoals ? JSON.parse(savedGoals) : DEFAULT_GOALS,
       supplements: savedSupplements ? JSON.parse(savedSupplements) : [],
       supplementLog: savedSupplementLog ? JSON.parse(savedSupplementLog) : {},
+      mealPreps: savedMealPreps ? JSON.parse(savedMealPreps) : [],
     };
   } catch (err) {
     console.error("Error loading macro tracker data:", err);
@@ -144,6 +147,7 @@ export const loadMacroTrackerData = async () => {
       gptCache: {},
       supplements: [],
       supplementLog: {},
+      mealPreps: [],
     };
   }
 };
@@ -156,6 +160,7 @@ export const saveMacroTrackerData = async ({
   gptCache,
   supplements,
   supplementLog,
+  mealPreps,
 }) => {
   try {
     await Promise.all([
@@ -166,6 +171,7 @@ export const saveMacroTrackerData = async ({
       AsyncStorage.setItem("GPT_CACHE", JSON.stringify(gptCache)),
       AsyncStorage.setItem("SUPPLEMENTS", JSON.stringify(supplements)),
       AsyncStorage.setItem("SUPPLEMENT_LOG", JSON.stringify(supplementLog)),
+      AsyncStorage.setItem("MEAL_PREPS", JSON.stringify(mealPreps)),
     ]);
   } catch (err) {
     console.error("Error saving macro tracker data:", err);

@@ -16,6 +16,7 @@ import {
   mealToLogItems,
   normalizeMeal,
 } from "../utils/mealUtils";
+import { buildMealPrepLogItem, mealPrepLogId, servingsFromItem } from "../utils/mealPrepUtils";
 import { loadMacroTrackerData, saveMacroTrackerData } from "../utils/storageUtils";
 import { countFoodUsage, rankFoodSuggestions } from "../utils/searchUtils";
 import { fetchNutritionFromGPT, fetchNutritionFromImage } from "../services/gptService";
@@ -41,7 +42,9 @@ export const useMacroTracker = () => {
 
   // Search / suggestions
   const [input, setInput] = useState("");
+  // Separate flags: a text search in flight shouldn't spin the Scan button.
   const [loading, setLoading] = useState(false);
+  const [scanLoading, setScanLoading] = useState(false);
   const [gptCache, setGptCache] = useState({});
   const [suggestions, setSuggestions] = useState([]);
   const [suppressSuggestions, setSuppressSuggestions] = useState(false);
@@ -62,6 +65,10 @@ export const useMacroTracker = () => {
   const [supplementLog, setSupplementLog] = useState({});
   const [supplementsModalVisible, setSupplementsModalVisible] = useState(false);
 
+  // Meal preps — a bulk cook divided into servings. Distinct from `meals`
+  // (a named group of foods) and from the Recipes tab (free-form notes).
+  const [mealPreps, setMealPreps] = useState([]);
+
   // Goals
   const [goals, setGoals] = useState({ calories: 2400, protein: 150, carbs: 330, fats: 70 });
   const [editingMacro, setEditingMacro] = useState("");
@@ -80,14 +87,15 @@ export const useMacroTracker = () => {
       setGptCache(data.gptCache);
       setSupplements(data.supplements);
       setSupplementLog(data.supplementLog);
+      setMealPreps(data.mealPreps);
       hasLoaded.current = true;
     });
   }, []);
 
   useEffect(() => {
     if (!hasLoaded.current) return;
-    saveMacroTrackerData({ meals, dailyLog, historyByDate, goals, gptCache, supplements, supplementLog });
-  }, [meals, dailyLog, historyByDate, goals, gptCache, supplements, supplementLog]);
+    saveMacroTrackerData({ meals, dailyLog, historyByDate, goals, gptCache, supplements, supplementLog, mealPreps });
+  }, [meals, dailyLog, historyByDate, goals, gptCache, supplements, supplementLog, mealPreps]);
 
   // How often each cached food has been logged, used to break ties between
   // suggestions that match the search term equally well.
@@ -123,6 +131,7 @@ export const useMacroTracker = () => {
       setGptCache(data.gptCache);
       setSupplements(data.supplements);
       setSupplementLog(data.supplementLog);
+      setMealPreps(data.mealPreps);
     } catch (err) {
       console.error("Refresh error:", err);
     }
@@ -168,8 +177,11 @@ export const useMacroTracker = () => {
       const day = prev[selectedDate];
       if (!day?.items[item.id]) return prev;
       const newItems = { ...day.items };
-      newItems[item.id].count -= 1;
-      if (newItems[item.id].count <= 0) delete newItems[item.id];
+      // Replace rather than decrement in place — the { item, count } object is
+      // still shared with the previous state until it's copied.
+      const nextCount = newItems[item.id].count - 1;
+      if (nextCount <= 0) delete newItems[item.id];
+      else newItems[item.id] = { ...newItems[item.id], count: nextCount };
       return { ...prev, [selectedDate]: { items: newItems, totals: calcTotals(newItems) } };
     });
   };
@@ -436,20 +448,118 @@ export const useMacroTracker = () => {
     setSelectedItemIds([]);
   };
 
+  const saveMealPrep = (prep) => {
+    const stamped = { ...prep, updatedAt: Date.now() };
+    setMealPreps((prev) => {
+      const idx = prev.findIndex((p) => p.id === prep.id);
+      if (idx === -1) return [{ createdAt: Date.now(), ...stamped }, ...prev];
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], ...stamped };
+      return updated;
+    });
+  };
+
+  const deleteMealPrep = (prepId) => setMealPreps((prev) => prev.filter((p) => p.id !== prepId));
+
+  // How many servings of this prep are already logged on the selected day, and
+  // at what count — the modal needs both to decide whether "Add to Log" means
+  // another helping or a resize.
+  const loggedMealPrep = (prepId) => {
+    const logged = dailyLog[selectedDate]?.items?.[mealPrepLogId(prepId)];
+    if (!logged) return null;
+    return { servings: servingsFromItem(logged.item), count: logged.count };
+  };
+
+  // Logs a prep as a SINGLE synthetic item whose `raw` is the per-serving
+  // macros — so amount_g / raw.amount_g is the serving count and the existing
+  // gram machinery (updateGrams, calcTotals) carries fractional servings
+  // unchanged. Servings and count are independent axes: total macros are
+  // perServing × servings × count, so "two helpings of one serve" and "one
+  // helping of two serves" come to the same number but read differently.
+  //
+  // `mode` decides what to do when the prep is already on the day:
+  //   "addHelping" — bump count, leave the serving size alone (the default)
+  //   "resize"     — keep the count, change every helping to `servings`
+  const logMealPrepServing = (prep, servings, mode = "addHelping") => {
+    const n = safeNumber(servings);
+    if (!prep || n <= 0) return;
+    const id = mealPrepLogId(prep.id);
+    const fresh = buildMealPrepLogItem(prep, n);
+
+    setDailyLog((prev) => {
+      const day = prev[selectedDate] || { items: {} };
+      const existing = day.items[id];
+
+      if (!existing) {
+        const newItems = { ...day.items, [id]: { item: fresh, count: 1 } };
+        return { ...prev, [selectedDate]: { items: newItems, totals: calcTotals(newItems) } };
+      }
+
+      // An entry already logged today keeps the per-serving rate it was logged
+      // at, so editing the prep mid-day never rewrites what's on the plate.
+      const base = existing.item.raw || fresh.raw;
+      const baseG = safeNumber(base.amount_g) || 1;
+      const grams = mode === "resize" ? baseG * n : safeNumber(existing.item.amount_g);
+      const count = mode === "resize" ? existing.count : existing.count + 1;
+
+      const item = {
+        ...existing.item,
+        amount_g: grams,
+        calories: (safeNumber(base.calories) * grams) / baseG,
+        protein: (safeNumber(base.protein) * grams) / baseG,
+        carbs: (safeNumber(base.carbs) * grams) / baseG,
+        fats: (safeNumber(base.fats) * grams) / baseG,
+        raw: base,
+      };
+      const newItems = { ...day.items, [id]: { item, count } };
+      return { ...prev, [selectedDate]: { items: newItems, totals: calcTotals(newItems) } };
+    });
+
+    setHistoryByDate((prev) => {
+      const dayHistory = prev[selectedDate] || [];
+      // The card is already on screen; dailyLog carries the servings and count.
+      if (dayHistory.some((entry) => entry.mealPrepId === prep.id)) return prev;
+      const entry = { mealPrepId: prep.id, key: (prep.name || "").trim().toLowerCase(), items: [fresh] };
+      return { ...prev, [selectedDate]: [entry, ...dayHistory] };
+    });
+  };
+
+  // Resolves a search to nutrition items and caches them, WITHOUT logging
+  // anything and without alerting — it throws instead. That's what lets the
+  // meal-prep builder look foods up while `submit` keeps ownership of the
+  // logging and all the user-facing error handling.
+  const lookupFood = async (query) => {
+    const term = foodKey(query);
+    if (!term) return null;
+    const cached = resolveFromCache(term, gptCache);
+    if (cached) return { term, items: cached.flatMap((entry) => entry.items) };
+    const items = await fetchNutritionFromGPT(query, ANTHROPIC_API_KEY);
+    cacheItemsAsFoods(items, term);
+    return { term, items };
+  };
+
   // Turns freshly fetched items into saved foods — one entry per food, keyed by
   // that food's own name. A name already in the cache reuses the saved entry
   // (with whatever the user edited into it) rather than duplicating it, and the
   // raw search string is recorded on every entry it produced so retyping it
   // later resolves from the cache.
+  //
+  // The entries are built from this render's cache (so the caller gets them
+  // back synchronously) but *merged* through an updater rather than by
+  // spreading a snapshot — two lookups resolving close together, which the
+  // meal-prep builder does routinely, would otherwise drop each other's foods.
   const cacheItemsAsFoods = (items, term) => {
-    const updated = { ...gptCache };
     const entries = items.map((item, i) => {
       const key = foodKey(item.name) || term;
-      const entry = withAlias(updated[key] || { searchKey: key, foodId: newFoodId(), items: [item] }, term, i, items.length);
-      updated[key] = entry;
-      return entry;
+      return withAlias(gptCache[key] || { searchKey: key, foodId: newFoodId(), items: [item] }, term, i, items.length);
     });
-    setGptCache(updated);
+
+    setGptCache((prev) => {
+      const updated = { ...prev };
+      entries.forEach((entry) => { updated[entry.searchKey] = entry; });
+      return updated;
+    });
+
     return entries;
   };
 
@@ -473,6 +583,13 @@ export const useMacroTracker = () => {
     }));
 
     setHistoryByDate((prev) => ({ ...prev, [selectedDate]: [...newEntries, ...(prev[selectedDate] || [])] }));
+
+    // Logging a food counts it straight away. Without this the card lands
+    // reading "Added ×0" and contributes nothing to the day's totals — and the
+    // streak, calendar dots, trailing average and exports all read dailyLog,
+    // so the food was invisible to every one of them until Add was tapped.
+    // A multi-food search is one meal, so every item lands at ×1.
+    newEntries.forEach((entry) => entry.items.forEach((item) => addItem(item)));
   };
 
   const submit = async (inputOverride) => {
@@ -511,7 +628,7 @@ export const useMacroTracker = () => {
   };
 
   const submitFromImage = async (base64Image) => {
-    setLoading(true);
+    setScanLoading(true);
     try {
       const items = await fetchNutritionFromImage(base64Image, ANTHROPIC_API_KEY);
       const item = items[0];
@@ -541,7 +658,7 @@ export const useMacroTracker = () => {
         Alert.alert("Error", "Something went wrong reading that photo. Check your connection and API key.");
       }
     } finally {
-      setLoading(false);
+      setScanLoading(false);
     }
   };
 
@@ -555,20 +672,17 @@ export const useMacroTracker = () => {
     const itemWithRaw = { ...item, raw: { calories, protein, carbs, fats, amount_g } };
     const source = manualEntryInitialValues ? "scan" : "manual";
 
-    let duplicate = false;
-    setHistoryByDate((prev) => {
-      const dayHistory = prev[selectedDate] || [];
-      if (dayHistory.some((entry) => entry.key === key)) {
-        duplicate = true;
-        return prev;
-      }
-      return { ...prev, [selectedDate]: [{ foodId: uniqueFoodId, key, items: [itemWithRaw] }, ...dayHistory] };
-    });
-
-    if (duplicate) {
+    // Checked before the updater rather than by writing a flag out of it —
+    // state updaters have to stay pure, and React dev mode runs them twice.
+    if ((historyByDate[selectedDate] || []).some((entry) => entry.key === key)) {
       Alert.alert("Already added", "This food is already in today's log.");
       return;
     }
+
+    setHistoryByDate((prev) => ({
+      ...prev,
+      [selectedDate]: [{ foodId: uniqueFoodId, key, items: [itemWithRaw] }, ...(prev[selectedDate] || [])],
+    }));
 
     setGptCache((prev) => ({ ...prev, [key]: { searchKey: key, foodId: uniqueFoodId, items: [item], source } }));
     addItem(itemWithRaw);
@@ -672,7 +786,7 @@ export const useMacroTracker = () => {
     goalModalVisible, setGoalModalVisible,
     editingFood, setEditingFood,
     input, setInput,
-    loading,
+    loading, scanLoading,
     gptCache, setGptCache,
     suggestions, setSuggestions,
     setSuppressSuggestions,
@@ -693,6 +807,7 @@ export const useMacroTracker = () => {
     addItem, removeItem, clearItem, updateGrams, resetDay, exportDay, exportRange,
     submit, submitFromImage,
     meals,
+    mealPreps, saveMealPrep, deleteMealPrep, logMealPrepServing, loggedMealPrep, lookupFood,
     mealEditorVisible, editingMeal,
     openMealEditor, closeMealEditor, saveMeal, deleteMeal, addMealToLog,
     updateMealEditorName, addMealEditorItem, removeMealEditorItem, updateMealEditorItem,

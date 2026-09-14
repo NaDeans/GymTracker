@@ -1,9 +1,9 @@
 # Food Search — Stress Test Harness
 
 Tests the live system prompt in `src/features/macroTracker/services/gptService.js` against
-real Claude API calls (Claude Sonnet 5) (uses `ANTHROPIC_API_KEY` from the project `.env`; costs a fraction of a
-cent per case). The prompt is extracted from the source file at runtime, so any prompt edit
-is picked up automatically — edit the prompt, rerun, compare.
+real Claude API calls (uses `ANTHROPIC_API_KEY` from the project `.env`; costs a fraction of a
+cent per case). The prompt, output schema and model id are all extracted from the source file
+at runtime, so any edit to them is picked up automatically — edit the prompt, rerun, compare.
 
 ## Usage
 

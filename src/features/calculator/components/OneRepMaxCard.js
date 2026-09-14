@@ -29,7 +29,7 @@ export const OneRepMaxCard = ({ weight, onWeightChange, reps, onRepsChange }) =>
       <View style={styles.fieldRow}>
         <View style={styles.fieldFlex}>
           <TextField
-            label="Weight"
+            label="Weight (kg or lb)"
             value={weight}
             onChangeText={onWeightChange}
             keyboardType="decimal-pad"
@@ -51,7 +51,7 @@ export const OneRepMaxCard = ({ weight, onWeightChange, reps, onRepsChange }) =>
         <Text style={styles.ormResultValue}>{result}</Text>
       </View>
       <Text style={[styles.ormCaption, isHighReps && styles.ormCaptionWarn]}>
-        Estimate only — accuracy decreases above ~{HIGH_REP_WARNING_THRESHOLD} reps
+        In the same unit you entered · estimate only, accuracy decreases above ~{HIGH_REP_WARNING_THRESHOLD} reps
       </Text>
     </Card>
   );

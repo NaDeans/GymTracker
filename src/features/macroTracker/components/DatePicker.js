@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { View, Text, Pressable } from "react-native";
 import { Calendar } from "react-native-calendars";
-import { todayString, dmyToIso, isoToDmy } from "shared/utils/dateUtils";
+import { todayString, dmyToIso, isoToDmy, shiftDmy } from "shared/utils/dateUtils";
 import { dayHasLog } from "shared/utils/streakUtils";
 import { isGoalMet } from "../utils/macroUtils";
 import { createThemedStyles } from "../macroTrackerStyles";
@@ -16,11 +16,7 @@ export default function DatePicker({ selectedDate, setSelectedDate, dailyLog, go
   const styles = createThemedStyles(colors);
   const [calendarVisible, setCalendarVisible] = useState(false);
 
-  const changeDate = (delta) => {
-    const dateObj = new Date(dmyToIso(selectedDate));
-    dateObj.setDate(dateObj.getDate() + delta);
-    setSelectedDate(isoToDmy(dateObj.toISOString().split("T")[0]));
-  };
+  const changeDate = (delta) => setSelectedDate(shiftDmy(selectedDate, delta));
 
   const isToday = selectedDate === todayString();
 
