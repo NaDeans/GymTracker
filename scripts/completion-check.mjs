@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(join(here, "..", "src", "shared", "utils", "dayCompletion.js"), "utf8");
-const { getDayCompletion, selectDayCompletionInput, renderProgressBar } = await import(
+const { getDayCompletion, selectDayCompletionInput, renderProgressText, SEGMENT_KEYS } = await import(
   `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`
 );
 
@@ -28,26 +28,51 @@ const GOALS = { calories: 2400, protein: 150, carbs: 330, fats: 70 };
 const SUPPS = [{ id: "a", name: "Vitamin D" }, { id: "b", name: "Fish Oil" }];
 const totals = (calories) => ({ calories, protein: 0, carbs: 0, fats: 0 });
 
-// --- segment count varies with whether supplements are configured ----------
+// --- abs is not part of completion ----------------------------------------
+// It is still ticked on the day and still exported; it just doesn't gate the
+// bar. Guard both the key table and the produced segments.
+check("SEGMENT_KEYS has no abs", Object.keys(SEGMENT_KEYS).includes("ABS"), false);
 check(
-  "no supplements configured → 3 segments",
-  getDayCompletion({ totals: totals(0), goals: GOALS, supplements: [] }).totalCount,
-  3
+  "abs never appears as a segment, even when ticked",
+  getDayCompletion({
+    totals: totals(0), goals: GOALS, supplements: SUPPS, dayStat: { gym: false, abs: true },
+  }).segments.some((s) => s.key === "abs"),
+  false
 );
 check(
-  "supplements configured → 4 segments",
+  "ticking abs does not advance the count",
+  getDayCompletion({ totals: totals(0), goals: GOALS, supplements: [], dayStat: { abs: true } }).completedCount,
+  0
+);
+check(
+  "a day with abs never ticked can still be complete",
+  getDayCompletion({
+    totals: totals(2500), goals: GOALS, supplements: SUPPS, takenIds: ["a", "b"],
+    dayStat: { gym: true, abs: false },
+  }).isComplete,
+  true
+);
+
+// --- segment count varies with whether supplements are configured ----------
+check(
+  "no supplements configured → 2 segments",
+  getDayCompletion({ totals: totals(0), goals: GOALS, supplements: [] }).totalCount,
+  2
+);
+check(
+  "supplements configured → 3 segments",
   getDayCompletion({ totals: totals(0), goals: GOALS, supplements: SUPPS }).totalCount,
-  4
+  3
 );
 check(
   "segment keys, no supplements",
   getDayCompletion({ totals: totals(0), goals: GOALS, supplements: [] }).segments.map((s) => s.key),
-  ["calories", "gym", "abs"]
+  ["calories", "gym"]
 );
 check(
   "segment keys, with supplements",
   getDayCompletion({ totals: totals(0), goals: GOALS, supplements: SUPPS }).segments.map((s) => s.key),
-  ["calories", "supplements", "gym", "abs"]
+  ["calories", "supplements", "gym"]
 );
 
 // --- calories: met OR exceeded --------------------------------------------
@@ -69,51 +94,43 @@ check("no supplements taken → not done", suppDone([]), false);
 check("some supplements taken → not done", suppDone(["a"]), false);
 check("all supplements taken → done", suppDone(["a", "b"]), true);
 
-// --- gym / abs ------------------------------------------------------------
-const flags = (dayStat) =>
+// --- gym ------------------------------------------------------------------
+const gymDone = (dayStat) =>
   getDayCompletion({ totals: totals(0), goals: GOALS, supplements: [], dayStat })
-    .segments.filter((s) => s.key === "gym" || s.key === "abs")
-    .map((s) => s.done);
-check("no dayStat → gym and abs both undone", flags(null), [false, false]);
-check("gym only", flags({ gym: true, abs: false }), [true, false]);
-check("both", flags({ gym: true, abs: true }), [true, true]);
-check("weight alone does not count toward completion", flags({ weight: 82.4 }), [false, false]);
+    .segments.find((s) => s.key === "gym").done;
+check("no dayStat → gym undone", gymDone(null), false);
+check("gym ticked", gymDone({ gym: true }), true);
+check("weight alone does not tick gym", gymDone({ weight: 82.4 }), false);
 
-// --- isComplete -----------------------------------------------------------
+// --- isComplete / remaining -----------------------------------------------
 const full = getDayCompletion({
-  totals: totals(2500),
-  goals: GOALS,
-  supplements: SUPPS,
-  takenIds: ["a", "b"],
-  dayStat: { gym: true, abs: true },
+  totals: totals(2500), goals: GOALS, supplements: SUPPS, takenIds: ["a", "b"],
+  dayStat: { gym: true },
 });
 check("everything done → isComplete", full.isComplete, true);
-check("everything done → 4/4", [full.completedCount, full.totalCount], [4, 4]);
+check("everything done → 3/3", [full.completedCount, full.totalCount], [3, 3]);
 check("everything done → nothing remaining", full.remaining, []);
 
 const nearly = getDayCompletion({
-  totals: totals(2500),
-  goals: GOALS,
-  supplements: SUPPS,
-  takenIds: ["a", "b"],
-  dayStat: { gym: true, abs: false },
+  totals: totals(2500), goals: GOALS, supplements: SUPPS, takenIds: ["a", "b"],
+  dayStat: { gym: false },
 });
 check("one short → not complete", nearly.isComplete, false);
-check("one short → remaining names it", nearly.remaining, ["abs"]);
+check("one short → remaining names it", nearly.remaining, ["gym"]);
 
 check(
-  "no supplements + other three done → complete at 3/3",
+  "no supplements + other two done → complete at 2/2",
   (() => {
     const c = getDayCompletion({
-      totals: totals(2500), goals: GOALS, supplements: [], dayStat: { gym: true, abs: true },
+      totals: totals(2500), goals: GOALS, supplements: [], dayStat: { gym: true },
     });
     return [c.isComplete, c.completedCount, c.totalCount];
   })(),
-  [true, 3, 3]
+  [true, 2, 2]
 );
 
 // --- empty / defensive input ----------------------------------------------
-check("no arguments at all does not throw", getDayCompletion().totalCount, 3);
+check("no arguments at all does not throw", getDayCompletion().totalCount, 2);
 check("missing goals → calories not done", getDayCompletion({}).segments[0].done, false);
 
 // --- selectDayCompletionInput --------------------------------------------
@@ -135,17 +152,33 @@ check("selector on an unlogged day → no taken ids", missing.takenIds, []);
 check("selector on an unlogged day → null stat", missing.dayStat, null);
 check("selector tolerates an empty store", selectDayCompletionInput("28/09/26", {}).takenIds, []);
 
-// --- renderProgressBar ----------------------------------------------------
-// Width must be constant regardless of ratio, or the notification text jumps.
-for (const [done, total] of [[0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [0, 3], [1, 3], [2, 3], [3, 3]]) {
-  const bar = renderProgressBar(done, total).split(" ")[0];
-  check(`bar width constant at ${done}/${total}`, [...bar].length, 8);
-}
-check("empty bar", renderProgressBar(0, 4), "░░░░░░░░ 0/4");
-check("full bar", renderProgressBar(4, 4), "▓▓▓▓▓▓▓▓ 4/4");
-check("half bar", renderProgressBar(2, 4), "▓▓▓▓░░░░ 2/4");
-check("thirds round sensibly", renderProgressBar(1, 3), "▓▓▓░░░░░ 1/3");
-check("zero total does not divide by zero", renderProgressBar(0, 0), "░░░░░░░░ 0/0");
+// --- renderProgressText ---------------------------------------------------
+check(
+  "normal case",
+  renderProgressText({ completedCount: 2, totalCount: 3, calories: 1840, calorieGoal: 2400 }),
+  "2/3 done · 1840/2400 kcal."
+);
+check(
+  "calories round to whole numbers, never 1840.4",
+  renderProgressText({ completedCount: 1, totalCount: 3, calories: 1840.4, calorieGoal: 2400.6 }),
+  "1/3 done · 1840/2401 kcal."
+);
+check(
+  "no calorie goal → the kcal clause is dropped, not printed as /0",
+  renderProgressText({ completedCount: 1, totalCount: 2, calories: 500, calorieGoal: 0 }),
+  "1/2 done."
+);
+check(
+  "missing goal entirely → same",
+  renderProgressText({ completedCount: 0, totalCount: 2 }),
+  "0/2 done."
+);
+check("no arguments does not throw", renderProgressText(), "0/0 done.");
+check(
+  "over the goal still reads sensibly",
+  renderProgressText({ completedCount: 3, totalCount: 3, calories: 2650, calorieGoal: 2400 }),
+  "3/3 done · 2650/2400 kcal."
+);
 
 if (failures > 0) {
   console.error(`\n${failures} check(s) failed.`);

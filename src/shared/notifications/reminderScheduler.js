@@ -1,14 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { todayString, shiftDmy, dmyToDateAt } from "shared/utils/dateUtils";
-import { getDayCompletion, selectDayCompletionInput, renderProgressBar } from "shared/utils/dayCompletion";
+import { getDayCompletion, selectDayCompletionInput, renderProgressText } from "shared/utils/dayCompletion";
 import { loadDayCompletionInputs } from "features/macroTracker/utils/storageUtils";
 import { Notify, notificationsAvailable } from "./notificationsModule";
 
 // Reminders to log the day, on a fixed schedule rather than a snooze: nothing
 // runs when a local notification fires, so there is no dismissal hook to hang a
 // "come back in two hours" off. Clearing one simply means the next still comes.
-export const REMINDER_HOURS = [9, 12, 15, 18, 21];
+export const REMINDER_HOURS = [7, 9, 12, 15, 18, 21];
 
 const CHANNEL_ID = "daily-reminders";
 const TAG = "gymtracker-reminder";
@@ -111,7 +111,8 @@ export const syncDayReminders = async (liveStore) => {
 
     const store = liveStore || (await loadDayCompletionInputs());
     const today = todayString();
-    const completion = getDayCompletion(selectDayCompletionInput(today, store));
+    const dayInput = selectDayCompletionInput(today, store);
+    const completion = getDayCompletion(dayInput);
     const state = await readState();
 
     if (completion.isComplete) {
@@ -123,7 +124,7 @@ export const syncDayReminders = async (liveStore) => {
         await Notify.scheduleNotificationAsync({
           content: {
             title: "Day complete 🏅",
-            body: `${completion.completedCount}/${completion.totalCount} — ${completion.segments
+            body: `${completion.completedCount}/${completion.totalCount}: ${completion.segments
               .map((s) => s.shortLabel.toLowerCase())
               .join(", ")}. Nice work.`,
             data: { kind: TAG, dmy: today, congrats: true },
@@ -134,10 +135,15 @@ export const syncDayReminders = async (liveStore) => {
       }
       // Nothing further today either way.
     } else {
-      // Today's remaining slots carry the live progress bar. The text is frozen
-      // at schedule time — nothing runs when it fires — which is why every
+      // Today's remaining slots carry the live counts. The text is frozen at
+      // schedule time — nothing runs when it fires — which is why every
       // foreground and every completion change rebuilds this.
-      const body = `${renderProgressBar(completion.completedCount, completion.totalCount)} — tap to update`;
+      const body = renderProgressText({
+        completedCount: completion.completedCount,
+        totalCount: completion.totalCount,
+        calories: dayInput.totals?.calories,
+        calorieGoal: dayInput.goals?.calories,
+      });
       const cutoff = Date.now() + 60_000;
       await Promise.all(
         REMINDER_HOURS.filter((h) => dmyToDateAt(today, h).getTime() > cutoff).map((h) =>

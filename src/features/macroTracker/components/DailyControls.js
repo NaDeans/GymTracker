@@ -77,7 +77,6 @@ const DailyLogItem = ({
             step={5}
             min={1}
             suffix="g"
-            scrollOnFocus={false}
           />
         </View>
       )}
@@ -174,7 +173,6 @@ const MealPrepLogItem = ({ item, count, gramValue, setGramValue, updateGrams, ad
           min={0.5}
           decimal
           suffix="srv"
-          scrollOnFocus={false}
         />
       </View>
 

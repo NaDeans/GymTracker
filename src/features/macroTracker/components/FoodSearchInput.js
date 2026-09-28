@@ -62,7 +62,6 @@ export const FoodSearchInput = ({
         // Not multiline: on Android the return key inserts a newline instead of
         // firing onSubmitEditing, so the search never runs from the keyboard.
         returnKeyType="search"
-        keyboardOffset={220}
         style={{ marginBottom: SPACING.sm }}
       />
       <View style={styles.searchButtonRow}>

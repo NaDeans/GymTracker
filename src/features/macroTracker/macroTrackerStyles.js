@@ -94,22 +94,17 @@ export const createThemedStyles = (colors) => StyleSheet.create({
   logActionButton: { minWidth: 84 },
 
   /* ================= DAY COMPLETION ================= */
-  // Sits directly under the date pill, which already supplies SPACING.xl below
-  // itself — so this only needs its own bottom margin.
-  completionCard: { marginBottom: SPACING.lg },
-  completionHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  completionTitle: { fontWeight: FONT_WEIGHT.semibold, fontSize: FONT_SIZE.md, color: colors.textDark },
-  completionCount: { fontSize: FONT_SIZE.sm, color: colors.textMuted },
-  // Every segment is flex:1, so 3 segments and 4 segments both fill the row
-  // with no pixel maths and no onLayout.
-  completionTrack: { flexDirection: "row", gap: SPACING.xs, marginTop: SPACING.sm },
-  completionSegment: { flex: 1, height: 8, borderRadius: BORDER_RADIUS.pill },
-  completionLabelsRow: { flexDirection: "row", gap: SPACING.xs, marginTop: SPACING.xs },
-  completionLabel: { flex: 1, textAlign: "center", fontSize: FONT_SIZE.xs, color: colors.textMuted },
-  completionLabelDone: { color: colors.textDark, fontWeight: FONT_WEIGHT.medium },
-  completionMedalPill: { flexDirection: "row", alignItems: "center", gap: SPACING.xs, paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: BORDER_RADIUS.pill, backgroundColor: colors.warningSurface },
-  completionMedalText: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold, color: colors.warningDark },
-  completionHint: { fontSize: FONT_SIZE.xs, color: colors.textMuted, marginTop: SPACING.sm },
+  // One thin line under the date pill, which already supplies SPACING.xl below
+  // itself — so this only needs its own bottom margin. No card: the day gets
+  // filled in via the checkboxes further down, this is just a glance.
+  completionRow: { flexDirection: "row", alignItems: "center", gap: SPACING.md, marginBottom: SPACING.lg },
+  // Every segment is flex:1, so 2 and 3 segments both fill the row with no
+  // pixel maths and no onLayout.
+  completionTrack: { flex: 1, flexDirection: "row", gap: SPACING.xs },
+  completionSegment: { flex: 1, height: 4, borderRadius: BORDER_RADIUS.pill },
+  completionStatus: { fontSize: FONT_SIZE.xs, color: colors.textMuted },
+  completionStatusRow: { flexDirection: "row", alignItems: "center", gap: SPACING.xs },
+  completionStatusDone: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold, color: colors.warningDark },
 
   /* ================= DAY STATS ================= */
   dayStatsCard: { marginTop: SPACING.lg },
