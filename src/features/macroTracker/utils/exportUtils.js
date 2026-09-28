@@ -69,11 +69,29 @@ const buildSupplementLine = (date, supplements = [], supplementLog = {}) => {
     : "Supplements taken: none";
 };
 
+// Body weight and training for one day, as a single line. Returns null for a
+// day with nothing recorded, so untouched days in a range export stay clean.
+//
+// The weight test is `typeof === "number"` rather than safeNumber, which maps
+// "" to 0 and would print "Weight: 0.0 kg" for every day the field was never
+// touched.
+const buildDayStatsLine = (date, dayStats = {}) => {
+  const stat = dayStats?.[date];
+  if (!stat) return null;
+  const parts = [];
+  if (typeof stat.weight === "number" && Number.isFinite(stat.weight)) {
+    parts.push(`Weight: ${fmt(stat.weight)} kg`);
+  }
+  parts.push(`Gym: ${stat.gym ? "yes" : "no"}`, `Abs: ${stat.abs ? "yes" : "no"}`);
+  return parts.join(" | ");
+};
+
 // Builds a plain-text summary of a day's food log — good enough to paste
 // into a chat/AI app for feedback. Pure function: no state, no I/O.
-export const formatDayForExport = (selectedDate, historyByDate, dailyLog, goals, supplements, supplementLog) => {
+export const formatDayForExport = (selectedDate, historyByDate, dailyLog, goals, supplements, supplementLog, dayStats) => {
   const { foodLines, totals } = buildDayLines(selectedDate, historyByDate, dailyLog);
   const supplementLine = buildSupplementLine(selectedDate, supplements, supplementLog);
+  const statsLine = buildDayStatsLine(selectedDate, dayStats);
 
   const lines = [`MacroTracker — ${selectedDate}`, ""];
 
@@ -83,14 +101,15 @@ export const formatDayForExport = (selectedDate, historyByDate, dailyLog, goals,
     lines.push("Foods:", ...foodLines);
   }
 
-  if (supplementLine) lines.push("", supplementLine);
+  const extras = [supplementLine, statsLine].filter(Boolean);
+  if (extras.length > 0) lines.push("", ...extras);
 
   lines.push(
     "",
     `Totals: ${fmt(totals.calories)} kcal, P ${fmt(totals.protein)}g, C ${fmt(totals.carbs)}g, F ${fmt(totals.fats)}g`,
     `Goals: ${fmt(goals.calories)} kcal, P ${fmt(goals.protein)}g, C ${fmt(goals.carbs)}g, F ${fmt(goals.fats)}g`,
     "",
-    "Based on the foods and supplements listed above, how did I do on my macros (calories, protein, carbs, fats) versus my goals, and how did I do on micronutrients (vitamins, minerals, fiber, etc.)? Take the supplements into account when judging micronutrient coverage. Point out any deficiencies and tell me specifically how I could improve tomorrow."
+    "Based on the foods and supplements listed above, how did I do on my macros (calories, protein, carbs, fats) versus my goals, and how did I do on micronutrients (vitamins, minerals, fiber, etc.)? Take the supplements into account when judging micronutrient coverage. Where body weight and training (gym / abs) are listed, factor those in too. Point out any deficiencies and tell me specifically how I could improve tomorrow."
   );
 
   return lines.join("\n");
@@ -100,7 +119,7 @@ export const formatDayForExport = (selectedDate, historyByDate, dailyLog, goals,
 // inclusive), day-by-day with full food breakdowns, plus period totals/
 // averages — enough detail for a full trend analysis. Pure function: no
 // state, no I/O.
-export const formatRangeForExport = (endDmy, days, historyByDate, dailyLog, goals, supplements, supplementLog) => {
+export const formatRangeForExport = (endDmy, days, historyByDate, dailyLog, goals, supplements, supplementLog, dayStats) => {
   const dates = [];
   let cursor = endDmy;
   for (let i = 0; i < days; i++) {
@@ -116,11 +135,15 @@ export const formatRangeForExport = (endDmy, days, historyByDate, dailyLog, goal
   dates.forEach((date) => {
     const { foodLines, totals, hasLog } = buildDayLines(date, historyByDate, dailyLog);
     const supplementLine = buildSupplementLine(date, supplements, supplementLog);
+    const statsLine = buildDayStatsLine(date, dayStats);
 
     lines.push(`--- ${date} ---`);
     if (!hasLog) {
       lines.push("No foods logged.");
       if (supplementLine) lines.push(supplementLine);
+      // Emitted here too, not just in the branch below: a rest day with no food
+      // logged is exactly when "Gym: no" carries signal.
+      if (statsLine) lines.push(statsLine);
       lines.push("");
       return;
     }
@@ -133,6 +156,7 @@ export const formatRangeForExport = (endDmy, days, historyByDate, dailyLog, goal
 
     lines.push(...foodLines);
     if (supplementLine) lines.push(supplementLine);
+    if (statsLine) lines.push(statsLine);
     lines.push(
       `Totals: ${fmt(totals.calories)} kcal, P ${fmt(totals.protein)}g, C ${fmt(totals.carbs)}g, F ${fmt(totals.fats)}g`,
       ""
@@ -153,7 +177,7 @@ export const formatRangeForExport = (endDmy, days, historyByDate, dailyLog, goal
 
   lines.push(
     "",
-    "Based on the daily logs above (foods and supplements), how have I trended against my macro goals (calories, protein, carbs, fats) over this period, and how did I likely do on micronutrients (vitamins, minerals, fiber, etc.)? Take the supplements into account when judging micronutrient coverage, including how consistently I took them. Point out any patterns, deficiencies, or inconsistencies, and tell me specifically how I could improve going forward."
+    "Based on the daily logs above (foods, supplements, body weight and training), how have I trended against my macro goals (calories, protein, carbs, fats) over this period, and how did I likely do on micronutrients (vitamins, minerals, fiber, etc.)? Take the supplements into account when judging micronutrient coverage, including how consistently I took them. Where body weight is listed, comment on the trend and whether my intake matches it; where training is listed, factor in how often I hit the gym and abs. Point out any patterns, deficiencies, or inconsistencies, and tell me specifically how I could improve going forward."
   );
 
   return lines.join("\n");

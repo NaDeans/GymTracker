@@ -1,0 +1,94 @@
+import { useState } from "react";
+import { View, Text, Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { createThemedStyles } from "../macroTrackerStyles";
+import { Card } from "shared/components/Card";
+import { TextField } from "shared/components/TextField";
+import { SPACING } from "shared/constants/styles";
+import { fmt } from "shared/utils/numberUtils";
+import { useTheme } from "shared/hooks/useTheme";
+import { triggerImpact } from "shared/utils/haptics";
+
+// Body weight and training for the selected day. Sits under the supplements
+// tick-list and follows the same shape: one card, one row per thing.
+//
+// The caller passes key={selectedDate}, so changing day remounts this and the
+// weight draft resets with it — no resync effect needed.
+export const DayStatsSection = ({
+  weight,
+  previousWeight,
+  onCommitWeight,
+  gym,
+  abs,
+  onToggleGym,
+  onToggleAbs,
+}) => {
+  const { colors } = useTheme();
+  const styles = createThemedStyles(colors);
+  const [draft, setDraft] = useState(() => (weight != null ? fmt(weight) : ""));
+
+  // Committed on blur rather than per keystroke: every write here rewrites all
+  // nine AsyncStorage keys (saveMacroTrackerData persists them as one blob), and
+  // a half-typed "7" should never be recorded as a body weight.
+  const commit = () => {
+    const raw = draft.trim().replace(",", ".");
+    if (raw === "") {
+      setDraft("");
+      onCommitWeight(null);
+      return;
+    }
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) {
+      setDraft(weight != null ? fmt(weight) : "");
+      return;
+    }
+    const rounded = Math.round(n * 10) / 10;
+    setDraft(fmt(rounded));
+    onCommitWeight(rounded);
+  };
+
+  const checkRow = (label, done, onToggle, withDivider) => (
+    <Pressable
+      style={[styles.dayStatsCheckRow, withDivider && styles.dayStatsCheckRowDivider]}
+      onPress={() => { triggerImpact("light"); onToggle(); }}
+      hitSlop={4}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: done }}
+      accessibilityLabel={label}
+    >
+      <Ionicons
+        name={done ? "checkbox" : "square-outline"}
+        size={24}
+        color={done ? colors.success : colors.textMuted}
+      />
+      <Text style={[styles.dayStatsCheckLabel, done && styles.dayStatsCheckLabelDone]}>{label}</Text>
+    </Pressable>
+  );
+
+  return (
+    <Card padding={SPACING.md} style={styles.dayStatsCard}>
+      <Text style={styles.dayStatsTitle}>Today</Text>
+
+      <TextField
+        label="Body weight"
+        value={draft}
+        onChangeText={setDraft}
+        onEndEditing={commit}
+        keyboardType="decimal-pad"
+        suffix="kg"
+        size="sm"
+        // Hint only — the placeholder renders in textPlaceholder grey and
+        // nothing is recorded until something is actually typed.
+        placeholder={previousWeight != null ? fmt(previousWeight) : "0.0"}
+      />
+      {previousWeight != null && weight == null && (
+        <Text style={styles.dayStatsHint}>Yesterday: {fmt(previousWeight)} kg</Text>
+      )}
+
+      <View style={{ marginTop: SPACING.sm }}>
+        {checkRow("Went to the gym", gym, onToggleGym, false)}
+        {checkRow("Hit abs", abs, onToggleAbs, true)}
+      </View>
+    </Card>
+  );
+};

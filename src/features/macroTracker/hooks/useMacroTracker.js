@@ -2,10 +2,11 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { Alert, Keyboard, Share } from "react-native";
 import { ANTHROPIC_API_KEY } from "@env";
 
-import { todayString } from "shared/utils/dateUtils";
+import { todayString, shiftDmy } from "shared/utils/dateUtils";
 import { safeNumber } from "shared/utils/numberUtils";
 import { formatFoodName, foodKey } from "shared/utils/textUtils";
 import { calcCurrentStreak, dayHasLog } from "shared/utils/streakUtils";
+import { getDayCompletion, selectDayCompletionInput } from "shared/utils/dayCompletion";
 import { calcTotals, entryExistsForDay, isGoalMet } from "../utils/macroUtils";
 import { newFoodId, resolveFromCache, withAlias } from "../utils/foodCacheUtils";
 import {
@@ -61,6 +62,11 @@ export const useMacroTracker = () => {
   const [supplementLog, setSupplementLog] = useState({});
   const [supplementsModalVisible, setSupplementsModalVisible] = useState(false);
 
+  // Body weight / gym / abs for the day, keyed DD/MM/YY like supplementLog and
+  // kept sparse the same way — a date key exists only while the day still has
+  // something recorded against it.
+  const [dayStats, setDayStats] = useState({});
+
   // Meal preps — a bulk cook divided into servings. Distinct from `meals`
   // (a named group of foods) and from the Recipes tab (free-form notes).
   const [mealPreps, setMealPreps] = useState([]);
@@ -84,14 +90,15 @@ export const useMacroTracker = () => {
       setSupplements(data.supplements);
       setSupplementLog(data.supplementLog);
       setMealPreps(data.mealPreps);
+      setDayStats(data.dayStats);
       hasLoaded.current = true;
     });
   }, []);
 
   useEffect(() => {
     if (!hasLoaded.current) return;
-    saveMacroTrackerData({ meals, dailyLog, historyByDate, goals, gptCache, supplements, supplementLog, mealPreps });
-  }, [meals, dailyLog, historyByDate, goals, gptCache, supplements, supplementLog, mealPreps]);
+    saveMacroTrackerData({ meals, dailyLog, historyByDate, goals, gptCache, supplements, supplementLog, mealPreps, dayStats });
+  }, [meals, dailyLog, historyByDate, goals, gptCache, supplements, supplementLog, mealPreps, dayStats]);
 
   // How often each cached food has been logged, used to break ties between
   // suggestions that match the search term equally well.
@@ -128,6 +135,7 @@ export const useMacroTracker = () => {
       setSupplements(data.supplements);
       setSupplementLog(data.supplementLog);
       setMealPreps(data.mealPreps);
+      setDayStats(data.dayStats);
     } catch (err) {
       console.error("Refresh error:", err);
     }
@@ -221,7 +229,7 @@ export const useMacroTracker = () => {
   const resetDay = () => {
     Alert.alert(
       "Reset Day?",
-      "Are you sure you want to clear all foods, macros and supplements for this day? This cannot be undone.",
+      "Are you sure you want to clear all foods, macros, supplements and daily stats for this day? This cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -231,6 +239,7 @@ export const useMacroTracker = () => {
             setDailyLog((prev) => { const u = { ...prev }; delete u[selectedDate]; return u; });
             setHistoryByDate((prev) => { const u = { ...prev }; delete u[selectedDate]; return u; });
             setSupplementLog((prev) => { const u = { ...prev }; delete u[selectedDate]; return u; });
+            setDayStats((prev) => { const u = { ...prev }; delete u[selectedDate]; return u; });
           },
         },
       ]
@@ -250,6 +259,25 @@ export const useMacroTracker = () => {
       return { ...prev, [selectedDate]: next };
     });
   };
+
+  // Body weight / gym / abs for the selected day. Patched functionally so a
+  // rapid tick never reads a stale `dayStats`, and pruned on the way out so a
+  // day the user cleared back to nothing leaves no key behind — same discipline
+  // as toggleSupplement above.
+  const updateDayStat = (makePatch) => {
+    setDayStats((prev) => {
+      const current = prev[selectedDate] || { weight: null, gym: false, abs: false };
+      const next = { ...current, ...makePatch(current) };
+      if (next.weight == null && !next.gym && !next.abs) {
+        const u = { ...prev }; delete u[selectedDate]; return u;
+      }
+      return { ...prev, [selectedDate]: next };
+    });
+  };
+
+  const setDayWeight = (weight) => updateDayStat(() => ({ weight }));
+  const toggleGym = () => updateDayStat((c) => ({ gym: !c.gym }));
+  const toggleAbs = () => updateDayStat((c) => ({ abs: !c.abs }));
 
   const addSupplement = (name) => {
     const trimmed = name.trim();
@@ -294,7 +322,7 @@ export const useMacroTracker = () => {
 
   const exportDay = async () => {
     try {
-      const message = formatDayForExport(selectedDate, historyByDate, dailyLog, goals, supplements, supplementLog);
+      const message = formatDayForExport(selectedDate, historyByDate, dailyLog, goals, supplements, supplementLog, dayStats);
       await Share.share({ message });
     } catch (err) {
       console.error("Export day error:", err);
@@ -303,7 +331,7 @@ export const useMacroTracker = () => {
 
   const exportRange = async (days = 14) => {
     try {
-      const message = formatRangeForExport(selectedDate, days, historyByDate, dailyLog, goals, supplements, supplementLog);
+      const message = formatRangeForExport(selectedDate, days, historyByDate, dailyLog, goals, supplements, supplementLog, dayStats);
       await Share.share({ message });
     } catch (err) {
       console.error("Export range error:", err);
@@ -774,6 +802,32 @@ export const useMacroTracker = () => {
     [dayData.totals, goals, dailyLog, selectedDate]
   );
 
+  const selectedDayStat = dayStats[selectedDate] || null;
+  // Hint for the weight field's placeholder only — never recorded on its own.
+  const previousDayWeight = dayStats[shiftDmy(selectedDate, -1)]?.weight ?? null;
+
+  // A looser test than selectedDayGoalMet above: this one only asks whether the
+  // calorie goal was reached, so the two can legitimately disagree.
+  const dayCompletion = useMemo(
+    () => getDayCompletion({
+      totals: dayData.totals,
+      goals,
+      supplements,
+      takenIds: supplementLog[selectedDate] || [],
+      dayStat: dayStats[selectedDate],
+    }),
+    [dayData.totals, goals, supplements, supplementLog, dayStats, selectedDate]
+  );
+
+  // Today specifically, regardless of which day is on screen — the reminders are
+  // about today, so browsing back through the week must not change what they say.
+  const todayCompletion = useMemo(
+    () => getDayCompletion(
+      selectDayCompletionInput(todayString(), { dailyLog, goals, supplements, supplementLog, dayStats })
+    ),
+    [dailyLog, goals, supplements, supplementLog, dayStats]
+  );
+
   return {
     refreshing, onRefresh,
     mealsVisible, setMealsVisible,
@@ -794,6 +848,9 @@ export const useMacroTracker = () => {
     supplementsTakenToday: supplementLog[selectedDate] || [],
     supplementsModalVisible, setSupplementsModalVisible,
     toggleSupplement, addSupplement, renameSupplement, removeSupplement,
+    dayStats, selectedDayStat, previousDayWeight,
+    setDayWeight, toggleGym, toggleAbs,
+    dayCompletion, todayCompletion,
     goals, setGoals,
     editingMacro, setEditingMacro,
     goalInput, setGoalInput,

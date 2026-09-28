@@ -20,6 +20,9 @@ import { EditCachedFoodModal } from "./components/EditCachedFoodModal";
 import { ManualEntryModal } from "./components/ManualEntryModal";
 import { MealPrepModal } from "./components/MealPrepModal";
 import { SupplementsSection } from "./components/SupplementsSection";
+import { DayStatsSection } from "./components/DayStatsSection";
+import { DayCompletionBar } from "./components/DayCompletionBar";
+import { useReminderSync } from "shared/notifications/useReminderSync";
 import { SupplementsModal } from "./components/SupplementsModal";
 
 export default function MacroTrackerScreen() {
@@ -40,9 +43,12 @@ export default function MacroTrackerScreen() {
     currentStreak,
     selectedDayGoalMet,
     supplements,
+    supplementLog,
     supplementsTakenToday,
     supplementsModalVisible, setSupplementsModalVisible,
     toggleSupplement, addSupplement, renameSupplement, removeSupplement,
+    selectedDayStat, previousDayWeight, setDayWeight, toggleGym, toggleAbs,
+    dayCompletion, todayCompletion, dayStats,
     goals, setGoals,
     editingMacro, setEditingMacro,
     goalInput, setGoalInput,
@@ -74,6 +80,14 @@ export default function MacroTrackerScreen() {
     setOpenMealPrepId(prepId);
     setMealPrepVisible(true);
   };
+
+  // Re-lays the reminder window whenever today's completion changes, so the
+  // progress bar baked into each scheduled notification stays current. Passing
+  // live state means the sync can't race the save effect the same tick started.
+  useReminderSync(
+    `${todayCompletion.completedCount}/${todayCompletion.totalCount}`,
+    () => ({ dailyLog, goals, supplements, supplementLog, dayStats })
+  );
 
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
@@ -111,6 +125,8 @@ export default function MacroTrackerScreen() {
           dailyLog={dailyLog}
           goals={goals}
         />
+
+        <DayCompletionBar key={selectedDate} completion={dayCompletion} />
 
         <MacroTotals
           totalMacros={totalMacros}
@@ -171,6 +187,18 @@ export default function MacroTrackerScreen() {
               takenIds={supplementsTakenToday}
               toggleSupplement={toggleSupplement}
               onManage={() => setSupplementsModalVisible(true)}
+            />
+          }
+          dayStatsSection={
+            <DayStatsSection
+              key={selectedDate}
+              weight={selectedDayStat?.weight ?? null}
+              previousWeight={previousDayWeight}
+              onCommitWeight={setDayWeight}
+              gym={Boolean(selectedDayStat?.gym)}
+              abs={Boolean(selectedDayStat?.abs)}
+              onToggleGym={toggleGym}
+              onToggleAbs={toggleAbs}
             />
           }
         />
