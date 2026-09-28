@@ -24,7 +24,9 @@
       },
       "package": "com.nathandeans.GymTracker",
       "permissions": [
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECEIVE_BOOT_COMPLETED"
       ]
     },
     "web": {
@@ -45,6 +47,14 @@
           "microphonePermission": "Allow MacroTracker to use the microphone to search for foods by voice.",
           "speechRecognitionPermission": "Allow MacroTracker to use speech recognition to search for foods by voice.",
           "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#4F46E5",
+          "defaultChannel": "daily-reminders"
         }
       ]
     ],

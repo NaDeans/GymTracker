@@ -99,6 +99,7 @@ export const loadMacroTrackerData = async () => {
       savedSupplements,
       savedSupplementLog,
       savedMealPreps,
+      savedDayStats,
     ] = await Promise.all([
       AsyncStorage.getItem("MEALS"),
       AsyncStorage.getItem("DAILY_LOG"),
@@ -108,6 +109,7 @@ export const loadMacroTrackerData = async () => {
       AsyncStorage.getItem("SUPPLEMENTS"),
       AsyncStorage.getItem("SUPPLEMENT_LOG"),
       AsyncStorage.getItem("MEAL_PREPS"),
+      AsyncStorage.getItem("DAY_STATS"),
     ]);
 
     // Convert any leftover custom foods first, so the formatter below sees the
@@ -136,6 +138,7 @@ export const loadMacroTrackerData = async () => {
       supplements: savedSupplements ? JSON.parse(savedSupplements) : [],
       supplementLog: savedSupplementLog ? JSON.parse(savedSupplementLog) : {},
       mealPreps: savedMealPreps ? JSON.parse(savedMealPreps) : [],
+      dayStats: savedDayStats ? JSON.parse(savedDayStats) : {},
     };
   } catch (err) {
     console.error("Error loading macro tracker data:", err);
@@ -148,7 +151,38 @@ export const loadMacroTrackerData = async () => {
       supplements: [],
       supplementLog: {},
       mealPreps: [],
+      dayStats: {},
     };
+  }
+};
+
+// Read-only companion to loadMacroTrackerData, for the reminder scheduler,
+// which runs outside React.
+//
+// It deliberately does NOT call loadMacroTrackerData: that runs
+// migrateCustomFoodsToMeals, which writes back to MEALS. Since
+// saveMacroTrackerData persists every key as one blob, a write from the
+// scheduler could land on top of live state and lose a day's logging.
+export const loadDayCompletionInputs = async () => {
+  try {
+    const pairs = await AsyncStorage.multiGet([
+      "DAILY_LOG",
+      "GOALS",
+      "SUPPLEMENTS",
+      "SUPPLEMENT_LOG",
+      "DAY_STATS",
+    ]);
+    const raw = Object.fromEntries(pairs);
+    return {
+      dailyLog: raw.DAILY_LOG ? JSON.parse(raw.DAILY_LOG) : {},
+      goals: raw.GOALS ? JSON.parse(raw.GOALS) : DEFAULT_GOALS,
+      supplements: raw.SUPPLEMENTS ? JSON.parse(raw.SUPPLEMENTS) : [],
+      supplementLog: raw.SUPPLEMENT_LOG ? JSON.parse(raw.SUPPLEMENT_LOG) : {},
+      dayStats: raw.DAY_STATS ? JSON.parse(raw.DAY_STATS) : {},
+    };
+  } catch (err) {
+    console.error("Error loading day completion inputs:", err);
+    return { dailyLog: {}, goals: DEFAULT_GOALS, supplements: [], supplementLog: {}, dayStats: {} };
   }
 };
 
@@ -161,6 +195,7 @@ export const saveMacroTrackerData = async ({
   supplements,
   supplementLog,
   mealPreps,
+  dayStats,
 }) => {
   try {
     await Promise.all([
@@ -172,6 +207,7 @@ export const saveMacroTrackerData = async ({
       AsyncStorage.setItem("SUPPLEMENTS", JSON.stringify(supplements)),
       AsyncStorage.setItem("SUPPLEMENT_LOG", JSON.stringify(supplementLog)),
       AsyncStorage.setItem("MEAL_PREPS", JSON.stringify(mealPreps)),
+      AsyncStorage.setItem("DAY_STATS", JSON.stringify(dayStats)),
     ]);
   } catch (err) {
     console.error("Error saving macro tracker data:", err);

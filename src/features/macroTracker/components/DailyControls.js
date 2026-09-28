@@ -243,6 +243,7 @@ export const DailyControls = ({
   toggleItemSelection,
   createMealFromSelection,
   supplementsSection,
+  dayStatsSection,
 }) => {
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
@@ -337,6 +338,7 @@ export const DailyControls = ({
       ))}
 
       {supplementsSection}
+      {dayStatsSection}
 
       <View style={{ flexDirection: "row", gap: SPACING.xs, marginTop: SPACING.lg }}>
         <Button variant="outline" size="sm" style={{ flex: 2 }} onPress={exportDay}>Export Day</Button>

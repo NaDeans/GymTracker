@@ -19,6 +19,14 @@ export const isoToDmy = (iso) => {
   return `${d}/${m}/${y.slice(-2)}`;
 };
 
+// DD/MM/YY + an hour → a local Date, for scheduling a notification at a given
+// time on a given day. Built from explicit components for the same reason
+// shiftDmy is: `new Date("YYYY-MM-DD")` parses as UTC midnight.
+export const dmyToDateAt = (dmy, hour, minute = 0) => {
+  const [d, m, y] = dmy.split("/").map(Number);
+  return new Date(2000 + y, m - 1, d, hour, minute, 0, 0);
+};
+
 // Shifts a DD/MM/YY string by `deltaDays` (may be negative).
 //
 // Built from explicit components rather than `new Date("YYYY-MM-DD")`: that

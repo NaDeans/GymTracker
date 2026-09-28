@@ -68,6 +68,7 @@ Key state objects:
 | `goals` | `GOALS` | `{ calories, protein, carbs, fats }` targets |
 | `supplements` | `SUPPLEMENTS` | `[{ id, name }]` — the user's editable supplement list |
 | `supplementLog` | `SUPPLEMENT_LOG` | `{ [dateStr]: [supplementId] }` — which supplements were ticked that day |
+| `dayStats` | `DAY_STATS` | `{ [dateStr]: { weight, gym, abs } }` — body weight in kg plus the two training ticks |
 
 Food lookup flow: user types → check `gptCache` → if miss, call the Claude API (`claude-haiku-4-5`, structured outputs, via raw `fetch` — the `@anthropic-ai/sdk` package is deliberately NOT used because it imports `node:fs`, which Metro cannot bundle for native) from `services/gptService.js` → normalize via `utils/gptUtils.js` → store in cache and add to `historyByDate`. (File/state names keep the legacy "gpt" prefix.)
 
@@ -78,6 +79,46 @@ Supplements are a separate tick-list: `SupplementsSection` renders one checkbox 
 `dailyLog` and `historyByDate` serve different purposes: `dailyLog` tracks item counts and running totals for display; `historyByDate` preserves the original GPT entries (used by `DailyControls` to render each entry with +/- controls).
 
 **Meals** (`MealsModal` / `MealEditorModal`, helpers in `utils/mealUtils.js`) replace the old custom-foods list — manual entry already covers one-off foods, and `loadMacroTrackerData` migrates any leftover `CUSTOM_FOODS` into one-item meals before deleting that key. A meal is built by ticking foods in the day's log ("Select foods to save as a meal", which snapshots their current grams × count) or from scratch in the editor, where every parameter of the meal and each of its foods is editable. Adding a meal writes one `historyByDate` entry carrying `mealId`/`mealName` — that name is what groups the foods into a block in the log and in exports. Item ids are minted fresh on each add, so logging the same meal twice yields two independent blocks.
+
+**Daily stats** (`DayStatsSection`) sit under the supplements list: body weight in
+kg plus "went to the gym" and "hit abs", per selected date. `DAY_STATS` is kept
+sparse the same way `supplementLog` is — the date key is deleted once weight is
+cleared and both flags are false — and `resetDay` drops it alongside the others.
+The weight field commits on blur, not per keystroke, because every write rewrites
+all nine storage keys. Yesterday's weight shows as the placeholder and is never
+recorded on its own. Both exports carry a `Weight: … | Gym: … | Abs: …` line, and
+the range export emits it in **both** branches, including the one for days with no
+food logged — a rest day is exactly when "Gym: no" carries signal.
+
+**Day completion** is one rule in `src/shared/utils/dayCompletion.js`, shared by
+the in-app bar (`DayCompletionBar`, under the date picker) and the reminder
+scheduler. A day is complete when the calorie goal is met or exceeded, every
+supplement is ticked, and gym and abs are both done; the supplements segment is
+omitted entirely when none are configured, so the bar is 3 or 4 equal segments.
+This is a **looser** test than `selectedDayGoalMet`/`isGoalMet`, which wants all
+four macros inside ±10% — the two legitimately disagree, so don't merge them.
+That file is deliberately import-free: `scripts/completion-check.mjs` loads it
+through a `data:` URL, as `format-name-check.mjs` does, and an aliased import
+would break that loader. Run `node scripts/completion-check.mjs` after touching it.
+
+**Reminders** (`src/shared/notifications/`) are local notifications on a fixed
+schedule (`REMINDER_HOURS`, rebuilt seven days ahead on every sync). Nothing runs
+when a local notification fires, so the progress bar in the body is block
+characters computed at *schedule* time — `expo-notifications` does not expose
+Android's native `setProgress`. Every app foreground and every change in today's
+completion relays the whole window, which is what keeps that text current.
+Completing the day fires one congratulation and then silence, guarded by a
+`DD/MM/YY` in `REMINDER_STATE` so rollover resets it for free.
+
+Two rules matter here. The scheduler is **read-only** against the macro keys and
+uses `loadDayCompletionInputs`, never `loadMacroTrackerData` — that one runs
+`migrateCustomFoodsToMeals`, which writes to `MEALS`, and `saveMacroTrackerData`
+persists every key as one blob. And `expo-notifications` is resolved through a
+defensive `require` in `notificationsModule.js`: Expo Go on Android dropped local
+notifications in SDK 53, so an unguarded call breaks `npm start` entirely. It is
+a native module with a config plugin, so **reminders need a new dev build**
+(`eas build --profile development --platform android`); everything else works on
+the existing one.
 
 **Search suggestions** are ranked by `utils/searchUtils.js`, not by cache order.
 Matches are bucketed into relevance tiers (exact → whole-string prefix → word
