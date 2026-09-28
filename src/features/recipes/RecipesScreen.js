@@ -1,4 +1,3 @@
-import { useRef } from "react";
 import { View, Text, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -11,20 +10,17 @@ import { Button } from "shared/components/Button";
 import { IconButton } from "shared/components/IconButton";
 import { TextField } from "shared/components/TextField";
 import { useTheme } from "shared/hooks/useTheme";
-import { KeyboardScrollProvider } from "shared/context/KeyboardScrollContext";
 
 export default function RecipesScreen() {
   const r = useRecipes();
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
-  const listRef = useRef(null);
 
   const hasRecipes = r.recipes.length > 0;
 
   return (
     <View style={styles.screen}>
       <FlatList
-        ref={listRef}
         data={r.visibleRecipes}
         keyExtractor={(recipe) => recipe.id}
         contentContainerStyle={styles.listContent}
@@ -35,7 +31,7 @@ export default function RecipesScreen() {
           <RecipeListItem recipe={item} onPress={() => r.openRecipe(item)} />
         )}
         ListHeaderComponent={
-          <KeyboardScrollProvider scrollRef={listRef}>
+          <>
             <View style={styles.headerRow}>
               <Text style={styles.mainTitle}>Recipes</Text>
               <IconButton icon="add" variant="primary" onPress={r.openNewRecipe} />
@@ -52,7 +48,7 @@ export default function RecipesScreen() {
                 onRightIconPress={() => r.setSearch("")}
               />
             ) : null}
-          </KeyboardScrollProvider>
+          </>
         }
         ListEmptyComponent={
           <View style={styles.empty}>

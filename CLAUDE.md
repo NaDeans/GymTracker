@@ -91,10 +91,12 @@ the range export emits it in **both** branches, including the one for days with 
 food logged — a rest day is exactly when "Gym: no" carries signal.
 
 **Day completion** is one rule in `src/shared/utils/dayCompletion.js`, shared by
-the in-app bar (`DayCompletionBar`, under the date picker) and the reminder
-scheduler. A day is complete when the calorie goal is met or exceeded, every
-supplement is ticked, and gym and abs are both done; the supplements segment is
-omitted entirely when none are configured, so the bar is 3 or 4 equal segments.
+the in-app bar (`DayCompletionBar`, one thin line under the date picker) and the
+reminder scheduler. A day is complete when the calorie goal is met or exceeded,
+every supplement is ticked, and the gym is done; the supplements segment is
+omitted entirely when none are configured, so the bar is 2 or 3 equal segments.
+**Abs is deliberately not a segment** — it is still ticked on the day and still
+exported, it just doesn't gate completion.
 This is a **looser** test than `selectedDayGoalMet`/`isGoalMet`, which wants all
 four macros inside ±10% — the two legitimately disagree, so don't merge them.
 That file is deliberately import-free: `scripts/completion-check.mjs` loads it
@@ -103,9 +105,8 @@ would break that loader. Run `node scripts/completion-check.mjs` after touching 
 
 **Reminders** (`src/shared/notifications/`) are local notifications on a fixed
 schedule (`REMINDER_HOURS`, rebuilt seven days ahead on every sync). Nothing runs
-when a local notification fires, so the progress bar in the body is block
-characters computed at *schedule* time — `expo-notifications` does not expose
-Android's native `setProgress`. Every app foreground and every change in today's
+when a local notification fires, so the body text (`2/3 done · 1840/2400 kcal.`)
+is computed at *schedule* time. Every app foreground and every change in today's
 completion relays the whole window, which is what keeps that text current.
 Completing the day fires one congratulation and then silence, guarded by a
 `DD/MM/YY` in `REMINDER_STATE` so rollover resets it for free.
@@ -148,6 +149,17 @@ Free-form recipe notes — deliberately unstructured, since the point is a place
 ```
 
 `body` is one free-text blob; nothing in it is parsed. The list sorts by `updatedAt` descending and filters on a substring match over title + body. Tapping a card opens `RecipeEditor`, a full-screen modal with a title field and a full-height multiline input. There is no cancel: `closeEditor()` commits the draft on exit (a new recipe left entirely blank is discarded instead of saved), so text can't be lost by tapping the wrong control — deleting is the way to undo.
+
+### Keyboard behaviour
+
+Inputs **do not** scroll themselves into view on focus. There used to be a
+`KeyboardScrollProvider` doing that, and it was removed: it called
+`scrollResponderScrollNativeHandleToKeyboard` with `preventNegativeScrollOffset`,
+so a field near the top of a page asking for a large offset (the search bar asked
+for 220px to clear its suggestions dropdown) clamped to offset 0 and snapped the
+whole page to the top. Screens rely on `KeyboardAvoidingView`, Android's
+`adjustResize` and `automaticallyAdjustKeyboardInsets` instead. Don't reintroduce
+a focus-scroll without solving the clamp.
 
 ### Module Aliases
 

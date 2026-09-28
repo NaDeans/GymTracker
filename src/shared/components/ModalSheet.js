@@ -1,11 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   View, Text, Pressable, ScrollView, Modal,
   Platform, Keyboard, BackHandler, useWindowDimensions,
 } from "react-native";
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, SHADOW } from "shared/constants/styles";
 import { useTheme } from "shared/hooks/useTheme";
-import { KeyboardScrollProvider } from "shared/context/KeyboardScrollContext";
 import { IconButton } from "shared/components/IconButton";
 
 export const ModalSheet = ({
@@ -22,7 +21,6 @@ export const ModalSheet = ({
   const styles = createThemedStyles(colors);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const { height: windowHeight } = useWindowDimensions();
-  const scrollRef = useRef(null);
 
   useEffect(() => {
     const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
@@ -53,15 +51,12 @@ export const ModalSheet = ({
 
   const body = scrollable ? (
     <ScrollView
-      ref={scrollRef}
       style={{ flexShrink: 1 }}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
       automaticallyAdjustKeyboardInsets
     >
-      <KeyboardScrollProvider scrollRef={scrollRef}>
-        {children}
-      </KeyboardScrollProvider>
+      {children}
     </ScrollView>
   ) : (
     children

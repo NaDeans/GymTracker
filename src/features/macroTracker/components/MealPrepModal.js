@@ -205,7 +205,6 @@ export const MealPrepModal = ({
             min={0.5}
             decimal
             suffix="srv"
-            scrollOnFocus={false}
           />
           <Button variant="success" size="sm" onPress={() => handleLog(prep)}>Add to Log</Button>
         </View>
@@ -404,7 +403,6 @@ export const MealPrepModal = ({
           value={ingQuery}
           onChangeText={setIngQuery}
           onSubmitEditing={handleLookup}
-          keyboardOffset={220}
           style={{ marginBottom: SPACING.xs }}
         />
 

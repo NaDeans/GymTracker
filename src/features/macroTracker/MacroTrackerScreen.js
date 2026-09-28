@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { View, ScrollView, Text, RefreshControl, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
 import { useMacroScreen } from "./context/MacroTrackerContext";
 import { useFoodEditor } from "./hooks/useFoodEditor";
@@ -7,7 +7,6 @@ import { createThemedStyles } from "./macroTrackerStyles";
 import { Badge } from "shared/components/Badge";
 import { useTheme } from "shared/hooks/useTheme";
 import { formatFoodName } from "shared/utils/textUtils";
-import { KeyboardScrollProvider } from "shared/context/KeyboardScrollContext";
 
 import DatePicker from "./components/DatePicker";
 import { MacroTotals } from "./components/MacroTotals";
@@ -92,7 +91,6 @@ export default function MacroTrackerScreen() {
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
   const headerStyles = createThemedScreenStyles(colors);
-  const scrollRef = useRef(null);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -101,13 +99,11 @@ export default function MacroTrackerScreen() {
       </View>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView
-        ref={scrollRef}
         contentContainerStyle={[styles.container]}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-      <KeyboardScrollProvider scrollRef={scrollRef}>
         {(currentStreak > 0 || selectedDayGoalMet) && (
           <View style={styles.badgeRow}>
             {currentStreak > 0 && (
@@ -202,7 +198,6 @@ export default function MacroTrackerScreen() {
             />
           }
         />
-      </KeyboardScrollProvider>
       </ScrollView>
       </KeyboardAvoidingView>
 

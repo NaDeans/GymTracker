@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { View, Text, Alert, FlatList, StyleSheet } from "react-native";
 import { fmt, safeNumber } from "shared/utils/numberUtils";
 import { formatFoodName } from "shared/utils/textUtils";
@@ -10,7 +10,6 @@ import { EditCachedFoodModal } from "./components/EditCachedFoodModal";
 import { TextField } from "shared/components/TextField";
 import { Card } from "shared/components/Card";
 import { IconButton } from "shared/components/IconButton";
-import { KeyboardScrollProvider } from "shared/context/KeyboardScrollContext";
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from "shared/constants/styles";
 import { useTheme } from "shared/hooks/useTheme";
 
@@ -20,16 +19,15 @@ const displayName = (key, data) => data?.items?.[0]?.name || formatFoodName(key)
 
 // A screen rather than a modal, because the list was the problem: inside a
 // ModalSheet it was a FlatList capped at half the window height nested in a
-// sheet capped at another height, with no flexShrink, no KeyboardScrollProvider
-// on that branch, and two ancestor Pressables competing for the drag. Here the
-// FlatList owns the screen and all of that goes away.
+// sheet capped at another height, with no flexShrink, and two ancestor
+// Pressables competing for the drag. Here the FlatList owns the screen and all
+// of that goes away.
 export default function SavedFoodsScreen() {
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
   const screenStyles = createScreenStyles(colors);
   const { gptCache, setGptCache, addEditedFoodToLog, selectedDate } = useMacroData();
   const editor = useFoodEditor();
-  const listRef = useRef(null);
   const [query, setQuery] = useState("");
 
   const entries = useMemo(() => {
@@ -91,7 +89,6 @@ export default function SavedFoodsScreen() {
   return (
     <View style={screenStyles.screen}>
       <FlatList
-        ref={listRef}
         data={entries}
         keyExtractor={(e) => e.key}
         renderItem={renderItem}
@@ -101,7 +98,7 @@ export default function SavedFoodsScreen() {
         automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          <KeyboardScrollProvider scrollRef={listRef}>
+          <>
             <Text style={screenStyles.mainTitle}>Saved Foods</Text>
             {/* The date lives on the Macros tab, so say where Add will land. */}
             <Text style={screenStyles.hint}>Adding goes to {selectedDate}</Text>
@@ -114,7 +111,7 @@ export default function SavedFoodsScreen() {
               onRightIconPress={() => setQuery("")}
               style={{ marginBottom: SPACING.lg }}
             />
-          </KeyboardScrollProvider>
+          </>
         }
         ListEmptyComponent={
           <Text style={screenStyles.empty}>

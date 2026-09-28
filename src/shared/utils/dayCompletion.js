@@ -17,7 +17,6 @@ export const SEGMENT_KEYS = {
   CALORIES: "calories",
   SUPPLEMENTS: "supplements",
   GYM: "gym",
-  ABS: "abs",
 };
 
 const num = (v) => {
@@ -42,8 +41,11 @@ export const selectDayCompletionInput = (dmy, store = {}) => ({
 // full completion bar are answering different questions.
 //
 // The supplements segment is left out entirely when none are configured, so
-// totalCount is 3 or 4 and the bar renders equal segments either way rather
+// totalCount is 2 or 3 and the bar renders equal segments either way rather
 // than showing one that can never be filled.
+//
+// Abs is deliberately NOT a segment. It is still ticked on the day and still
+// exported — it just isn't something the day has to clear to count as done.
 export const getDayCompletion = ({ totals, goals, supplements = [], takenIds = [], dayStat } = {}) => {
   const calorieGoal = num(goals?.calories);
 
@@ -65,10 +67,12 @@ export const getDayCompletion = ({ totals, goals, supplements = [], takenIds = [
     });
   }
 
-  segments.push(
-    { key: SEGMENT_KEYS.GYM, label: "Went to the gym", shortLabel: "Gym", done: Boolean(dayStat?.gym) },
-    { key: SEGMENT_KEYS.ABS, label: "Hit abs", shortLabel: "Abs", done: Boolean(dayStat?.abs) }
-  );
+  segments.push({
+    key: SEGMENT_KEYS.GYM,
+    label: "Went to the gym",
+    shortLabel: "Gym",
+    done: Boolean(dayStat?.gym),
+  });
 
   const completedCount = segments.filter((s) => s.done).length;
   const totalCount = segments.length;
@@ -83,12 +87,18 @@ export const getDayCompletion = ({ totals, goals, supplements = [], takenIds = [
   };
 };
 
-// "▓▓▓▓▓▓░░ 3/4" for the notification body. expo-notifications does not expose
-// Android's native progress bar, so the bar is drawn with block characters.
-// Kept to 8 cells: the collapsed notification shows one line, and a longer bar
-// pushes the count off the end on narrow devices.
-export const renderProgressBar = (completedCount, totalCount, width = 8) => {
-  const filled = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * width);
-  const clamped = Math.max(0, Math.min(width, filled));
-  return `${"▓".repeat(clamped)}${"░".repeat(width - clamped)} ${completedCount}/${totalCount}`;
+// "2/3 done · 1840/2400 kcal." for the notification body.
+//
+// Plain text rather than a drawn bar: expo-notifications does not expose
+// Android's native progress bar, and block characters render inconsistently
+// across launchers, so the numbers carry it instead.
+//
+// Calories are rounded to whole numbers — a notification saying "1840.0 kcal"
+// reads like a bug. With no calorie goal set the clause is dropped rather than
+// printing "/0".
+export const renderProgressText = ({ completedCount, totalCount, calories, calorieGoal } = {}) => {
+  const done = `${num(completedCount)}/${num(totalCount)} done`;
+  const goal = num(calorieGoal);
+  if (goal <= 0) return `${done}.`;
+  return `${done} · ${Math.round(num(calories))}/${Math.round(goal)} kcal.`;
 };

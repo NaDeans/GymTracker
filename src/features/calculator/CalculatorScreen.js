@@ -1,9 +1,7 @@
-import { useRef } from "react";
 import { View, ScrollView, Text, KeyboardAvoidingView, Platform } from "react-native";
 import { useCalculator } from "./hooks/useCalculator";
 import { createThemedStyles } from "./calculatorStyles";
 import { useTheme } from "shared/hooks/useTheme";
-import { KeyboardScrollProvider } from "shared/context/KeyboardScrollContext";
 
 import { ConverterCard } from "./components/ConverterCard";
 import { HeightConverterCard } from "./components/HeightConverterCard";
@@ -13,17 +11,14 @@ export default function CalculatorScreen() {
   const c = useCalculator();
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
-  const scrollRef = useRef(null);
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView
-        ref={scrollRef}
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
       >
-      <KeyboardScrollProvider scrollRef={scrollRef}>
         <Text style={styles.mainTitle}>Calculator</Text>
 
         <ConverterCard
@@ -57,7 +52,6 @@ export default function CalculatorScreen() {
           weight={c.ormWeight} onWeightChange={c.setOrmWeight}
           reps={c.ormReps} onRepsChange={c.setOrmReps}
         />
-      </KeyboardScrollProvider>
       </ScrollView>
     </KeyboardAvoidingView>
   );
