@@ -65,12 +65,24 @@ const ensureChannel = async () => {
   });
 };
 
+// When a slot's reminder should withdraw itself: the moment the next slot is
+// due (the first slot of the next day, for the last one). A patch to
+// expo-notifications (patches/) turns `data.expiresAt` into Android's
+// timeoutAfter, so a reminder left uncleared is replaced by the next rather
+// than stacking up while the app is closed — nothing in JS runs at fire time.
+const slotExpiresAt = (dmy, hour) => {
+  const next = REMINDER_HOURS.find((h) => h > hour);
+  return next != null
+    ? dmyToDateAt(dmy, next).getTime()
+    : dmyToDateAt(shiftDmy(dmy, 1), REMINDER_HOURS[0]).getTime();
+};
+
 const scheduleAt = async (dmy, hour, body) => {
   await Notify.scheduleNotificationAsync({
     content: {
       title: "Log your day",
       body,
-      data: { kind: TAG, dmy, hour },
+      data: { kind: TAG, dmy, hour, expiresAt: slotExpiresAt(dmy, hour) },
     },
     trigger: {
       type: Notify.SchedulableTriggerInputTypes.DATE,
@@ -78,6 +90,48 @@ const scheduleAt = async (dmy, hour, body) => {
       channelId: CHANNEL_ID,
     },
   });
+};
+
+// Brings whatever reminder is already sitting in the notification shade up to
+// date. Scheduled text is frozen when it's laid down, so without this a
+// reminder that fired at 3pm would still say "1/3 done" after the user logged
+// everything at 4.
+//
+// Re-presenting under the same identifier replaces the notification in place
+// (Android keys it by tag, iOS by identifier) rather than posting a second one.
+// `silent` makes the foreground handler skip the banner, and the handler's
+// shouldPlaySound: false keeps the update from buzzing again. Only the newest
+// of today's reminders survives; older ones, and any from earlier days, go.
+const refreshPresentedReminders = async (today, completion, body) => {
+  const presented = (await Notify.getPresentedNotificationsAsync()).filter(
+    (n) => n.request?.content?.data?.kind === TAG && !n.request.content.data.congrats
+  );
+  if (presented.length === 0) return;
+
+  const latest = completion.isComplete
+    ? null
+    : presented
+        .filter((n) => n.request.content.data.dmy === today)
+        .sort((a, b) => b.date - a.date)[0] || null;
+
+  await Promise.all(
+    presented
+      .filter((n) => n !== latest)
+      .map((n) => Notify.dismissNotificationAsync(n.request.identifier))
+  );
+
+  if (latest && latest.request.content.body !== body) {
+    await Notify.scheduleNotificationAsync({
+      identifier: latest.request.identifier,
+      content: {
+        title: latest.request.content.title || "Log your day",
+        body,
+        sound: false,
+        data: { ...latest.request.content.data, silent: true },
+      },
+      trigger: { channelId: CHANNEL_ID },
+    });
+  }
 };
 
 // Asked once, ever. There is no natural gesture that means "I want reminders",
@@ -107,7 +161,15 @@ export const ensureNotificationPermission = async () => {
 // `liveStore` lets the app pass the state it already holds instead of re-reading
 // AsyncStorage, so a sync triggered by a tick can't race the save effect that
 // tick just started.
-export const syncDayReminders = async (liveStore) => {
+// Syncs run one at a time. Each one cancels and re-lays ~60 notifications, and
+// two interleaved runs could cancel each other's half and leave duplicates.
+let syncQueue = Promise.resolve();
+export const syncDayReminders = (liveStore) => {
+  syncQueue = syncQueue.then(() => runSync(liveStore));
+  return syncQueue;
+};
+
+const runSync = async (liveStore) => {
   try {
     if (!notificationsAvailable) return;
     const perm = await Notify.getPermissionsAsync();
@@ -121,6 +183,14 @@ export const syncDayReminders = async (liveStore) => {
     const dayInput = selectDayCompletionInput(today, store);
     const completion = getDayCompletion(dayInput);
     const state = await readState();
+    const body = renderProgressText({
+      completedCount: completion.completedCount,
+      totalCount: completion.totalCount,
+      calories: dayInput.totals?.calories,
+      calorieGoal: dayInput.goals?.calories,
+    });
+
+    await refreshPresentedReminders(today, completion, body);
 
     if (completion.isComplete) {
       // One congratulation per day, then silence. The guard is a date string
@@ -145,12 +215,6 @@ export const syncDayReminders = async (liveStore) => {
       // Today's remaining slots carry the live counts. The text is frozen at
       // schedule time — nothing runs when it fires — which is why every
       // foreground and every completion change rebuilds this.
-      const body = renderProgressText({
-        completedCount: completion.completedCount,
-        totalCount: completion.totalCount,
-        calories: dayInput.totals?.calories,
-        calorieGoal: dayInput.goals?.calories,
-      });
       const cutoff = Date.now() + 60_000;
       await Promise.all(
         REMINDER_HOURS.filter((h) => dmyToDateAt(today, h).getTime() > cutoff).map((h) =>

@@ -7,6 +7,7 @@ import { createThemedStyles } from "./macroTrackerStyles";
 import { Badge } from "shared/components/Badge";
 import { useTheme } from "shared/hooks/useTheme";
 import { formatFoodName } from "shared/utils/textUtils";
+import { todayString } from "shared/utils/dateUtils";
 
 import DatePicker from "./components/DatePicker";
 import { MacroTotals } from "./components/MacroTotals";
@@ -82,11 +83,12 @@ export default function MacroTrackerScreen() {
     setMealPrepVisible(true);
   };
 
-  // Re-lays the reminder window whenever today's completion changes, so the
-  // progress bar baked into each scheduled notification stays current. Passing
-  // live state means the sync can't race the save effect the same tick started.
+  // Re-lays the reminder window — and rewrites any reminder already on screen —
+  // whenever today's done count or calorie total changes, i.e. whenever the
+  // notification text would read differently. Passing live state means the
+  // sync can't race the save effect the same tick started.
   useReminderSync(
-    `${todayCompletion.completedCount}/${todayCompletion.totalCount}`,
+    `${todayCompletion.completedCount}/${todayCompletion.totalCount}·${Math.round(dailyLog[todayString()]?.totals?.calories || 0)}`,
     () => ({ dailyLog, goals, supplements, supplementLog, dayStats, checklist })
   );
 

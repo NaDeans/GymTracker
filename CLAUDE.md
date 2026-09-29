@@ -115,7 +115,18 @@ schedule (`REMINDER_HOURS`, hourly 7am–9pm, rebuilt four days ahead on every
 sync — the window is sized to stay under iOS's 64-pending-notification cap). Nothing runs
 when a local notification fires, so the body text (`2/3 done · 1840/2400 kcal.`)
 is computed at *schedule* time. Every app foreground and every change in today's
-completion relays the whole window, which is what keeps that text current.
+done count or calories relays the whole window (debounced, and serialised so two
+syncs never interleave), which is what keeps that text current.
+
+A reminder already in the shade is rewritten in place on each sync: re-presented
+under its own identifier with `data.silent`, which the foreground handler turns
+into no banner and no sound. Only the newest of today's survives; the rest are
+dismissed. While the app is closed, a reminder left uncleared withdraws itself
+when the next slot is due — `data.expiresAt` becomes Android's `timeoutAfter`
+via `patches/expo-notifications+*.patch` (patch-package, run on `postinstall`).
+**Bumping expo-notifications means regenerating that patch**; if it stops
+applying, install fails loudly rather than silently losing the behaviour.
+
 Completing the day fires one congratulation and then silence, guarded by a
 `DD/MM/YY` in `REMINDER_STATE` so rollover resets it for free.
 

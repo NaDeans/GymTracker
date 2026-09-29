@@ -23,8 +23,10 @@ export const notificationsAvailable = Boolean(Notify) && Platform.OS !== "web";
 // shouldShowAlert is deprecated.
 if (Notify) {
   Notify.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
+    // In-place updates of a reminder already on screen are flagged `silent`:
+    // they belong in the shade, not as a fresh banner over the app.
+    handleNotification: async (notification) => ({
+      shouldShowBanner: !notification?.request?.content?.data?.silent,
       shouldShowList: true,
       shouldPlaySound: false,
       shouldSetBadge: false,

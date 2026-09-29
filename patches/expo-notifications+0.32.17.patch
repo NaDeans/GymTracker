@@ -1,0 +1,19 @@
+diff --git a/node_modules/expo-notifications/android/src/main/java/expo/modules/notifications/notifications/presentation/builders/ExpoNotificationBuilder.kt b/node_modules/expo-notifications/android/src/main/java/expo/modules/notifications/notifications/presentation/builders/ExpoNotificationBuilder.kt
+index 610d303..fbc90b8 100644
+--- a/node_modules/expo-notifications/android/src/main/java/expo/modules/notifications/notifications/presentation/builders/ExpoNotificationBuilder.kt
++++ b/node_modules/expo-notifications/android/src/main/java/expo/modules/notifications/notifications/presentation/builders/ExpoNotificationBuilder.kt
+@@ -100,6 +100,14 @@ open class ExpoNotificationBuilder(
+     builder.setAutoCancel(content.isAutoDismiss)
+     builder.setOngoing(content.isSticky)
+ 
++    // GymTracker patch: a numeric `expiresAt` (epoch ms) in the notification's
++    // data sets Android's timeoutAfter, so an unread reminder is withdrawn when
++    // the next one is due instead of stacking up while the app is closed.
++    content.body?.optLong("expiresAt", 0L)?.let { expiresAt ->
++      val remaining = expiresAt - System.currentTimeMillis()
++      if (expiresAt > 0L && remaining > 0L) builder.setTimeoutAfter(remaining)
++    }
++
+     // see "Notification anatomy" https://developer.android.com/develop/ui/views/notifications#Templates
+     builder.setContentTitle(content.title)
+     builder.setContentText(content.text)
