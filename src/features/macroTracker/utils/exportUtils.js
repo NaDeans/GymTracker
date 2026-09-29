@@ -69,29 +69,32 @@ const buildSupplementLine = (date, supplements = [], supplementLog = {}) => {
     : "Supplements taken: none";
 };
 
-// Body weight and training for one day, as a single line. Returns null for a
-// day with nothing recorded, so untouched days in a range export stay clean.
+// Body weight and the daily checklist for one day, as a single line — every
+// checklist item appears as yes/no, in list order, with names resolved at
+// export time. Returns null for a day with nothing recorded, so untouched days
+// in a range export stay clean.
 //
 // The weight test is `typeof === "number"` rather than safeNumber, which maps
 // "" to 0 and would print "Weight: 0.0 kg" for every day the field was never
 // touched.
-const buildDayStatsLine = (date, dayStats = {}) => {
+const buildDayStatsLine = (date, dayStats = {}, checklist = []) => {
   const stat = dayStats?.[date];
   if (!stat) return null;
   const parts = [];
   if (typeof stat.weight === "number" && Number.isFinite(stat.weight)) {
     parts.push(`Weight: ${fmt(stat.weight)} kg`);
   }
-  parts.push(`Gym: ${stat.gym ? "yes" : "no"}`, `Abs: ${stat.abs ? "yes" : "no"}`);
-  return parts.join(" | ");
+  const checked = stat.checked || [];
+  checklist.forEach((c) => parts.push(`${c.name}: ${checked.includes(c.id) ? "yes" : "no"}`));
+  return parts.length > 0 ? parts.join(" | ") : null;
 };
 
 // Builds a plain-text summary of a day's food log — good enough to paste
 // into a chat/AI app for feedback. Pure function: no state, no I/O.
-export const formatDayForExport = (selectedDate, historyByDate, dailyLog, goals, supplements, supplementLog, dayStats) => {
+export const formatDayForExport = (selectedDate, historyByDate, dailyLog, goals, supplements, supplementLog, dayStats, checklist) => {
   const { foodLines, totals } = buildDayLines(selectedDate, historyByDate, dailyLog);
   const supplementLine = buildSupplementLine(selectedDate, supplements, supplementLog);
-  const statsLine = buildDayStatsLine(selectedDate, dayStats);
+  const statsLine = buildDayStatsLine(selectedDate, dayStats, checklist);
 
   const lines = [`MacroTracker — ${selectedDate}`, ""];
 
@@ -109,7 +112,7 @@ export const formatDayForExport = (selectedDate, historyByDate, dailyLog, goals,
     `Totals: ${fmt(totals.calories)} kcal, P ${fmt(totals.protein)}g, C ${fmt(totals.carbs)}g, F ${fmt(totals.fats)}g`,
     `Goals: ${fmt(goals.calories)} kcal, P ${fmt(goals.protein)}g, C ${fmt(goals.carbs)}g, F ${fmt(goals.fats)}g`,
     "",
-    "Based on the foods and supplements listed above, how did I do on my macros (calories, protein, carbs, fats) versus my goals, and how did I do on micronutrients (vitamins, minerals, fiber, etc.)? Take the supplements into account when judging micronutrient coverage. Where body weight and training (gym / abs) are listed, factor those in too. Point out any deficiencies and tell me specifically how I could improve tomorrow."
+    "Based on the foods and supplements listed above, how did I do on my macros (calories, protein, carbs, fats) versus my goals, and how did I do on micronutrients (vitamins, minerals, fiber, etc.)? Take the supplements into account when judging micronutrient coverage. Where body weight and my daily checklist (training and habits) are listed, factor those in too. Point out any deficiencies and tell me specifically how I could improve tomorrow."
   );
 
   return lines.join("\n");
@@ -119,7 +122,7 @@ export const formatDayForExport = (selectedDate, historyByDate, dailyLog, goals,
 // inclusive), day-by-day with full food breakdowns, plus period totals/
 // averages — enough detail for a full trend analysis. Pure function: no
 // state, no I/O.
-export const formatRangeForExport = (endDmy, days, historyByDate, dailyLog, goals, supplements, supplementLog, dayStats) => {
+export const formatRangeForExport = (endDmy, days, historyByDate, dailyLog, goals, supplements, supplementLog, dayStats, checklist) => {
   const dates = [];
   let cursor = endDmy;
   for (let i = 0; i < days; i++) {
@@ -135,14 +138,14 @@ export const formatRangeForExport = (endDmy, days, historyByDate, dailyLog, goal
   dates.forEach((date) => {
     const { foodLines, totals, hasLog } = buildDayLines(date, historyByDate, dailyLog);
     const supplementLine = buildSupplementLine(date, supplements, supplementLog);
-    const statsLine = buildDayStatsLine(date, dayStats);
+    const statsLine = buildDayStatsLine(date, dayStats, checklist);
 
     lines.push(`--- ${date} ---`);
     if (!hasLog) {
       lines.push("No foods logged.");
       if (supplementLine) lines.push(supplementLine);
       // Emitted here too, not just in the branch below: a rest day with no food
-      // logged is exactly when "Gym: no" carries signal.
+      // logged is exactly when "Went to the gym: no" carries signal.
       if (statsLine) lines.push(statsLine);
       lines.push("");
       return;
@@ -177,7 +180,7 @@ export const formatRangeForExport = (endDmy, days, historyByDate, dailyLog, goal
 
   lines.push(
     "",
-    "Based on the daily logs above (foods, supplements, body weight and training), how have I trended against my macro goals (calories, protein, carbs, fats) over this period, and how did I likely do on micronutrients (vitamins, minerals, fiber, etc.)? Take the supplements into account when judging micronutrient coverage, including how consistently I took them. Where body weight is listed, comment on the trend and whether my intake matches it; where training is listed, factor in how often I hit the gym and abs. Point out any patterns, deficiencies, or inconsistencies, and tell me specifically how I could improve going forward."
+    "Based on the daily logs above (foods, supplements, body weight and daily checklist), how have I trended against my macro goals (calories, protein, carbs, fats) over this period, and how did I likely do on micronutrients (vitamins, minerals, fiber, etc.)? Take the supplements into account when judging micronutrient coverage, including how consistently I took them. Where body weight is listed, comment on the trend and whether my intake matches it; where my daily checklist is listed, factor in how consistently I ticked each item off. Point out any patterns, deficiencies, or inconsistencies, and tell me specifically how I could improve going forward."
   );
 
   return lines.join("\n");

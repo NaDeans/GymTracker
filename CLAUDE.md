@@ -68,43 +68,51 @@ Key state objects:
 | `goals` | `GOALS` | `{ calories, protein, carbs, fats }` targets |
 | `supplements` | `SUPPLEMENTS` | `[{ id, name }]` — the user's editable supplement list |
 | `supplementLog` | `SUPPLEMENT_LOG` | `{ [dateStr]: [supplementId] }` — which supplements were ticked that day |
-| `dayStats` | `DAY_STATS` | `{ [dateStr]: { weight, gym, abs } }` — body weight in kg plus the two training ticks |
+| `dayStats` | `DAY_STATS` | `{ [dateStr]: { weight, checked: [checklistId] } }` — body weight in kg plus the ticked checklist items |
+| `checklist` | `CHECKLIST` | `[{ id, name }]` — the user's editable daily checklist; defaults to Gym / Abs while the key is absent |
 
 Food lookup flow: user types → check `gptCache` → if miss, call the Claude API (`claude-haiku-4-5`, structured outputs, via raw `fetch` — the `@anthropic-ai/sdk` package is deliberately NOT used because it imports `node:fs`, which Metro cannot bundle for native) from `services/gptService.js` → normalize via `utils/gptUtils.js` → store in cache and add to `historyByDate`. (File/state names keep the legacy "gpt" prefix.)
 
 **One food per saved food.** A saved food holds exactly one item, and its key is that item's own name (`foodKey(item.name)` — see `utils/foodCacheUtils.js`), so there is no separate search term that can drift from the display name. A search naming several foods is split into one saved food per item; the model is asked to name each item so it stands alone, leading with the portion when the user stated one ("200g Chicken Breast"). The raw search string is recorded on every entry it produced (`aliases: { [term]: { i, n } }`) so retyping it resolves from the cache, and `resolveFromCache` also matches a comma/"and"-separated list of saved names. `migrateFoodData` rebuilds pre-split data on load and is idempotent. There is also a scan-label flow: photo → `utils/imageUtils.js` (resize/compress via expo-image-manipulator) → `fetchNutritionFromImage`.
 
-Supplements are a separate tick-list: `SupplementsSection` renders one checkbox per supplement for the selected date, `SupplementsModal` adds/renames/deletes them. Only ids are logged per day — names resolve from `supplements` at display/export time, so a rename applies retroactively and deleting a supplement purges it from every logged day. Both exports include a `Supplements taken:` line (omitted entirely when no supplements are configured).
+Supplements are a separate tick-list: `SupplementsSection` renders one checkbox per supplement for the selected date, `NamedListModal` adds/renames/deletes them (the same modal edits the daily checklist). Only ids are logged per day — names resolve from `supplements` at display/export time, so a rename applies retroactively and deleting a supplement purges it from every logged day. Both exports include a `Supplements taken:` line (omitted entirely when no supplements are configured).
 
 `dailyLog` and `historyByDate` serve different purposes: `dailyLog` tracks item counts and running totals for display; `historyByDate` preserves the original GPT entries (used by `DailyControls` to render each entry with +/- controls).
 
 **Meals** (`MealsModal` / `MealEditorModal`, helpers in `utils/mealUtils.js`) replace the old custom-foods list — manual entry already covers one-off foods, and `loadMacroTrackerData` migrates any leftover `CUSTOM_FOODS` into one-item meals before deleting that key. A meal is built by ticking foods in the day's log ("Select foods to save as a meal", which snapshots their current grams × count) or from scratch in the editor, where every parameter of the meal and each of its foods is editable. Adding a meal writes one `historyByDate` entry carrying `mealId`/`mealName` — that name is what groups the foods into a block in the log and in exports. Item ids are minted fresh on each add, so logging the same meal twice yields two independent blocks.
 
-**Daily stats** (`DayStatsSection`) sit under the supplements list: body weight in
-kg plus "went to the gym" and "hit abs", per selected date. `DAY_STATS` is kept
-sparse the same way `supplementLog` is — the date key is deleted once weight is
-cleared and both flags are false — and `resetDay` drops it alongside the others.
-The weight field commits on blur, not per keystroke, because every write rewrites
-all nine storage keys. Yesterday's weight shows as the placeholder and is never
-recorded on its own. Both exports carry a `Weight: … | Gym: … | Abs: …` line, and
-the range export emits it in **both** branches, including the one for days with no
-food logged — a rest day is exactly when "Gym: no" carries signal.
+**Daily stats** (`DayStatsSection`, the "Today" card) sit under the supplements
+list: body weight in kg plus the user's **daily checklist**, per selected date. The
+checklist is edited through the card's gear (`NamedListModal`) and works like
+supplements — only ids are logged, a rename applies retroactively, deleting an
+item purges it from every day. It starts as "Went to the gym" / "Hit abs" with ids
+`gym` / `abs`, which are the old `DAY_STATS` flag names: `normalizeDayStat`
+folds legacy `{ gym, abs }` booleans into `checked` on every load, idempotently.
+`DAY_STATS` is kept sparse the same way `supplementLog` is — the date key is
+deleted once weight is cleared and nothing is ticked — and `resetDay` drops it
+alongside the others. The weight field commits on blur, not per keystroke, because
+every write rewrites all ten storage keys. Yesterday's weight shows as the
+placeholder and is never recorded on its own. Both exports carry a
+`Weight: … | Went to the gym: yes | Hit abs: no | …` line (one entry per checklist
+item), and the range export emits it in **both** branches, including the one for
+days with no food logged — a rest day is exactly when "Went to the gym: no"
+carries signal.
 
 **Day completion** is one rule in `src/shared/utils/dayCompletion.js`, shared by
 the in-app bar (`DayCompletionBar`, one thin line under the date picker) and the
-reminder scheduler. A day is complete when the calorie goal is met or exceeded,
-every supplement is ticked, and the gym is done; the supplements segment is
-omitted entirely when none are configured, so the bar is 2 or 3 equal segments.
-**Abs is deliberately not a segment** — it is still ticked on the day and still
-exported, it just doesn't gate completion.
-This is a **looser** test than `selectedDayGoalMet`/`isGoalMet`, which wants all
-four macros inside ±10% — the two legitimately disagree, so don't merge them.
+reminder scheduler. Three segments: calorie + macro goals met, every supplement
+ticked, every checklist item ticked. The supplements and checklist segments are
+omitted when their list is empty, so the bar is 1–3 equal segments. Body weight
+does not gate completion. The macros segment is the same ±10%-on-all-four test as
+`isGoalMet` (the "Goal met" badge), inlined as `macroGoalsMet` — keep the two in
+step so the badge and the bar never disagree.
 That file is deliberately import-free: `scripts/completion-check.mjs` loads it
 through a `data:` URL, as `format-name-check.mjs` does, and an aliased import
 would break that loader. Run `node scripts/completion-check.mjs` after touching it.
 
 **Reminders** (`src/shared/notifications/`) are local notifications on a fixed
-schedule (`REMINDER_HOURS`, rebuilt seven days ahead on every sync). Nothing runs
+schedule (`REMINDER_HOURS`, hourly 7am–9pm, rebuilt four days ahead on every
+sync — the window is sized to stay under iOS's 64-pending-notification cap). Nothing runs
 when a local notification fires, so the body text (`2/3 done · 1840/2400 kcal.`)
 is computed at *schedule* time. Every app foreground and every change in today's
 completion relays the whole window, which is what keeps that text current.

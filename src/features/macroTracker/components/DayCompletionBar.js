@@ -5,13 +5,13 @@ import { createThemedStyles } from "../macroTrackerStyles";
 import { useTheme } from "shared/hooks/useTheme";
 import { triggerNotification } from "shared/utils/haptics";
 
-// How much of the day is done: calorie goal, every supplement, gym. One thin
+// How much of the day is done: macro goals, every supplement, the checklist. One thin
 // line under the date — deliberately quiet, since the checkboxes below are
 // where the day actually gets filled in.
 //
 // Takes the whole completion object rather than the raw state it came from, so
 // the rule stays in shared/utils/dayCompletion.js where the reminder scheduler
-// can use the same one. (Abs is ticked on the day but isn't a segment.)
+// can use the same one.
 //
 // The caller passes key={selectedDate}, so switching to an already-complete past
 // day remounts rather than re-firing the medal pop and haptic.

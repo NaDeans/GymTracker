@@ -8,14 +8,19 @@ import { IconButton } from "shared/components/IconButton";
 import { SPACING } from "shared/constants/styles";
 import { useTheme } from "shared/hooks/useTheme";
 
-// Add / rename / delete the supplements that appear on the daily tick-list.
-export const SupplementsModal = ({
+// Add / rename / delete a user-editable list of `{ id, name }` — the
+// supplements and the daily checklist both use it.
+export const NamedListModal = ({
   visible,
   setVisible,
-  supplements,
-  addSupplement,
-  renameSupplement,
-  removeSupplement,
+  title,
+  addTitle,
+  emptyText,
+  placeholder,
+  items,
+  onAdd,
+  onRename,
+  onRemove,
 }) => {
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
@@ -24,47 +29,45 @@ export const SupplementsModal = ({
   // name never overwrites the stored one.
   const [drafts, setDrafts] = useState({});
 
-  const commitRename = (supplement) => {
-    const draft = drafts[supplement.id];
-    setDrafts((prev) => { const u = { ...prev }; delete u[supplement.id]; return u; });
+  const commitRename = (item) => {
+    const draft = drafts[item.id];
+    setDrafts((prev) => { const u = { ...prev }; delete u[item.id]; return u; });
     if (draft === undefined) return;
     const trimmed = draft.trim();
-    if (!trimmed || trimmed === supplement.name) return;
-    renameSupplement(supplement.id, trimmed);
+    if (!trimmed || trimmed === item.name) return;
+    onRename(item.id, trimmed);
   };
 
   const handleAdd = () => {
-    if (addSupplement(newName)) setNewName("");
+    if (onAdd(newName)) setNewName("");
   };
 
   return (
-    <ModalSheet visible={visible} onClose={() => setVisible(false)} title="Supplements">
-      {supplements.length === 0 ? (
-        <Text style={styles.supplementsEmpty}>
-          Add the supplements you take — they'll show up as a daily tick-list and in your exports.
-        </Text>
+    <ModalSheet visible={visible} onClose={() => setVisible(false)} title={title}>
+      {items.length === 0 ? (
+        <Text style={styles.supplementsEmpty}>{emptyText}</Text>
       ) : (
-        supplements.map((supplement) => (
-          <View key={supplement.id} style={styles.supplementEditRow}>
+        items.map((item) => (
+          <View key={item.id} style={styles.supplementEditRow}>
             <TextField
               size="sm"
               style={{ flex: 1 }}
-              value={drafts[supplement.id] ?? supplement.name}
-              onChangeText={(v) => setDrafts((prev) => ({ ...prev, [supplement.id]: v }))}
-              onEndEditing={() => commitRename(supplement)}
+              value={drafts[item.id] ?? item.name}
+              onChangeText={(v) => setDrafts((prev) => ({ ...prev, [item.id]: v }))}
+              onEndEditing={() => commitRename(item)}
             />
-            <IconButton icon="trash" variant="danger" size="sm" onPress={() => removeSupplement(supplement.id)} />
+            <IconButton icon="trash" variant="danger" size="sm" onPress={() => onRemove(item.id)} />
           </View>
         ))
       )}
 
-      <Text style={styles.sectionTitle}>Add Supplement</Text>
+      <Text style={styles.sectionTitle}>{addTitle}</Text>
 
       <View style={styles.supplementAddRow}>
         <TextField
           size="sm"
           style={{ flex: 1 }}
-          placeholder="e.g. Vitamin D"
+          placeholder={placeholder}
           value={newName}
           onChangeText={setNewName}
           onSubmitEditing={handleAdd}

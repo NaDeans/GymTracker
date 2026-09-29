@@ -7,14 +7,21 @@ import { Notify, notificationsAvailable } from "./notificationsModule";
 
 // Reminders to log the day, on a fixed schedule rather than a snooze: nothing
 // runs when a local notification fires, so there is no dismissal hook to hang a
-// "come back in two hours" off. Clearing one simply means the next still comes.
-export const REMINDER_HOURS = [7, 9, 12, 15, 18, 21];
+// "come back in an hour" off. Clearing one simply means the next still comes.
+// Hourly, 7am to 9pm inclusive.
+export const REMINDER_HOURS = Array.from({ length: 15 }, (_, i) => 7 + i);
 
 const CHANNEL_ID = "daily-reminders";
 const TAG = "gymtracker-reminder";
 // How many days ahead to lay down reminders, so they keep arriving if the app
 // isn't opened for a while. Rebuilt from scratch on every sync.
-const WINDOW_DAYS = 7;
+//
+// Sized to stay under iOS's cap of 64 pending local notifications (the rest are
+// silently dropped) with room for the congratulation: 4 days × 15 slots = 60.
+// It also bounds how many native calls each sync makes, and syncs run on every
+// completion change.
+const MAX_PENDING = 60;
+const WINDOW_DAYS = Math.max(1, Math.floor(MAX_PENDING / REMINDER_HOURS.length));
 
 // Its own key, touched only by this module. Deliberately NOT part of the
 // saveMacroTrackerData blob, which rewrites every macro key at once — routing
@@ -154,7 +161,7 @@ export const syncDayReminders = async (liveStore) => {
 
     // Future days get generic copy: tomorrow's progress is unknowable today, and
     // a baked-in "0/4" would simply be wrong by the time it showed up.
-    const futureBody = "Log your macros, supplements and training.";
+    const futureBody = "Log your macros, supplements and daily checklist.";
     for (let i = 1; i < WINDOW_DAYS; i++) {
       const dmy = shiftDmy(today, i);
       await Promise.all(REMINDER_HOURS.map((h) => scheduleAt(dmy, h, futureBody)));
