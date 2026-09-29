@@ -108,7 +108,7 @@ export const createThemedStyles = (colors) => StyleSheet.create({
 
   /* ================= DAY STATS ================= */
   dayStatsCard: { marginTop: SPACING.lg },
-  dayStatsTitle: { fontWeight: FONT_WEIGHT.bold, fontSize: FONT_SIZE.lg, color: colors.textDark, marginBottom: SPACING.sm },
+  dayStatsTitle: { fontWeight: FONT_WEIGHT.bold, fontSize: FONT_SIZE.lg, color: colors.textDark },
   dayStatsHint: { fontSize: FONT_SIZE.xs, color: colors.textMuted, marginTop: SPACING.xs },
   dayStatsCheckRow: { flexDirection: "row", alignItems: "center", paddingVertical: SPACING.sm, gap: SPACING.md },
   dayStatsCheckRowDivider: { borderTopWidth: 1, borderTopColor: colors.border },

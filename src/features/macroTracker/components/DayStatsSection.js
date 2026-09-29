@@ -4,13 +4,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { createThemedStyles } from "../macroTrackerStyles";
 import { Card } from "shared/components/Card";
 import { TextField } from "shared/components/TextField";
+import { IconButton } from "shared/components/IconButton";
 import { SPACING } from "shared/constants/styles";
 import { fmt } from "shared/utils/numberUtils";
 import { useTheme } from "shared/hooks/useTheme";
 import { triggerImpact } from "shared/utils/haptics";
 
-// Body weight and training for the selected day. Sits under the supplements
-// tick-list and follows the same shape: one card, one row per thing.
+// Body weight and the user's daily checklist for the selected day. Sits under
+// the supplements tick-list and follows the same shape: one card, one row per
+// thing, with the list itself edited in NamedListModal via the gear.
 //
 // The caller passes key={selectedDate}, so changing day remounts this and the
 // weight draft resets with it — no resync effect needed.
@@ -18,17 +20,17 @@ export const DayStatsSection = ({
   weight,
   previousWeight,
   onCommitWeight,
-  gym,
-  abs,
-  onToggleGym,
-  onToggleAbs,
+  checklist,
+  checkedIds,
+  onToggleItem,
+  onManage,
 }) => {
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
   const [draft, setDraft] = useState(() => (weight != null ? fmt(weight) : ""));
 
   // Committed on blur rather than per keystroke: every write here rewrites all
-  // nine AsyncStorage keys (saveMacroTrackerData persists them as one blob), and
+  // ten AsyncStorage keys (saveMacroTrackerData persists them as one blob), and
   // a half-typed "7" should never be recorded as a body weight.
   const commit = () => {
     const raw = draft.trim().replace(",", ".");
@@ -67,7 +69,10 @@ export const DayStatsSection = ({
 
   return (
     <Card padding={SPACING.md} style={styles.dayStatsCard}>
-      <Text style={styles.dayStatsTitle}>Today</Text>
+      <View style={styles.supplementsHeaderRow}>
+        <Text style={styles.dayStatsTitle}>Today</Text>
+        <IconButton icon="settings-outline" variant="ghost" size="sm" onPress={onManage} />
+      </View>
 
       <TextField
         label="Body weight"
@@ -86,8 +91,17 @@ export const DayStatsSection = ({
       )}
 
       <View style={{ marginTop: SPACING.sm }}>
-        {checkRow("Went to the gym", gym, onToggleGym, false)}
-        {checkRow("Hit abs", abs, onToggleAbs, true)}
+        {checklist.length === 0 ? (
+          <Text style={styles.supplementsEmpty}>
+            No checklist items. Tap the gear to add things to tick off each day.
+          </Text>
+        ) : (
+          checklist.map((c, idx) => (
+            <View key={c.id}>
+              {checkRow(c.name, checkedIds.includes(c.id), () => onToggleItem(c.id), idx > 0)}
+            </View>
+          ))
+        )}
       </View>
     </Card>
   );

@@ -9,7 +9,7 @@ import { useTheme } from "shared/hooks/useTheme";
 import { triggerImpact } from "shared/utils/haptics";
 
 // Tick-list of the user's supplements for the selected day. The list itself is
-// edited in SupplementsModal — this only records what was taken.
+// edited in NamedListModal — this only records what was taken.
 export const SupplementsSection = ({ supplements, takenIds, toggleSupplement, onManage }) => {
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);

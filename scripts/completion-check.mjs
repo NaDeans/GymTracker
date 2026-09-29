@@ -10,9 +10,10 @@ import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(join(here, "..", "src", "shared", "utils", "dayCompletion.js"), "utf8");
-const { getDayCompletion, selectDayCompletionInput, renderProgressText, SEGMENT_KEYS } = await import(
-  `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`
-);
+const {
+  getDayCompletion, selectDayCompletionInput, renderProgressText, SEGMENT_KEYS,
+  DEFAULT_CHECKLIST, normalizeDayStat, normalizeDayStats, macroGoalsMet,
+} = await import(`data:text/javascript;base64,${Buffer.from(source).toString("base64")}`);
 
 let failures = 0;
 const check = (name, actual, expected) => {
@@ -25,67 +26,36 @@ const check = (name, actual, expected) => {
 };
 
 const GOALS = { calories: 2400, protein: 150, carbs: 330, fats: 70 };
+const ON_GOAL = { calories: 2400, protein: 150, carbs: 330, fats: 70 };
 const SUPPS = [{ id: "a", name: "Vitamin D" }, { id: "b", name: "Fish Oil" }];
+const LIST = DEFAULT_CHECKLIST;
 const totals = (calories) => ({ calories, protein: 0, carbs: 0, fats: 0 });
 
-// --- abs is not part of completion ----------------------------------------
-// It is still ticked on the day and still exported; it just doesn't gate the
-// bar. Guard both the key table and the produced segments.
-check("SEGMENT_KEYS has no abs", Object.keys(SEGMENT_KEYS).includes("ABS"), false);
+// --- default checklist ------------------------------------------------------
+check("default checklist is gym then abs", LIST.map((c) => c.id), ["gym", "abs"]);
+
+// --- segment count varies with which lists are configured ------------------
+check("nothing configured → 1 segment", getDayCompletion({ goals: GOALS }).totalCount, 1);
 check(
-  "abs never appears as a segment, even when ticked",
-  getDayCompletion({
-    totals: totals(0), goals: GOALS, supplements: SUPPS, dayStat: { gym: false, abs: true },
-  }).segments.some((s) => s.key === "abs"),
-  false
+  "supplements + checklist → 3 segments in order",
+  getDayCompletion({ totals: totals(0), goals: GOALS, supplements: SUPPS, checklist: LIST }).segments.map((s) => s.key),
+  [SEGMENT_KEYS.MACROS, SEGMENT_KEYS.SUPPLEMENTS, SEGMENT_KEYS.CHECKLIST]
 );
 check(
-  "ticking abs does not advance the count",
-  getDayCompletion({ totals: totals(0), goals: GOALS, supplements: [], dayStat: { abs: true } }).completedCount,
-  0
-);
-check(
-  "a day with abs never ticked can still be complete",
-  getDayCompletion({
-    totals: totals(2500), goals: GOALS, supplements: SUPPS, takenIds: ["a", "b"],
-    dayStat: { gym: true, abs: false },
-  }).isComplete,
-  true
+  "empty checklist → no checklist segment",
+  getDayCompletion({ totals: totals(0), goals: GOALS, supplements: SUPPS, checklist: [] }).segments.map((s) => s.key),
+  ["macros", "supplements"]
 );
 
-// --- segment count varies with whether supplements are configured ----------
-check(
-  "no supplements configured → 2 segments",
-  getDayCompletion({ totals: totals(0), goals: GOALS, supplements: [] }).totalCount,
-  2
-);
-check(
-  "supplements configured → 3 segments",
-  getDayCompletion({ totals: totals(0), goals: GOALS, supplements: SUPPS }).totalCount,
-  3
-);
-check(
-  "segment keys, no supplements",
-  getDayCompletion({ totals: totals(0), goals: GOALS, supplements: [] }).segments.map((s) => s.key),
-  ["calories", "gym"]
-);
-check(
-  "segment keys, with supplements",
-  getDayCompletion({ totals: totals(0), goals: GOALS, supplements: SUPPS }).segments.map((s) => s.key),
-  ["calories", "supplements", "gym"]
-);
-
-// --- calories: met OR exceeded --------------------------------------------
-const calDone = (cals) =>
-  getDayCompletion({ totals: totals(cals), goals: GOALS, supplements: [] }).segments[0].done;
-check("calories under goal → not done", calDone(2399), false);
-check("calories exactly at goal → done", calDone(2400), true);
-check("calories over goal → done", calDone(3000), true);
-check(
-  "zero calorie goal → never done (avoids 0 >= 0)",
-  getDayCompletion({ totals: totals(0), goals: { calories: 0 }, supplements: [] }).segments[0].done,
-  false
-);
+// --- macros: every macro within ±10% ---------------------------------------
+check("all four on goal → met", macroGoalsMet(ON_GOAL, GOALS), true);
+check("all four at +10% → met", macroGoalsMet({ calories: 2640, protein: 165, carbs: 363, fats: 77 }, GOALS), true);
+check("calories only → not met", macroGoalsMet(totals(2400), GOALS), false);
+check("protein 20% short → not met", macroGoalsMet({ ...ON_GOAL, protein: 120 }, GOALS), false);
+check("calories 20% over → not met", macroGoalsMet({ ...ON_GOAL, calories: 2880 }, GOALS), false);
+check("nothing logged → not met", macroGoalsMet(totals(0), GOALS), false);
+check("no goals at all → not met", macroGoalsMet(ON_GOAL, {}), false);
+check("zero-goal macro needs zero intake", macroGoalsMet({ ...ON_GOAL, fats: 0 }, { ...GOALS, fats: 0 }), true);
 
 // --- supplements: all or nothing ------------------------------------------
 const suppDone = (takenIds) =>
@@ -94,44 +64,49 @@ check("no supplements taken → not done", suppDone([]), false);
 check("some supplements taken → not done", suppDone(["a"]), false);
 check("all supplements taken → done", suppDone(["a", "b"]), true);
 
-// --- gym ------------------------------------------------------------------
-const gymDone = (dayStat) =>
-  getDayCompletion({ totals: totals(0), goals: GOALS, supplements: [], dayStat })
-    .segments.find((s) => s.key === "gym").done;
-check("no dayStat → gym undone", gymDone(null), false);
-check("gym ticked", gymDone({ gym: true }), true);
-check("weight alone does not tick gym", gymDone({ weight: 82.4 }), false);
+// --- checklist: every item ticked -----------------------------------------
+const listDone = (dayStat, checklist = LIST) =>
+  getDayCompletion({ totals: totals(0), goals: GOALS, checklist, dayStat })
+    .segments.find((s) => s.key === "checklist").done;
+check("no dayStat → checklist undone", listDone(null), false);
+check("one of two ticked → undone", listDone({ checked: ["gym"] }), false);
+check("both ticked → done", listDone({ checked: ["gym", "abs"] }), true);
+check("weight alone does not tick anything", listDone({ weight: 82.4, checked: [] }), false);
+check(
+  "custom item must be ticked too",
+  listDone({ checked: ["gym", "abs"] }, [...LIST, { id: "x", name: "10k steps" }]),
+  false
+);
+check("legacy { gym, abs } flags still count", listDone({ gym: true, abs: true }), true);
+check("stale ids for deleted items are ignored", listDone({ checked: ["gym", "old"] }, [LIST[0]]), true);
+
+// --- normalizeDayStat ------------------------------------------------------
+check("legacy flags fold into checked", normalizeDayStat({ weight: 80, gym: true, abs: false }), { weight: 80, checked: ["gym"] });
+check("empty legacy day → null", normalizeDayStat({ weight: null, gym: false, abs: false }), null);
+check("already-normal stat is unchanged", normalizeDayStat({ weight: 80, checked: ["x"] }), { weight: 80, checked: ["x"] });
+check("idempotent", normalizeDayStat(normalizeDayStat({ gym: true, abs: true })), { weight: null, checked: ["gym", "abs"] });
+check("no duplicate when both shapes present", normalizeDayStat({ gym: true, checked: ["gym"] }).checked, ["gym"]);
+check("normalizeDayStats drops empty days", normalizeDayStats({ a: { gym: false }, b: { abs: true } }), { b: { weight: null, checked: ["abs"] } });
 
 // --- isComplete / remaining -----------------------------------------------
 const full = getDayCompletion({
-  totals: totals(2500), goals: GOALS, supplements: SUPPS, takenIds: ["a", "b"],
-  dayStat: { gym: true },
+  totals: ON_GOAL, goals: GOALS, supplements: SUPPS, takenIds: ["a", "b"],
+  checklist: LIST, dayStat: { checked: ["gym", "abs"] },
 });
 check("everything done → isComplete", full.isComplete, true);
 check("everything done → 3/3", [full.completedCount, full.totalCount], [3, 3]);
 check("everything done → nothing remaining", full.remaining, []);
 
 const nearly = getDayCompletion({
-  totals: totals(2500), goals: GOALS, supplements: SUPPS, takenIds: ["a", "b"],
-  dayStat: { gym: false },
+  totals: ON_GOAL, goals: GOALS, supplements: SUPPS, takenIds: ["a", "b"],
+  checklist: LIST, dayStat: { checked: ["gym"] },
 });
 check("one short → not complete", nearly.isComplete, false);
-check("one short → remaining names it", nearly.remaining, ["gym"]);
-
-check(
-  "no supplements + other two done → complete at 2/2",
-  (() => {
-    const c = getDayCompletion({
-      totals: totals(2500), goals: GOALS, supplements: [], dayStat: { gym: true },
-    });
-    return [c.isComplete, c.completedCount, c.totalCount];
-  })(),
-  [true, 2, 2]
-);
+check("one short → remaining names it", nearly.remaining, ["checklist"]);
 
 // --- empty / defensive input ----------------------------------------------
-check("no arguments at all does not throw", getDayCompletion().totalCount, 2);
-check("missing goals → calories not done", getDayCompletion({}).segments[0].done, false);
+check("no arguments at all does not throw", getDayCompletion().totalCount, 1);
+check("missing goals → macros not done", getDayCompletion({}).segments[0].done, false);
 
 // --- selectDayCompletionInput --------------------------------------------
 const STORE = {
@@ -139,18 +114,20 @@ const STORE = {
   goals: GOALS,
   supplements: SUPPS,
   supplementLog: { "28/09/26": ["a"] },
-  dayStats: { "28/09/26": { weight: 82.4, gym: true, abs: false } },
+  checklist: LIST,
+  dayStats: { "28/09/26": { weight: 82.4, checked: ["gym"] } },
 };
 const picked = selectDayCompletionInput("28/09/26", STORE);
 check("selector pulls the day's totals", picked.totals.calories, 1800);
 check("selector pulls the day's taken ids", picked.takenIds, ["a"]);
-check("selector pulls the day's stat", picked.dayStat.gym, true);
+check("selector pulls the day's stat", picked.dayStat.checked, ["gym"]);
+check("selector pulls the checklist", picked.checklist.length, 2);
 
 const missing = selectDayCompletionInput("01/01/99", STORE);
 check("selector on an unlogged day → zero totals", missing.totals.calories, 0);
 check("selector on an unlogged day → no taken ids", missing.takenIds, []);
 check("selector on an unlogged day → null stat", missing.dayStat, null);
-check("selector tolerates an empty store", selectDayCompletionInput("28/09/26", {}).takenIds, []);
+check("selector tolerates an empty store", selectDayCompletionInput("28/09/26", {}).checklist, []);
 
 // --- renderProgressText ---------------------------------------------------
 check(

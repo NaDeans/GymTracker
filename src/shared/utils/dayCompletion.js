@@ -11,17 +11,67 @@
 // reading its source and importing it through a data: URL (the same trick
 // scripts/format-name-check.mjs uses), because these are ES modules Metro
 // bundles rather than modules Node can resolve. An aliased import would break
-// that loader, so the one numeric coercion needed is inlined below.
+// that loader, so the numeric coercion and the macro goal test are inlined below.
 
 export const SEGMENT_KEYS = {
-  CALORIES: "calories",
+  MACROS: "macros",
   SUPPLEMENTS: "supplements",
-  GYM: "gym",
+  CHECKLIST: "checklist",
 };
+
+// What a fresh install (or an upgrade from before the checklist was editable)
+// starts with. The ids are the old DAY_STATS flag names on purpose, so a day
+// logged as `{ gym: true, abs: false }` maps straight onto these items.
+export const DEFAULT_CHECKLIST = [
+  { id: "gym", name: "Went to the gym" },
+  { id: "abs", name: "Hit abs" },
+];
+
+const LEGACY_FLAGS = ["gym", "abs"];
 
 const num = (v) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
+};
+
+// One day's DAY_STATS entry in its current shape: `{ weight, checked: [id] }`,
+// or null when nothing is recorded. Older builds stored the two fixed ticks as
+// `gym` / `abs` booleans; those fold into `checked` here. Idempotent, so it runs
+// on every load rather than behind a migration flag.
+export const normalizeDayStat = (stat) => {
+  if (!stat || typeof stat !== "object") return null;
+  const checked = Array.isArray(stat.checked) ? [...stat.checked] : [];
+  LEGACY_FLAGS.forEach((flag) => {
+    if (stat[flag] && !checked.includes(flag)) checked.push(flag);
+  });
+  const weight = typeof stat.weight === "number" && Number.isFinite(stat.weight) ? stat.weight : null;
+  if (weight == null && checked.length === 0) return null;
+  return { weight, checked };
+};
+
+export const normalizeDayStats = (dayStats = {}) => {
+  const out = {};
+  Object.entries(dayStats || {}).forEach(([dmy, stat]) => {
+    const clean = normalizeDayStat(stat);
+    if (clean) out[dmy] = clean;
+  });
+  return out;
+};
+
+// Same test as isGoalMet in macroUtils (the "Goal met" badge), inlined because
+// this file must stay import-free: every macro within ±10% of its goal, and
+// something has to have been logged. Keeping the two identical means the badge
+// and the first bar segment can never disagree.
+const MACRO_KEYS = ["calories", "protein", "carbs", "fats"];
+const MACRO_TOLERANCE = 0.1;
+export const macroGoalsMet = (totals = {}, goals = {}) => {
+  if (!MACRO_KEYS.some((k) => num(goals?.[k]) > 0)) return false;
+  if (!MACRO_KEYS.some((k) => num(totals?.[k]) > 0)) return false;
+  return MACRO_KEYS.every((k) => {
+    const goal = num(goals?.[k]);
+    if (!goal) return num(totals?.[k]) === 0;
+    return Math.abs(num(totals?.[k]) - goal) / goal <= MACRO_TOLERANCE;
+  });
 };
 
 // Narrows the whole-store shapes down to the single day getDayCompletion wants.
@@ -32,29 +82,29 @@ export const selectDayCompletionInput = (dmy, store = {}) => ({
   goals: store.goals || {},
   supplements: store.supplements || [],
   takenIds: store.supplementLog?.[dmy] || [],
+  checklist: store.checklist || [],
   dayStat: store.dayStats?.[dmy] || null,
 });
 
-// Note this is a LOOSER test than isGoalMet/selectedDayGoalMet, which wants all
-// four macros inside ±10%. This one only asks whether the calorie goal was
-// reached, so the two can legitimately disagree — the "Goal met" badge and a
-// full completion bar are answering different questions.
+// Up to three segments: calorie + macro goals, every supplement, every
+// checklist item. The supplements and checklist segments are left out entirely
+// when their list is empty, so the bar never shows one that can't be filled.
 //
-// The supplements segment is left out entirely when none are configured, so
-// totalCount is 2 or 3 and the bar renders equal segments either way rather
-// than showing one that can never be filled.
-//
-// Abs is deliberately NOT a segment. It is still ticked on the day and still
-// exported — it just isn't something the day has to clear to count as done.
-export const getDayCompletion = ({ totals, goals, supplements = [], takenIds = [], dayStat } = {}) => {
-  const calorieGoal = num(goals?.calories);
-
+// Body weight is logged in the same card as the checklist but is not required.
+export const getDayCompletion = ({
+  totals,
+  goals,
+  supplements = [],
+  takenIds = [],
+  checklist = [],
+  dayStat,
+} = {}) => {
   const segments = [
     {
-      key: SEGMENT_KEYS.CALORIES,
-      label: "Calorie goal",
-      shortLabel: "Calories",
-      done: calorieGoal > 0 && num(totals?.calories) >= calorieGoal,
+      key: SEGMENT_KEYS.MACROS,
+      label: "Calorie and macro goals",
+      shortLabel: "Macros",
+      done: macroGoalsMet(totals, goals),
     },
   ];
 
@@ -67,12 +117,15 @@ export const getDayCompletion = ({ totals, goals, supplements = [], takenIds = [
     });
   }
 
-  segments.push({
-    key: SEGMENT_KEYS.GYM,
-    label: "Went to the gym",
-    shortLabel: "Gym",
-    done: Boolean(dayStat?.gym),
-  });
+  if (checklist.length > 0) {
+    const checked = normalizeDayStat(dayStat)?.checked || [];
+    segments.push({
+      key: SEGMENT_KEYS.CHECKLIST,
+      label: "Daily checklist",
+      shortLabel: "Checklist",
+      done: checklist.every((c) => checked.includes(c.id)),
+    });
+  }
 
   const completedCount = segments.filter((s) => s.done).length;
   const totalCount = segments.length;

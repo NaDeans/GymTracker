@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { formatFoodName, foodKey } from "shared/utils/textUtils";
 import { migrateFoodData } from "./foodCacheUtils";
+import { DEFAULT_CHECKLIST, normalizeDayStats } from "shared/utils/dayCompletion";
 
 const DEFAULT_GOALS = { calories: 2400, protein: 150, carbs: 330, fats: 70 };
 
@@ -100,6 +101,7 @@ export const loadMacroTrackerData = async () => {
       savedSupplementLog,
       savedMealPreps,
       savedDayStats,
+      savedChecklist,
     ] = await Promise.all([
       AsyncStorage.getItem("MEALS"),
       AsyncStorage.getItem("DAILY_LOG"),
@@ -110,6 +112,7 @@ export const loadMacroTrackerData = async () => {
       AsyncStorage.getItem("SUPPLEMENT_LOG"),
       AsyncStorage.getItem("MEAL_PREPS"),
       AsyncStorage.getItem("DAY_STATS"),
+      AsyncStorage.getItem("CHECKLIST"),
     ]);
 
     // Convert any leftover custom foods first, so the formatter below sees the
@@ -138,7 +141,11 @@ export const loadMacroTrackerData = async () => {
       supplements: savedSupplements ? JSON.parse(savedSupplements) : [],
       supplementLog: savedSupplementLog ? JSON.parse(savedSupplementLog) : {},
       mealPreps: savedMealPreps ? JSON.parse(savedMealPreps) : [],
-      dayStats: savedDayStats ? JSON.parse(savedDayStats) : {},
+      // Legacy { gym, abs } flags fold into { checked } — see normalizeDayStat.
+      dayStats: normalizeDayStats(savedDayStats ? JSON.parse(savedDayStats) : {}),
+      // A missing key means the checklist was never edited; an empty array is
+      // the user having deleted every item, and must stay empty.
+      checklist: savedChecklist ? JSON.parse(savedChecklist) : DEFAULT_CHECKLIST,
     };
   } catch (err) {
     console.error("Error loading macro tracker data:", err);
@@ -152,6 +159,7 @@ export const loadMacroTrackerData = async () => {
       supplementLog: {},
       mealPreps: [],
       dayStats: {},
+      checklist: DEFAULT_CHECKLIST,
     };
   }
 };
@@ -171,6 +179,7 @@ export const loadDayCompletionInputs = async () => {
       "SUPPLEMENTS",
       "SUPPLEMENT_LOG",
       "DAY_STATS",
+      "CHECKLIST",
     ]);
     const raw = Object.fromEntries(pairs);
     return {
@@ -178,11 +187,12 @@ export const loadDayCompletionInputs = async () => {
       goals: raw.GOALS ? JSON.parse(raw.GOALS) : DEFAULT_GOALS,
       supplements: raw.SUPPLEMENTS ? JSON.parse(raw.SUPPLEMENTS) : [],
       supplementLog: raw.SUPPLEMENT_LOG ? JSON.parse(raw.SUPPLEMENT_LOG) : {},
-      dayStats: raw.DAY_STATS ? JSON.parse(raw.DAY_STATS) : {},
+      dayStats: normalizeDayStats(raw.DAY_STATS ? JSON.parse(raw.DAY_STATS) : {}),
+      checklist: raw.CHECKLIST ? JSON.parse(raw.CHECKLIST) : DEFAULT_CHECKLIST,
     };
   } catch (err) {
     console.error("Error loading day completion inputs:", err);
-    return { dailyLog: {}, goals: DEFAULT_GOALS, supplements: [], supplementLog: {}, dayStats: {} };
+    return { dailyLog: {}, goals: DEFAULT_GOALS, supplements: [], supplementLog: {}, dayStats: {}, checklist: DEFAULT_CHECKLIST };
   }
 };
 
@@ -196,6 +206,7 @@ export const saveMacroTrackerData = async ({
   supplementLog,
   mealPreps,
   dayStats,
+  checklist,
 }) => {
   try {
     await Promise.all([
@@ -208,6 +219,7 @@ export const saveMacroTrackerData = async ({
       AsyncStorage.setItem("SUPPLEMENT_LOG", JSON.stringify(supplementLog)),
       AsyncStorage.setItem("MEAL_PREPS", JSON.stringify(mealPreps)),
       AsyncStorage.setItem("DAY_STATS", JSON.stringify(dayStats)),
+      AsyncStorage.setItem("CHECKLIST", JSON.stringify(checklist)),
     ]);
   } catch (err) {
     console.error("Error saving macro tracker data:", err);

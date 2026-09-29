@@ -22,7 +22,7 @@ import { SupplementsSection } from "./components/SupplementsSection";
 import { DayStatsSection } from "./components/DayStatsSection";
 import { DayCompletionBar } from "./components/DayCompletionBar";
 import { useReminderSync } from "shared/notifications/useReminderSync";
-import { SupplementsModal } from "./components/SupplementsModal";
+import { NamedListModal } from "./components/NamedListModal";
 
 export default function MacroTrackerScreen() {
   const {
@@ -46,7 +46,9 @@ export default function MacroTrackerScreen() {
     supplementsTakenToday,
     supplementsModalVisible, setSupplementsModalVisible,
     toggleSupplement, addSupplement, renameSupplement, removeSupplement,
-    selectedDayStat, previousDayWeight, setDayWeight, toggleGym, toggleAbs,
+    selectedDayStat, previousDayWeight, setDayWeight,
+    checklist, checklistModalVisible, setChecklistModalVisible,
+    toggleChecklistItem, addChecklistItem, renameChecklistItem, removeChecklistItem,
     dayCompletion, todayCompletion, dayStats,
     goals, setGoals,
     editingMacro, setEditingMacro,
@@ -85,7 +87,7 @@ export default function MacroTrackerScreen() {
   // live state means the sync can't race the save effect the same tick started.
   useReminderSync(
     `${todayCompletion.completedCount}/${todayCompletion.totalCount}`,
-    () => ({ dailyLog, goals, supplements, supplementLog, dayStats })
+    () => ({ dailyLog, goals, supplements, supplementLog, dayStats, checklist })
   );
 
   const { colors } = useTheme();
@@ -191,10 +193,10 @@ export default function MacroTrackerScreen() {
               weight={selectedDayStat?.weight ?? null}
               previousWeight={previousDayWeight}
               onCommitWeight={setDayWeight}
-              gym={Boolean(selectedDayStat?.gym)}
-              abs={Boolean(selectedDayStat?.abs)}
-              onToggleGym={toggleGym}
-              onToggleAbs={toggleAbs}
+              checklist={checklist}
+              checkedIds={selectedDayStat?.checked || []}
+              onToggleItem={toggleChecklistItem}
+              onManage={() => setChecklistModalVisible(true)}
             />
           }
         />
@@ -243,13 +245,30 @@ export default function MacroTrackerScreen() {
         onSaveLogEntry={updateLoggedFoodEntry}
       />
 
-      <SupplementsModal
+      <NamedListModal
         visible={supplementsModalVisible}
         setVisible={setSupplementsModalVisible}
-        supplements={supplements}
-        addSupplement={addSupplement}
-        renameSupplement={renameSupplement}
-        removeSupplement={removeSupplement}
+        title="Supplements"
+        addTitle="Add Supplement"
+        emptyText="Add the supplements you take — they'll show up as a daily tick-list and in your exports."
+        placeholder="e.g. Vitamin D"
+        items={supplements}
+        onAdd={addSupplement}
+        onRename={renameSupplement}
+        onRemove={removeSupplement}
+      />
+
+      <NamedListModal
+        visible={checklistModalVisible}
+        setVisible={setChecklistModalVisible}
+        title="Daily Checklist"
+        addTitle="Add Item"
+        emptyText="Add the things you want to tick off each day — they count towards the progress bar and appear in your exports."
+        placeholder="e.g. 10k steps"
+        items={checklist}
+        onAdd={addChecklistItem}
+        onRename={renameChecklistItem}
+        onRemove={removeChecklistItem}
       />
 
       <ManualEntryModal

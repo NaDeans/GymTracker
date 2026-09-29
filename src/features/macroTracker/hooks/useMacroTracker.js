@@ -6,7 +6,7 @@ import { todayString, shiftDmy } from "shared/utils/dateUtils";
 import { safeNumber } from "shared/utils/numberUtils";
 import { formatFoodName, foodKey } from "shared/utils/textUtils";
 import { calcCurrentStreak, dayHasLog } from "shared/utils/streakUtils";
-import { getDayCompletion, selectDayCompletionInput } from "shared/utils/dayCompletion";
+import { DEFAULT_CHECKLIST, getDayCompletion, selectDayCompletionInput } from "shared/utils/dayCompletion";
 import { calcTotals, entryExistsForDay, isGoalMet } from "../utils/macroUtils";
 import { newFoodId, resolveFromCache, withAlias } from "../utils/foodCacheUtils";
 import {
@@ -62,10 +62,15 @@ export const useMacroTracker = () => {
   const [supplementLog, setSupplementLog] = useState({});
   const [supplementsModalVisible, setSupplementsModalVisible] = useState(false);
 
-  // Body weight / gym / abs for the day, keyed DD/MM/YY like supplementLog and
-  // kept sparse the same way — a date key exists only while the day still has
-  // something recorded against it.
+  // Body weight and ticked checklist ids for the day — { weight, checked } —
+  // keyed DD/MM/YY like supplementLog and kept sparse the same way: a date key
+  // exists only while the day still has something recorded against it.
   const [dayStats, setDayStats] = useState({});
+
+  // The user's editable daily checklist ("Went to the gym", "Hit abs", …). Like
+  // supplements, only ids are logged per day, so a rename applies retroactively.
+  const [checklist, setChecklist] = useState(DEFAULT_CHECKLIST);
+  const [checklistModalVisible, setChecklistModalVisible] = useState(false);
 
   // Meal preps — a bulk cook divided into servings. Distinct from `meals`
   // (a named group of foods) and from the Recipes tab (free-form notes).
@@ -91,14 +96,15 @@ export const useMacroTracker = () => {
       setSupplementLog(data.supplementLog);
       setMealPreps(data.mealPreps);
       setDayStats(data.dayStats);
+      setChecklist(data.checklist);
       hasLoaded.current = true;
     });
   }, []);
 
   useEffect(() => {
     if (!hasLoaded.current) return;
-    saveMacroTrackerData({ meals, dailyLog, historyByDate, goals, gptCache, supplements, supplementLog, mealPreps, dayStats });
-  }, [meals, dailyLog, historyByDate, goals, gptCache, supplements, supplementLog, mealPreps, dayStats]);
+    saveMacroTrackerData({ meals, dailyLog, historyByDate, goals, gptCache, supplements, supplementLog, mealPreps, dayStats, checklist });
+  }, [meals, dailyLog, historyByDate, goals, gptCache, supplements, supplementLog, mealPreps, dayStats, checklist]);
 
   // How often each cached food has been logged, used to break ties between
   // suggestions that match the search term equally well.
@@ -136,6 +142,7 @@ export const useMacroTracker = () => {
       setSupplementLog(data.supplementLog);
       setMealPreps(data.mealPreps);
       setDayStats(data.dayStats);
+      setChecklist(data.checklist);
     } catch (err) {
       console.error("Refresh error:", err);
     }
@@ -260,15 +267,15 @@ export const useMacroTracker = () => {
     });
   };
 
-  // Body weight / gym / abs for the selected day. Patched functionally so a
-  // rapid tick never reads a stale `dayStats`, and pruned on the way out so a
+  // Body weight / checklist ticks for the selected day. Patched functionally so
+  // a rapid tick never reads a stale `dayStats`, and pruned on the way out so a
   // day the user cleared back to nothing leaves no key behind — same discipline
   // as toggleSupplement above.
   const updateDayStat = (makePatch) => {
     setDayStats((prev) => {
-      const current = prev[selectedDate] || { weight: null, gym: false, abs: false };
+      const current = prev[selectedDate] || { weight: null, checked: [] };
       const next = { ...current, ...makePatch(current) };
-      if (next.weight == null && !next.gym && !next.abs) {
+      if (next.weight == null && next.checked.length === 0) {
         const u = { ...prev }; delete u[selectedDate]; return u;
       }
       return { ...prev, [selectedDate]: next };
@@ -276,8 +283,50 @@ export const useMacroTracker = () => {
   };
 
   const setDayWeight = (weight) => updateDayStat(() => ({ weight }));
-  const toggleGym = () => updateDayStat((c) => ({ gym: !c.gym }));
-  const toggleAbs = () => updateDayStat((c) => ({ abs: !c.abs }));
+  const toggleChecklistItem = (id) => updateDayStat((c) => ({
+    checked: c.checked.includes(id) ? c.checked.filter((x) => x !== id) : [...c.checked, id],
+  }));
+
+  const addChecklistItem = (name) => {
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+    if (checklist.some((c) => c.name.toLowerCase() === trimmed.toLowerCase())) {
+      Alert.alert("Already added", `"${trimmed}" is already on your checklist.`);
+      return false;
+    }
+    setChecklist((prev) => [...prev, { id: Date.now().toString(), name: trimmed }]);
+    return true;
+  };
+
+  const renameChecklistItem = (id, name) => {
+    setChecklist((prev) => prev.map((c) => (c.id === id ? { ...c, name } : c)));
+  };
+
+  const removeChecklistItem = (id) => {
+    const entry = checklist.find((c) => c.id === id);
+    Alert.alert(
+      "Delete Checklist Item?",
+      `Remove "${entry?.name || "this item"}"? It will also be removed from the days you ticked it off.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            setChecklist((prev) => prev.filter((c) => c.id !== id));
+            setDayStats((prev) => {
+              const cleaned = {};
+              Object.entries(prev).forEach(([date, stat]) => {
+                const checked = stat.checked.filter((x) => x !== id);
+                if (stat.weight != null || checked.length > 0) cleaned[date] = { ...stat, checked };
+              });
+              return cleaned;
+            });
+          },
+        },
+      ]
+    );
+  };
 
   const addSupplement = (name) => {
     const trimmed = name.trim();
@@ -322,7 +371,7 @@ export const useMacroTracker = () => {
 
   const exportDay = async () => {
     try {
-      const message = formatDayForExport(selectedDate, historyByDate, dailyLog, goals, supplements, supplementLog, dayStats);
+      const message = formatDayForExport(selectedDate, historyByDate, dailyLog, goals, supplements, supplementLog, dayStats, checklist);
       await Share.share({ message });
     } catch (err) {
       console.error("Export day error:", err);
@@ -331,7 +380,7 @@ export const useMacroTracker = () => {
 
   const exportRange = async (days = 14) => {
     try {
-      const message = formatRangeForExport(selectedDate, days, historyByDate, dailyLog, goals, supplements, supplementLog, dayStats);
+      const message = formatRangeForExport(selectedDate, days, historyByDate, dailyLog, goals, supplements, supplementLog, dayStats, checklist);
       await Share.share({ message });
     } catch (err) {
       console.error("Export range error:", err);
@@ -806,26 +855,22 @@ export const useMacroTracker = () => {
   // Hint for the weight field's placeholder only — never recorded on its own.
   const previousDayWeight = dayStats[shiftDmy(selectedDate, -1)]?.weight ?? null;
 
-  // A looser test than selectedDayGoalMet above: this one only asks whether the
-  // calorie goal was reached, so the two can legitimately disagree.
+  // Its macros segment uses the same ±10% test as selectedDayGoalMet above, so
+  // the "Goal met" badge and the first bar segment always agree.
   const dayCompletion = useMemo(
-    () => getDayCompletion({
-      totals: dayData.totals,
-      goals,
-      supplements,
-      takenIds: supplementLog[selectedDate] || [],
-      dayStat: dayStats[selectedDate],
-    }),
-    [dayData.totals, goals, supplements, supplementLog, dayStats, selectedDate]
+    () => getDayCompletion(
+      selectDayCompletionInput(selectedDate, { dailyLog, goals, supplements, supplementLog, dayStats, checklist })
+    ),
+    [dailyLog, goals, supplements, supplementLog, dayStats, checklist, selectedDate]
   );
 
   // Today specifically, regardless of which day is on screen — the reminders are
   // about today, so browsing back through the week must not change what they say.
   const todayCompletion = useMemo(
     () => getDayCompletion(
-      selectDayCompletionInput(todayString(), { dailyLog, goals, supplements, supplementLog, dayStats })
+      selectDayCompletionInput(todayString(), { dailyLog, goals, supplements, supplementLog, dayStats, checklist })
     ),
-    [dailyLog, goals, supplements, supplementLog, dayStats]
+    [dailyLog, goals, supplements, supplementLog, dayStats, checklist]
   );
 
   return {
@@ -849,7 +894,9 @@ export const useMacroTracker = () => {
     supplementsModalVisible, setSupplementsModalVisible,
     toggleSupplement, addSupplement, renameSupplement, removeSupplement,
     dayStats, selectedDayStat, previousDayWeight,
-    setDayWeight, toggleGym, toggleAbs,
+    setDayWeight,
+    checklist, checklistModalVisible, setChecklistModalVisible,
+    toggleChecklistItem, addChecklistItem, renameChecklistItem, removeChecklistItem,
     dayCompletion, todayCompletion,
     goals, setGoals,
     editingMacro, setEditingMacro,
