@@ -132,6 +132,32 @@ export const createThemedStyles = (colors) => StyleSheet.create({
   sectionTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, marginTop: SPACING.lg, marginBottom: SPACING.sm, color: colors.textPrimary },
   foodActionsRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   foodActionsLeft: { flexDirection: "row", gap: SPACING.sm },
+
+  /* ================= SCAN LABEL SHEET ================= */
+  scanSheetHint: { fontSize: FONT_SIZE.sm, color: colors.textMuted, marginBottom: SPACING.md },
+  scanOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.md,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceRaised,
+    marginBottom: SPACING.sm,
+  },
+  scanOptionPressed: { backgroundColor: colors.primarySurface, borderColor: colors.primaryLight },
+  scanOptionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: BORDER_RADIUS.pill,
+    backgroundColor: colors.primarySurface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  scanOptionText: { flex: 1 },
+  scanOptionTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textDark },
+  scanOptionSubtitle: { fontSize: FONT_SIZE.xs, color: colors.textMuted, marginTop: 2 },
 });
 
 export const styles = createThemedStyles(COLORS);

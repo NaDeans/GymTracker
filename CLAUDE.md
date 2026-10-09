@@ -25,7 +25,7 @@ This is loaded via `react-native-dotenv` and imported as `import { ANTHROPIC_API
 
 ## Architecture
 
-React Native / Expo app with four tab screens. All state is local React hooks; persistence is `AsyncStorage` only — there is no backend or database. Code is organized by feature under `src/features/`, with shared components/hooks/utils under `src/shared/`.
+React Native / Expo app with three tab screens. All state is local React hooks; persistence is `AsyncStorage` only — there is no backend or database. Code is organized by feature under `src/features/`, with shared components/hooks/utils under `src/shared/`.
 
 **Three things are named like recipes and are not the same thing.** Keep them straight:
 - **Meals** (`MEALS`) — a named group of foods that logs as one block, built by ticking foods in the day's log.
@@ -34,13 +34,12 @@ React Native / Expo app with four tab screens. All state is local React hooks; p
 
 ### Navigation
 
-`App.js` → `src/navigation/AppNavigator.js` → React Navigation bottom tab with four screens:
+`App.js` → `src/navigation/AppNavigator.js` → React Navigation bottom tab with three screens:
 - **Macros** → `src/features/macroTracker/MacroTrackerScreen.js`
 - **Saved** → `src/features/macroTracker/SavedFoodsScreen.js`
 - **Recipes** → `src/features/recipes/RecipesScreen.js`
-- **Calculator** → `src/features/calculator/CalculatorScreen.js`
 
-Route names double as tab labels and are kept short — four have to fit a 64px bar at `FONT_SIZE.xs`. `TAB_ICONS` must gain an entry for any new tab.
+Route names double as tab labels and are kept short — they have to fit a 64px bar at `FONT_SIZE.xs`. `TAB_ICONS` must gain an entry for any new tab.
 
 `App.js` awaits `purgeRemovedFeatureData()` (`src/shared/utils/legacyCleanup.js`) and `migrateMealPrepsOffRecipesKey()` (`src/shared/utils/migrations.js`) before rendering the navigator. The gate matters for the second one: a pre-release build stored meal preps under `RECIPES`, and `useRecipes` does no shape checking, so it would load them as blank notes and save note-shaped data back over them.
 
@@ -90,8 +89,10 @@ item purges it from every day. It starts as "Went to the gym" / "Hit abs" with i
 folds legacy `{ gym, abs }` booleans into `checked` on every load, idempotently.
 `DAY_STATS` is kept sparse the same way `supplementLog` is — the date key is
 deleted once weight is cleared and nothing is ticked — and `resetDay` drops it
-alongside the others. The weight field commits on blur, not per keystroke, because
-every write rewrites all ten storage keys. Yesterday's weight shows as the
+alongside the others. The weight field saves on a short typing pause and is flushed from every exit
+(blur, end-editing, keyboard hide, app backgrounding, unmount) — Android often
+skips onEndEditing, which used to drop the typed weight. Not per keystroke,
+because every write rewrites all ten storage keys. Yesterday's weight shows as the
 placeholder and is never recorded on its own. Both exports carry a
 `Weight: … | Went to the gym: yes | Hit abs: no | …` line (one entry per checklist
 item), and the range export emits it in **both** branches, including the one for
@@ -103,7 +104,7 @@ the in-app bar (`DayCompletionBar`, one thin line under the date picker) and the
 reminder scheduler. Three segments: calorie + macro goals met, every supplement
 ticked, every checklist item ticked. The supplements and checklist segments are
 omitted when their list is empty, so the bar is 1–3 equal segments. Body weight
-does not gate completion. The macros segment is the same ±10%-on-all-four test as
+does not gate completion. The macros segment is the same ±15%-on-all-four test as
 `isGoalMet` (the "Goal met" badge), inlined as `macroGoalsMet` — keep the two in
 step so the badge and the bar never disagree.
 That file is deliberately import-free: `scripts/completion-check.mjs` loads it
@@ -111,7 +112,7 @@ through a `data:` URL, as `format-name-check.mjs` does, and an aliased import
 would break that loader. Run `node scripts/completion-check.mjs` after touching it.
 
 **Reminders** (`src/shared/notifications/`) are local notifications on a fixed
-schedule (`REMINDER_HOURS`, hourly 7am–9pm, rebuilt four days ahead on every
+schedule (`REMINDER_HOURS`, 9am / 2pm / 8pm, rebuilt a week ahead on every
 sync — the window is sized to stay under iOS's 64-pending-notification cap). Nothing runs
 when a local notification fires, so the body text (`2/3 done · 1840/2400 kcal.`)
 is computed at *schedule* time. Every app foreground and every change in today's

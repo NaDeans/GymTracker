@@ -15,8 +15,8 @@ const TRAILING_DAYS = 7;
 // goal itself lands at 1/BAR_MAX_RATIO along the track (2/3 with 1.5), leaving
 // room to visualize overshoot past the goal.
 const BAR_MAX_RATIO = 1.5;
-const GOAL_ZONE_RATIO_MIN = 0.9;
-const GOAL_ZONE_RATIO_MAX = 1.1;
+const GOAL_ZONE_RATIO_MIN = 0.85;
+const GOAL_ZONE_RATIO_MAX = 1.15;
 
 export const MacroTotals = ({ totalMacros, goals, setEditingMacro, setGoalInput, setGoalModalVisible, dailyLog, selectedDate }) => {
   const { colors } = useTheme();

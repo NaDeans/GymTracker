@@ -73,7 +73,7 @@ export const calcTotals = (items) =>
 export const entryExistsForDay = (dayHistory, foodId) =>
   dayHistory.some((entry) => entry.foodId === foodId);
 
-export const isGoalMet = (totals, goals, hasItems, tolerancePct = 0.10) => {
+export const isGoalMet = (totals, goals, hasItems, tolerancePct = 0.15) => {
   if (!hasItems) return false;
   return ["calories", "protein", "carbs", "fats"].every((k) => {
     const goal = goals[k];

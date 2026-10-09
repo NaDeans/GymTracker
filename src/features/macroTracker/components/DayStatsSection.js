@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { View, Text, Pressable } from "react-native";
+import { useState, useRef, useEffect } from "react";
+import { View, Text, Pressable, Keyboard, AppState } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { createThemedStyles } from "../macroTrackerStyles";
 import { Card } from "shared/components/Card";
@@ -16,7 +16,11 @@ import { triggerImpact } from "shared/utils/haptics";
 //
 // The caller passes key={selectedDate}, so changing day remounts this and the
 // weight draft resets with it — no resync effect needed.
+// How long typing has to pause before the weight is saved without a blur.
+const WEIGHT_SAVE_DELAY_MS = 800;
+
 export const DayStatsSection = ({
+  date,
   weight,
   previousWeight,
   onCommitWeight,
@@ -29,25 +33,77 @@ export const DayStatsSection = ({
   const styles = createThemedStyles(colors);
   const [draft, setDraft] = useState(() => (weight != null ? fmt(weight) : ""));
 
-  // Committed on blur rather than per keystroke: every write here rewrites all
-  // ten AsyncStorage keys (saveMacroTrackerData persists them as one blob), and
-  // a half-typed "7" should never be recorded as a body weight.
-  const commit = () => {
-    const raw = draft.trim().replace(",", ".");
-    if (raw === "") {
-      setDraft("");
-      onCommitWeight(null);
-      return;
-    }
+  // Saving used to hang off onEndEditing alone, and Android often never sends
+  // it: hiding the keyboard with the back button leaves the field focused, and
+  // switching tab, changing day or backgrounding the app tears it down first.
+  // The typed weight was then silently dropped. So the draft is now flushed
+  // from every exit — a pause in typing, blur, end-editing, keyboard hide, app
+  // backgrounding and unmount. A debounce rather than per-keystroke saving,
+  // because each write rewrites all ten AsyncStorage keys.
+  //
+  // Refs, because the keyboard/AppState listeners and the unmount cleanup are
+  // registered once and must still see the latest draft and handler. `date` is
+  // pinned per mount (the caller keys this on it), so an unmount flush lands on
+  // the day that was being edited, not the one just switched to.
+  const draftRef = useRef(draft);
+  const savedRef = useRef(weight);
+  const onCommitRef = useRef(onCommitWeight);
+  onCommitRef.current = onCommitWeight;
+  const timerRef = useRef(null);
+
+  const parseDraft = (text) => {
+    const raw = text.trim().replace(",", ".");
+    if (raw === "") return { value: null };
     const n = Number(raw);
-    if (!Number.isFinite(n) || n <= 0) {
-      setDraft(weight != null ? fmt(weight) : "");
-      return;
-    }
-    const rounded = Math.round(n * 10) / 10;
-    setDraft(fmt(rounded));
-    onCommitWeight(rounded);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return { value: Math.round(n * 10) / 10 };
   };
+
+  const flush = () => {
+    clearTimeout(timerRef.current);
+    const parsed = parseDraft(draftRef.current);
+    if (!parsed || parsed.value === savedRef.current) return parsed;
+    savedRef.current = parsed.value;
+    onCommitRef.current(parsed.value, date);
+    return parsed;
+  };
+
+  // Leaving the field: save, then tidy what's shown ("72,46" → "72.5").
+  const commit = () => {
+    const parsed = flush();
+    const shown = parsed ? parsed.value : savedRef.current;
+    const text = shown != null ? fmt(shown) : "";
+    draftRef.current = text;
+    setDraft(text);
+  };
+
+  const onChangeText = (text) => {
+    draftRef.current = text;
+    setDraft(text);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(flush, WEIGHT_SAVE_DELAY_MS);
+  };
+
+  // The stored weight changed under us (e.g. "Reset day") — show that instead.
+  useEffect(() => {
+    if (weight === savedRef.current) return;
+    savedRef.current = weight;
+    const text = weight != null ? fmt(weight) : "";
+    draftRef.current = text;
+    setDraft(text);
+  }, [weight]);
+
+  useEffect(() => {
+    const keyboardSub = Keyboard.addListener("keyboardDidHide", flush);
+    const appStateSub = AppState.addEventListener("change", (state) => {
+      if (state !== "active") flush();
+    });
+    return () => {
+      keyboardSub.remove();
+      appStateSub.remove();
+      flush();
+    };
+  }, []);
 
   const checkRow = (label, done, onToggle, withDivider) => (
     <Pressable
@@ -77,8 +133,10 @@ export const DayStatsSection = ({
       <TextField
         label="Body weight"
         value={draft}
-        onChangeText={setDraft}
+        onChangeText={onChangeText}
         onEndEditing={commit}
+        onBlur={commit}
+        onSubmitEditing={commit}
         keyboardType="decimal-pad"
         suffix="kg"
         size="sm"
