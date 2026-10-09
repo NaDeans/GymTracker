@@ -10,16 +10,14 @@ import { useTheme } from "shared/hooks/useTheme";
 import { MacroTrackerProvider } from "features/macroTracker/context/MacroTrackerContext";
 import MacroTrackerScreen from "features/macroTracker/MacroTrackerScreen";
 import SavedFoodsScreen from "features/macroTracker/SavedFoodsScreen";
-import CalculatorScreen from "features/calculator/CalculatorScreen";
 import RecipesScreen from "features/recipes/RecipesScreen";
 
-// Four labels have to fit a 64px bar at FONT_SIZE.xs, so the route names stay
+// Tab labels have to fit a 64px bar at FONT_SIZE.xs, so the route names stay
 // short — the route name is the tab label.
 const TAB_ICONS = {
   Macros: { active: "restaurant", inactive: "restaurant-outline" },
   Saved: { active: "bookmarks", inactive: "bookmarks-outline" },
   Recipes: { active: "book", inactive: "book-outline" },
-  Calculator: { active: "calculator", inactive: "calculator-outline" },
 };
 
 const Tab = createBottomTabNavigator();
@@ -62,7 +60,6 @@ function NavigatorContent() {
         <Tab.Screen name="Macros" component={MacroTrackerScreen} />
         <Tab.Screen name="Saved" component={SavedFoodsScreen} />
         <Tab.Screen name="Recipes" component={RecipesScreen} />
-        <Tab.Screen name="Calculator" component={CalculatorScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );

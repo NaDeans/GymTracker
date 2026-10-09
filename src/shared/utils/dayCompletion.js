@@ -59,11 +59,11 @@ export const normalizeDayStats = (dayStats = {}) => {
 };
 
 // Same test as isGoalMet in macroUtils (the "Goal met" badge), inlined because
-// this file must stay import-free: every macro within ±10% of its goal, and
+// this file must stay import-free: every macro within ±15% of its goal, and
 // something has to have been logged. Keeping the two identical means the badge
 // and the first bar segment can never disagree.
 const MACRO_KEYS = ["calories", "protein", "carbs", "fats"];
-const MACRO_TOLERANCE = 0.1;
+const MACRO_TOLERANCE = 0.15;
 export const macroGoalsMet = (totals = {}, goals = {}) => {
   if (!MACRO_KEYS.some((k) => num(goals?.[k]) > 0)) return false;
   if (!MACRO_KEYS.some((k) => num(totals?.[k]) > 0)) return false;

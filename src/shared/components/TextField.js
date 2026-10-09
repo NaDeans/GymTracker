@@ -16,6 +16,7 @@ export const TextField = ({
   multiline = false,
   onSubmitEditing,
   onEndEditing,
+  onBlur,
   size = "md",
   suffix,
   prefix,
@@ -65,7 +66,7 @@ export const TextField = ({
           onSubmitEditing={onSubmitEditing}
           onEndEditing={onEndEditing}
           onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onBlur={(e) => { setFocused(false); onBlur?.(e); }}
         />
         {suffix ? <Text style={styles.affix}>{suffix}</Text> : null}
         {rightIcon ? (

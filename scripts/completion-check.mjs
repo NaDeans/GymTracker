@@ -47,10 +47,12 @@ check(
   ["macros", "supplements"]
 );
 
-// --- macros: every macro within ±10% ---------------------------------------
+// --- macros: every macro within ±15% ---------------------------------------
 check("all four on goal → met", macroGoalsMet(ON_GOAL, GOALS), true);
 check("all four at +10% → met", macroGoalsMet({ calories: 2640, protein: 165, carbs: 363, fats: 77 }, GOALS), true);
 check("calories only → not met", macroGoalsMet(totals(2400), GOALS), false);
+check("all four at +15% → met", macroGoalsMet({ calories: 2760, protein: 172, carbs: 379, fats: 80 }, GOALS), true);
+check("protein 16% short → not met", macroGoalsMet({ ...ON_GOAL, protein: 126 }, GOALS), false);
 check("protein 20% short → not met", macroGoalsMet({ ...ON_GOAL, protein: 120 }, GOALS), false);
 check("calories 20% over → not met", macroGoalsMet({ ...ON_GOAL, calories: 2880 }, GOALS), false);
 check("nothing logged → not met", macroGoalsMet(totals(0), GOALS), false);

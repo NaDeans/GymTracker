@@ -1,4 +1,5 @@
-import { View, Text, Pressable, Keyboard, Alert } from "react-native";
+import { useState } from "react";
+import { View, Text, Pressable, Keyboard } from "react-native";
 import { createThemedStyles } from "../macroTrackerStyles";
 import { TextField } from "shared/components/TextField";
 import { Button } from "shared/components/Button";
@@ -8,6 +9,7 @@ import { useTheme } from "shared/hooks/useTheme";
 import { useVoiceSearch } from "shared/hooks/useVoiceSearch";
 import { formatFoodName } from "shared/utils/textUtils";
 import { SPACING } from "shared/constants/styles";
+import { ScanLabelSheet } from "./ScanLabelSheet";
 
 export const FoodSearchInput = ({
   input,
@@ -25,6 +27,7 @@ export const FoodSearchInput = ({
 }) => {
   const { colors } = useTheme();
   const styles = createThemedStyles(colors);
+  const [scanSheetVisible, setScanSheetVisible] = useState(false);
   const { available: voiceAvailable, listening, toggle: toggleVoiceSearch } = useVoiceSearch(setInput);
 
   const handleSelectSuggestion = (s) => {
@@ -41,11 +44,16 @@ export const FoodSearchInput = ({
   };
 
   const handleScanLabel = () => {
-    Alert.alert("Scan Nutrition Label", undefined, [
-      { text: "Take Photo", onPress: () => onScanLabel("camera") },
-      { text: "Choose from Library", onPress: () => onScanLabel("library") },
-      { text: "Cancel", style: "cancel" },
-    ]);
+    Keyboard.dismiss();
+    setScanSheetVisible(true);
+  };
+
+  // The sheet is a Modal; launching the camera or picker while it is still
+  // fading out can fail to present (iOS refuses a second modal), so wait out
+  // the dismiss animation first.
+  const handlePickSource = (source) => {
+    setScanSheetVisible(false);
+    setTimeout(() => onScanLabel(source), 300);
   };
 
   return (
@@ -91,6 +99,12 @@ export const FoodSearchInput = ({
           ))}
         </Card>
       )}
+
+      <ScanLabelSheet
+        visible={scanSheetVisible}
+        onClose={() => setScanSheetVisible(false)}
+        onPick={handlePickSource}
+      />
     </View>
   );
 };

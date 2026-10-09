@@ -7,13 +7,14 @@ import { formatFoodName } from "shared/utils/textUtils";
 import { SPACING, FONT_SIZE } from "shared/constants/styles";
 import { useTheme } from "shared/hooks/useTheme";
 
+// Protein, fats, carbs — the order they're read off a nutrition label.
 const FIELDS = [
   { key: "name", label: "Name", keyboard: "default" },
   { key: "amount_g", label: "Amount (g)", keyboard: "decimal-pad" },
   { key: "calories", label: "Calories", keyboard: "decimal-pad" },
   { key: "protein", label: "Protein (g)", keyboard: "decimal-pad" },
-  { key: "carbs", label: "Carbs (g)", keyboard: "decimal-pad" },
   { key: "fats", label: "Fats (g)", keyboard: "decimal-pad" },
+  { key: "carbs", label: "Carbs (g)", keyboard: "decimal-pad" },
 ];
 
 const EMPTY = { name: "", amount_g: "100", calories: "", protein: "", carbs: "", fats: "" };

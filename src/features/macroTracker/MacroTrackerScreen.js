@@ -192,6 +192,7 @@ export default function MacroTrackerScreen() {
           dayStatsSection={
             <DayStatsSection
               key={selectedDate}
+              date={selectedDate}
               weight={selectedDayStat?.weight ?? null}
               previousWeight={previousDayWeight}
               onCommitWeight={setDayWeight}

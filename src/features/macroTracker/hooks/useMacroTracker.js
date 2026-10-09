@@ -271,18 +271,22 @@ export const useMacroTracker = () => {
   // a rapid tick never reads a stale `dayStats`, and pruned on the way out so a
   // day the user cleared back to nothing leaves no key behind — same discipline
   // as toggleSupplement above.
-  const updateDayStat = (makePatch) => {
+  const updateDayStat = (makePatch, date = selectedDate) => {
     setDayStats((prev) => {
-      const current = prev[selectedDate] || { weight: null, checked: [] };
+      const current = prev[date] || { weight: null, checked: [] };
       const next = { ...current, ...makePatch(current) };
       if (next.weight == null && next.checked.length === 0) {
-        const u = { ...prev }; delete u[selectedDate]; return u;
+        if (!(date in prev)) return prev;
+        const u = { ...prev }; delete u[date]; return u;
       }
-      return { ...prev, [selectedDate]: next };
+      if (current.weight === next.weight && current.checked === next.checked) return prev;
+      return { ...prev, [date]: next };
     });
   };
 
-  const setDayWeight = (weight) => updateDayStat(() => ({ weight }));
+  // Takes the date explicitly: the weight field flushes its draft on unmount,
+  // which happens *after* selectedDate has already moved to the new day.
+  const setDayWeight = (weight, date = selectedDate) => updateDayStat(() => ({ weight }), date);
   const toggleChecklistItem = (id) => updateDayStat((c) => ({
     checked: c.checked.includes(id) ? c.checked.filter((x) => x !== id) : [...c.checked, id],
   }));
@@ -855,7 +859,7 @@ export const useMacroTracker = () => {
   // Hint for the weight field's placeholder only — never recorded on its own.
   const previousDayWeight = dayStats[shiftDmy(selectedDate, -1)]?.weight ?? null;
 
-  // Its macros segment uses the same ±10% test as selectedDayGoalMet above, so
+  // Its macros segment uses the same ±15% test as selectedDayGoalMet above, so
   // the "Goal met" badge and the first bar segment always agree.
   const dayCompletion = useMemo(
     () => getDayCompletion(
